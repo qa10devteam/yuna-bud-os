@@ -1,71 +1,99 @@
 'use client';
 
 import { Sidebar } from '@/components/Sidebar';
-import { Brain, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Brain, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
-const stats = [
-  { label: 'Wartość przetargu', value: '4 500 000 zł', icon: FileText },
-  { label: 'Twój koszt', value: '3 230 000 zł', icon: Brain },
-  { label: 'Zysk brutto', value: '1 270 000 zł', icon: CheckCircle, success: true },
-  { label: 'Ryzyka', value: '3 wykryte', icon: AlertTriangle, warning: true },
+// Dynamic import to avoid SSR issues with motion
+const MotionDiv = dynamic(() => import('motion/react').then((m) => m.motion.div), { ssr: false });
+
+const decisions = [
+  { id: 1, desc: 'Oferuj cenę: 285 000 zł', recommendation: 'accept', confidence: 92, reason: 'Realistyczne ryzyka, konkurencyjna cena' },
+  { id: 2, desc: 'Wymagaj odwodnienia', recommendation: 'accept', confidence: 98, reason: 'Brak w dokumencie, realna potrzeba' },
+  { id: 3, desc: 'Zaoferuj alternatywę transportu', recommendation: 'accept', confidence: 85, reason: 'Twoje koszty transportu niższe o 18%' },
+  { id: 4, desc: 'Zignoruj cenę składowania', recommendation: 'decline', confidence: 70, reason: 'Cena w dokumencie zaniżona, ale realna' },
 ];
 
 export default function DecyzjaPage() {
   return (
-    <div className="flex min-h-screen bg-surface-base text-text-primary font-body">
+    <div className="flex min-h-screen bg-[#0A0A0A] text-[#F4F4F0] font-sans">
       <Sidebar />
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <Brain className="w-8 h-8 text-accent-success" />
-          <div>
-            <h1 className="text-3xl font-display font-bold text-neutral-600">
-              DECYZJA — Moduł 3: Łyżka
-            </h1>
-            <p className="text-neutral-400">Podsumowanie i decyzja o złożeniu oferty.</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#3B82F6]/20 flex items-center justify-center">
+              <Brain className="w-6 h-6 text-[#3B82F6]" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-display font-bold text-[#F4F4F0]">
+                DECYZJA
+              </h1>
+              <p className="text-neutral-400">Mózg systemowy — rekomendacje i podsumowanie.</p>
+            </div>
           </div>
         </div>
 
-        <motion.div 
+        {/* Recommendations */}
+        <div className="space-y-4 mb-8">
+          {decisions.map((decision) => (
+            <MotionDiv
+              key={decision.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="card flex items-start gap-4"
+            >
+              <div className={`p-3 rounded-lg ${
+                decision.recommendation === 'accept' ? 'bg-[#00FF94]/20 text-[#00FF94]' :
+                'bg-[#FF3300]/20 text-[#FF3300]'
+              }`}>
+                {decision.recommendation === 'accept' ? (
+                  <CheckCircle className="w-6 h-6" />
+                ) : (
+                  <XCircle className="w-6 h-6" />
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-display font-bold text-lg">{decision.desc}</h3>
+                  <span className={`badge-tech`}>{decision.confidence}% pewności</span>
+                </div>
+                <p className="text-neutral-400 text-sm">{decision.reason}</p>
+              </div>
+              <div className="flex gap-2">
+                <button className={`btn-primary text-sm ${
+                  decision.recommendation === 'accept' ? '' : 'opacity-50'
+                }`}>
+                  AKCEPTUJ
+                </button>
+                <button className={`btn-secondary text-sm ${
+                  decision.recommendation !== 'accept' ? '' : 'opacity-50'
+                }`}>
+                  ODRZUĆ
+                </button>
+              </div>
+            </MotionDiv>
+          ))}
+        </div>
+
+        {/* Summary */}
+        <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
+          transition={{ delay: 0.3 }}
+          className="card"
         >
-          {stats.map((stat) => (
-            <div key={stat.label} className="card">
-              <div className="flex items-center gap-3 mb-2">
-                <stat.icon className={`w-5 h-5 ${stat.success ? 'text-accent-success' : stat.warning ? 'text-accent-warning' : 'text-neutral-400'}`} />
-                <span className="text-sm text-neutral-400">{stat.label}</span>
-              </div>
-              <div className={`text-2xl font-mono font-bold ${stat.success ? 'text-accent-success' : stat.warning ? 'text-accent-warning' : 'text-neutral-600'}`}>
-                {stat.value}
-              </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-display font-bold text-lg mb-2">Finalna rekomendacja</h3>
+              <p className="text-neutral-400">
+                Oferuj cenę <span className="text-[#00FF94] font-bold">285 000 zł</span> z wymogiem odwodnienia i alternatywnym transportem.
+              </p>
             </div>
-          ))}
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="bg-neutral-600 text-neutral-100 rounded-xl p-8 flex flex-col items-center gap-6"
-        >
-          <h2 className="text-2xl font-display font-bold text-center">
-            Decyzja końcowa
-          </h2>
-          <p className="text-neutral-300 text-center max-w-2xl">
-            System zaleca złożenie oferty. Wykryto ryzyka, które zostały uwzględnione w koszcie.
-            Marża brutto wynosi 28%.
-          </p>
-          <div className="flex gap-4">
-            <button className="btn-secondary">
-              ODPUŚĆ
-            </button>
-            <button className="btn-primary text-lg px-8">
-              STARTUJMY — ZŁÓŻ OFERTĘ
+            <button className="btn-primary">
+              GENERUJ OFERTĘ
             </button>
           </div>
-        </motion.div>
+        </MotionDiv>
       </main>
     </div>
   );

@@ -1,8 +1,11 @@
 'use client';
 
 import { ArrowUpRight, ArrowDownRight, ShieldAlert, CheckCircle } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { motion } from 'motion/react';
+
+// Dynamic import to avoid SSR issues with motion
+const MotionDiv = dynamic(() => import('motion/react').then((m) => m.motion.div), { ssr: false });
 
 const data = [
   { name: 'Sty', zysk: 4000 },
@@ -12,6 +15,22 @@ const data = [
   { name: 'Maj', zysk: 1890 },
   { name: 'Cze', zysk: 2390 },
 ];
+
+// Chart wrapper component
+function RechartsChart() {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data}>
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="zysk" fill="#00FF94" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+const DynamicChart = dynamic(() => Promise.resolve(RechartsChart), { ssr: false });
 
 const stats = [
   {
@@ -44,7 +63,7 @@ export function Dashboard() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       {stats.map((stat) => (
-        <motion.div
+        <MotionDiv
           key={stat.title}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -62,8 +81,18 @@ export function Dashboard() {
               {stat.change}
             </span>
           </div>
-        </motion.div>
+        </MotionDiv>
       ))}
+      
+      {/* Chart section */}
+      <div className="col-span-1 md:col-span-3 mt-6">
+        <div className="card">
+          <h3 className="font-display font-bold text-lg mb-4">Zysk miesięczny</h3>
+          <div className="h-80">
+            <DynamicChart />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

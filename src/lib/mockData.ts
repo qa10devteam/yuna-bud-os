@@ -1,115 +1,83 @@
 export interface RedFlag {
-  id: string;
-  type: 'volume' | 'price' | 'risk';
-  description: string;
+  id: number;
+  desc: string;
   impact: number;
-  page: number;
+  page: string;
+  severity: 'low' | 'medium' | 'high';
 }
 
 export interface Tender {
-  id: string;
+  id: number;
   title: string;
   value: number;
-  source: 'BZP' | 'TED' | 'BK' | 'BIP';
   deadline: string;
-  matchScore: number;
+  source: string;
   redFlags: RedFlag[];
-  location: string;
-  cpv: string;
 }
 
 export interface CostItem {
-  id: string;
+  id: number;
   item: string;
   docCost: number;
   yourCost: number;
 }
 
-export interface Team {
-  id: string;
-  name: string;
-  skills: string[];
-  availability: number;
-}
-
 export const tenders: Tender[] = [
   {
-    id: 't1',
-    title: 'Przebudowa dróg gminnych w Dzierżoniowie',
-    value: 4500000,
+    id: 1,
+    title: 'Przetarg nieograniczony nr 234/2024',
+    value: 850000,
+    deadline: '2024-11-15',
     source: 'BIP',
-    deadline: '2024-07-15',
-    matchScore: 92,
     redFlags: [
-      { id: 'rf1', type: 'volume', description: 'Niewystarczająca objętość wydobycia gruntu w przedmiarze', impact: 12000, page: 12 },
-      { id: 'rf2', type: 'risk', description: 'Brak uwzględnienia odwodnienia wykopów', impact: 8500, page: 15 }
+      { id: 1, desc: 'Brak odwodnienia w przedmiarze', impact: 12500, page: 's. 12', severity: 'high' },
+      { id: 2, desc: 'Niekonkurencyjna cena transportu', impact: 8200, page: 's. 15', severity: 'medium' },
     ],
-    location: 'Dzierżoniów',
-    cpv: '45233000-7'
   },
   {
-    id: 't2',
-    title: 'Budowa zbiornika retencyjnego w Dolnym Śląsku',
-    value: 12000000,
-    source: 'TED',
-    deadline: '2024-07-20',
-    matchScore: 85,
-    redFlags: [
-      { id: 'rf3', type: 'price', description: 'Niekonkurencyjna cena jednostkowa za wywóz gruntu', impact: 45000, page: 22 },
-      { id: 'rf4', type: 'risk', description: 'Nieprawidłowe oznaczenie strefy ochronnej', impact: 15000, page: 8 }
-    ],
-    location: 'Świdnica',
-    cpv: '45110000-8'
-  },
-  {
-    id: 't3',
-    title: 'Rekultywacja terena poeksploatacyjnego w Okrzeszynie',
-    value: 2800000,
+    id: 2,
+    title: 'Wykonanie nasypów gruntowych',
+    value: 450000,
+    deadline: '2024-11-20',
     source: 'BZP',
-    deadline: '2024-07-10',
-    matchScore: 78,
-    redFlags: [
-      { id: 'rf5', type: 'volume', description: 'Błąd w obmiarze nasypów', impact: 6000, page: 30 }
-    ],
-    location: 'Okrzeszyn',
-    cpv: '45000000-0'
-  },
-  {
-    id: 't4',
-    title: 'Wykonanie odwodnienia terenu fabrycznego w Legnicy',
-    value: 1500000,
-    source: 'BIP',
-    deadline: '2024-07-05',
-    matchScore: 95,
     redFlags: [],
-    location: 'Legnica',
-    cpv: '42900000-4'
   },
   {
-    id: 't5',
-    title: 'Przeróbka kamienia walecznego w rejonie Wałbrzycha',
-    value: 900000,
-    source: 'BK',
-    deadline: '2024-07-12',
-    matchScore: 60,
+    id: 3,
+    title: 'Prace ziemne na terenie fabryki',
+    value: 1200000,
+    deadline: '2024-11-25',
+    source: 'TED',
     redFlags: [
-      { id: 'rf6', type: 'price', description: 'Zaniżona cena za transport', impact: 3000, page: 5 }
+      { id: 1, desc: 'Błąd w obmiarze nasypów', impact: 4100, page: 's. 22', severity: 'low' },
+      { id: 2, desc: 'Brak uwzględnienia składowania gruntu', impact: 6000, page: 's. 28', severity: 'high' },
     ],
-    location: 'Wałbrzych',
-    cpv: '12100000-0'
-  }
+  },
+  {
+    id: 4,
+    title: 'Roboty ziemne - droga gminna',
+    value: 320000,
+    deadline: '2024-12-01',
+    source: 'BIP',
+    redFlags: [],
+  },
+  {
+    id: 5,
+    title: 'Układanie nawierzchni bitumicznych',
+    value: 670000,
+    deadline: '2024-12-05',
+    source: 'BZP',
+    redFlags: [
+      { id: 1, desc: 'Niekonkurencyjna cena transportu', impact: 5500, page: 's. 18', severity: 'medium' },
+    ],
+  },
 ];
 
 export const costItems: CostItem[] = [
-  { id: 'c1', item: 'Wykopy ziemne powszechne', docCost: 15.50, yourCost: 18.20 },
-  { id: 'c2', item: 'Nasypy z gruntów naturalnych', docCost: 22.00, yourCost: 20.50 },
-  { id: 'c3', item: 'Odwodnienie wykopów', docCost: 0.00, yourCost: 12.50 },
-  { id: 'c4', item: 'Transport gruntu 15km', docCost: 45.00, yourCost: 42.00 },
-  { id: 'c5', item: 'Składowanie gruntu', docCost: 12.00, yourCost: 10.50 },
-];
-
-export const teams: Team[] = [
-  { id: 'tm1', name: 'Ekipa Alpha', skills: ['Ziemia', 'Transport'], availability: 85 },
-  { id: 'tm2', name: 'Ekipa Beta', skills: ['Ziemia', 'Asfalt'], availability: 40 },
-  { id: 'tm3', name: 'Ekipa Gamma', skills: ['Inżynieryjne'], availability: 100 },
+  { id: 1, item: 'Koparka 30t/h', docCost: 250.00, yourCost: 180.00 },
+  { id: 2, item: 'Wywrotka 20t', docCost: 45.00, yourCost: 35.00 },
+  { id: 3, item: 'Walcarek 13t', docCost: 120.00, yourCost: 95.00 },
+  { id: 4, item: 'Grukt spękany', docCost: 85.00, yourCost: 70.00 },
+  { id: 5, item: 'Transport (km)', docCost: 12.00, yourCost: 9.50 },
+  { id: 6, item: 'Owodnienie', docCost: 0.00, yourCost: 15.00 },
 ];

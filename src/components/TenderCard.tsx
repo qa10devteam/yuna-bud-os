@@ -1,51 +1,61 @@
-import { Flag, MapPin, Calendar } from 'lucide-react';
+'use client';
+
+import { Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Tender } from '@/lib/mockData';
+import dynamic from 'next/dynamic';
 
-export function TenderCard({ tender }: { tender: Tender }) {
+// Dynamic import to avoid SSR issues with motion
+const MotionDiv = dynamic(() => import('motion/react').then((m) => m.motion.div), { ssr: false });
+
+interface TenderCardProps {
+  tender: Tender;
+}
+
+export function TenderCard({ tender }: TenderCardProps) {
   return (
-    <div className="card hover:border-accent-tech transition-colors group">
-      <div className="flex justify-between items-start mb-3">
+    <MotionDiv
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.02 }}
+      className="card group"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display font-bold text-lg group-hover:text-[#00FF94] transition-colors">
+          {tender.title}
+        </h3>
         <span className="badge-tech">{tender.source}</span>
-        <div className="flex gap-2">
-          {tender.redFlags.length > 0 && (
-            <span className="badge-warning flex items-center gap-1">
-              <Flag className="w-3 h-3" /> {tender.redFlags.length}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <h3 className="font-display font-bold text-lg mb-2 line-clamp-2 group-hover:text-accent-tech transition-colors">
-        {tender.title}
-      </h3>
-
-      <div className="font-mono text-2xl font-bold text-neutral-600 mb-4">
-        {tender.value.toLocaleString('pl-PL')} zł
       </div>
 
       <div className="flex items-center gap-4 text-sm text-neutral-400 mb-4">
         <span className="flex items-center gap-1">
-          <MapPin className="w-4 h-4" /> {tender.location}
+          <Calendar className="w-4 h-4" />
+          {new Date(tender.deadline).toLocaleDateString('pl-PL')}
         </span>
-        <span className="flex items-center gap-1">
-          <Calendar className="w-4 h-4" /> {new Date(tender.deadline).toLocaleDateString('pl-PL')}
-        </span>
+        <span className="font-mono text-[#F4F4F0]">{tender.value.toLocaleString('pl-PL')} zł</span>
       </div>
 
-      {tender.redFlags.length > 0 && (
-        <div className="mb-4 p-2 bg-accent-warning/10 rounded-md">
-          <div className="text-xs font-mono text-accent-warning mb-1">
-            {tender.redFlags[0].description}
-          </div>
-          <div className="text-xs font-mono text-accent-warning">
-            Strata: {tender.redFlags.reduce((acc, f) => acc + f.impact, 0).toLocaleString('pl-PL')} zł
-          </div>
-        </div>
-      )}
+      <div className="flex items-center gap-2 mb-4">
+        {tender.redFlags.length > 0 ? (
+          <>
+            <AlertTriangle className="w-4 h-4 text-[#FF3300]" />
+            <span className="badge-warning">{tender.redFlags.length} czerwone flagi</span>
+          </>
+        ) : (
+          <>
+            <CheckCircle className="w-4 h-4 text-[#00FF94]" />
+            <span className="badge-success">Brak zagrożeń</span>
+          </>
+        )}
+      </div>
 
-      <button className="w-full btn-primary text-sm">
-        ANALIZUJ
-      </button>
-    </div>
+      <div className="flex gap-2">
+        <button className="btn-primary text-sm flex-1">
+          Analizuj
+        </button>
+        <button className="btn-secondary text-sm flex-1">
+          Szczegóły
+        </button>
+      </div>
+    </MotionDiv>
   );
 }
