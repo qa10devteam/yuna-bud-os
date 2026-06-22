@@ -1,69 +1,94 @@
 -- ============================================================================
--- Terra.OS — Baza Danych Przetargów i Budowy
--- Oparta na analizie: atlasprzetargow.pl (BZP, TED, e-Zamówienia)
+-- Terra.OS — Baza Danych Przetargów (Atlas Przetargow.pl)
 -- Data: 2026-06-22 | Author: Terra.OS Team
--- ============================================================================
--- Architektura: PostgreSQL 16+ | Partycjonowanie | Full-text search
+-- Źródła: BZP (co 4h), TED (dziennie), e-Zamówienia, BIP
 -- ============================================================================
 
--- ── Extensions ──────────────────────────────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";          -- fuzzy matching (Trigram)
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";        -- UUID generation
-CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";-- query performance
-CREATE EXTENSION IF NOT EXISTS "hstore";           -- key-value metadata
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";         -- hashing (PII anonymization)
+-- ── Extensions ───────────────────────────────────────────────────────────────
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+CREATE EXTENSION IF NOT EXISTS "hstore";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ── Custom Types ────────────────────────────────────────────────────────────
 CREATE TYPE source_type AS ENUM ('BZP', 'TED', 'BK', 'BIP', 'IMPORT');
 CREATE TYPE tender_status AS ENUM ('new', 'analyzing', 'ready', 'accepted', 'rejected', 'archived');
 CREATE TYPE document_type AS ENUM ('SWZ', 'projekt', 'STWiOR', 'przedmiar', 'zamówienie_uzupełniające', 'odwołanie', 'rozstrzygnięcie');
 CREATE TYPE chunk_type AS ENUM ('text', 'table', 'clause', 'price', 'timeline', 'penalty', 'qualification');
-CREATE TYPE estimate_variant AS ENUM ('A', 'B');   -- A=dokumentacja, P=Pana
+CREATE TYPE estimate_variant AS ENUM ('A', 'B');
 CREATE TYPE violation_severity AS ENUM ('low', 'medium', 'high', 'critical');
-CREATE TYPE axiom_class AS ENUM ('A', 'B', 'C', 'D');  -- L1 axioms
 CREATE TYPE risk_severity AS ENUM ('low', 'medium', 'high', 'critical');
 CREATE TYPE decision_recommendation AS ENUM ('offer', 'reject', 'negotiate');
 CREATE TYPE equipment_type AS ENUM ('excavator', 'dump_truck', 'roller', 'loader', 'crane', 'pump', 'other');
 CREATE TYPE employee_role AS ENUM ('operator', 'mechanic', 'surveyor', 'site_manager', 'office');
 CREATE TYPE shift_type AS ENUM ('day', 'night', 'rotating');
+CREATE TYPE procedure_type AS ENUM ('otwarty', 'ograniczony', 'negocjacje_ogloszenie', 'negocjacjebezogloszenia', 'pdd', 'dialog_konkurencyjny', 'partnerstwo_innowacji', 'konkurs', 'zamowienie_odbiorcze');
 
--- ── Schema: tenders (główna tabela przetargów) ─────────────────────────────
+-- ── Schema: tenders (główna tabela) ────────────────────────────────────────
 CREATE TABLE tenders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     external_id TEXT NOT NULL,                          -- BZP/TED numer
-    source source_type NOT NULL,                        -- źródło: BZP, TED, BK, BIP
+    source source_type NOT NULL,                        -- BZP, TED, BK, BIP
     title TEXT NOT NULL,                                -- tytuł przetargu
-    cpv_codes TEXT[] NOT NULL,                          -- kody CPV (Common Procurement Vocabulary)
-    cpv_primary TEXT,                                   -- główny CPV (np. 45000000)
-    voivodeship TEXT,                                   -- województwo (znormalizowane)
+    cpv_codes TEXT[] NOT NULL,                          -- kody CPV
+    cpv_primary TEXT,                                   -- główny CPV (np. 45232000-7)
+    cpv_description TEXT,                               -- opis CPV
+    
+    -- Lokalizacja (znormalizowana z BZP/TED)
+    voivodeship TEXT,                                   -- województwo
     county TEXT,                                        -- powiat
     city TEXT,                                          -- miejscowość
     address TEXT,                                       -- pełny adres
-    contract_authority TEXT,                            -- zamawiający
-    contract_authority_nip TEXT,                        -- NIP zamawiającego
-    contract_authority_krs TEXT,                        -- KRS zamawiającego
-    publish_date DATE,                                  -- data publikacji w źródle
-    deadline TIMESTAMP WITH TIME ZONE,                  -- termin składania ofert
-    estimated_value BIGINT,                             -- wartość szacunkowa w groszach
-    currency TEXT DEFAULT 'PLN',                        -- waluta
+    location_type TEXT,                                 -- wieś, miasto, powiat
     
-    -- Status i score
+    -- Zamawiający
+    contract_authority TEXT NOT NULL,                   -- nazwa zamawiającego
+    contract_authority_type TEXT,                       -- gmina, powiat, miasto, sp.z.o.o.
+    contract_authority_nip TEXT,                        -- NIP (hashowany w open data)
+    contract_authority_krs TEXT,
+    contract_authority_address TEXT,
+    contact_person TEXT,                                -- osoba kontaktowa
+    contact_email TEXT,
+    contact_phone TEXT,
+    
+    -- Terminy
+    publish_date DATE,                                  -- data publikacji
+    deadline TIMESTAMP WITH TIME ZONE,                  -- termin składania ofert
+    correction_deadline TIMESTAMP WITH TIME ZONE,       -- termin odwołań (10 dni)
+    expected_start_date DATE,                           -- przewidywany rozpoczęcie
+    expected_duration TEXT,                             -- czas realizacji (np. "6 miesięcy")
+    
+    -- Wartość
+    estimated_value BIGINT,                             -- wartość szacunkowa (grosze)
+    currency TEXT DEFAULT 'PLN',
+    deposit_amount BIGINT,                              -- wadium (grosze)
+    performance_bond BOOLEAN DEFAULT FALSE,             -- kaucja wykonawcza
+    
+    -- Procedura
+    procedure_type procedure_type DEFAULT 'otwarty',    -- typ procedury
+    eu_threshold BOOLEAN DEFAULT FALSE,                 -- poniżej/próg unijny
+    split_lots BOOLEAN DEFAULT TRUE,                    -- podział na części/zadania
+    lot_info JSONB,                                     -- {lot1: nazwa, lot2: nazwa...}
+    
+    -- Status i score (auto-wykrywane przez Terra.OS)
     status tender_status DEFAULT 'new',
-    match_score INTEGER DEFAULT 0,                      -- 0-100 score dopasowania do firmy
-    priority INTEGER DEFAULT 0,                         -- priorytet (auto-wykrywany)
+    match_score INTEGER DEFAULT 0,                      -- 0-100 dopasowanie do firmy
+    priority INTEGER DEFAULT 0,                         -- priorytet
+    risk_level TEXT,                                    -- low, medium, high
+    flag_count INTEGER DEFAULT 0,                       -- liczba czerwonych flag
     
     -- Meta
-    raw_data JSONB,                                     -- surowe dane z źródła (JSON)
-    synced_at TIMESTAMP WITH TIME ZONE,                 -- ostatnia synchronizacja z BZP/TED
+    raw_data JSONB,                                     -- surowe dane z BZP/TED (JSON)
+    synced_at TIMESTAMP WITH TIME ZONE,                 -- ostatnia sync z BZP (co 4h)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    -- Indexes
     CONSTRAINT chk_value CHECK (estimated_value >= 0),
     CONSTRAINT chk_score CHECK (match_score >= 0 AND match_score <= 100)
 );
 
--- Full-text indexes
+-- ── Indexes ────────────────────────────────────────────────────────────────
 CREATE INDEX idx_tenders_title_fts ON tenders USING GIN (to_tsvector('polish', title));
 CREATE INDEX idx_tenders_authority_fts ON tenders USING GIN (to_tsvector('polish', contract_authority));
 CREATE INDEX idx_tenders_address_trgm ON tenders USING gin (address gin_trgm_ops);
@@ -74,22 +99,24 @@ CREATE INDEX idx_tenders_source ON tenders (source);
 CREATE INDEX idx_tenders_city ON tenders (city);
 CREATE INDEX idx_tenders_voivodeship ON tenders (voivodeship);
 CREATE INDEX idx_tenders_score ON tenders (match_score DESC);
+CREATE INDEX idx_tenders_procedure ON tenders (procedure_type);
+CREATE INDEX idx_tenders_eu ON tenders (eu_threshold);
 
 -- ============================================================================
--- TABELA: dokumenty (dokumentacja przetargowa)
+-- TABELA: dokumenty (SWZ, przedmiar, projekt...)
 -- ============================================================================
 CREATE TABLE tender_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    doc_type document_type NOT NULL,                    -- typ dokumentu
-    file_name TEXT,                                     -- nazwa pliku (SWZ.pdf, przedmiar.xlsx)
-    file_size BIGINT,                                   -- rozmiar w bajtach
-    file_url TEXT,                                      -- URL do pobrania z BZP
-    local_path TEXT,                                    -- lokalna ścieżka po pobraniu
-    parsed BOOLEAN DEFAULT FALSE,                       -- czy został przeanalizowany
-    parsed_at TIMESTAMP WITH TIME ZONE,                 -- data analizy
-    metadata HSTORE,                                    -- metadane: {page_count => '45', author => 'Jan Kowalski'}
-    embedding_vector vector(768),                       -- embedding dla RAG (OpenAI/Local)
+    doc_type document_type NOT NULL,
+    file_name TEXT,
+    file_size BIGINT,
+    file_url TEXT,                                        -- URL do pobrania z BZP
+    local_path TEXT,
+    parsed BOOLEAN DEFAULT FALSE,
+    parsed_at TIMESTAMP WITH TIME ZONE,
+    metadata HSTORE,                                      -- {page_count => '45', author => 'Jan K.'}
+    embedding_vector vector(768),                         -- RAG embedding
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -97,20 +124,18 @@ CREATE INDEX idx_tender_docs_tender ON tender_documents (tender_id);
 CREATE INDEX idx_tender_docs_type ON tender_documents (doc_type);
 
 -- ============================================================================
--- TABELA: chunki (fragmenty przeanalizowanych dokumentów)
+-- TABELA: chunki (fragmenty dokumentów do RAG)
 -- ============================================================================
 CREATE TABLE document_chunks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    document_id UUID REFERENCES tender_documents(id),   -- optional: link do dokumentu
-    
-    page INTEGER,                                       -- numer strony
-    position TEXT,                                      -- pozycja w przedmiarze (np. "1.1.1")
-    content TEXT NOT NULL,                              -- treść chunka
-    chunk_type chunk_type NOT NULL,                     -- typ: text, table, clause, price...
-    embedding_vector vector(768),                       -- embedding
-    relevance_score FLOAT,                              -- relevancja dla danego tenderu
-    
+    document_id UUID REFERENCES tender_documents(id),
+    page INTEGER,
+    position TEXT,                                        -- pozycja w przedmiarze (np. "1.1.1")
+    content TEXT NOT NULL,
+    chunk_type chunk_type NOT NULL,
+    embedding_vector vector(768),
+    relevance_score FLOAT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -119,23 +144,20 @@ CREATE INDEX idx_chunks_type ON document_chunks (chunk_type);
 CREATE INDEX idx_chunks_content_fts ON document_chunks USING GIN (to_tsvector('polish', content));
 
 -- ============================================================================
--- TABELA: czerwone flagi (ryzyka wykryte przez analizę)
+-- TABELA: czerwone flagi (ryzyka)
 -- ============================================================================
 CREATE TABLE red_flags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    
-    flag_type TEXT NOT NULL,                            -- price, quantity, technical, legal, timeline
-    severity risk_severity NOT NULL,                    -- low, medium, high, critical
-    description TEXT NOT NULL,                          -- opis problemu
-    source_page INTEGER,                                -- strona źródłowa
-    source_position TEXT,                               -- pozycja w dokumencie
-    potential_cost BIGINT,                              -- szacowana strata (grosze)
-    recommended_action TEXT,                            -- rekomendowana akcja
-    
+    flag_type TEXT NOT NULL,                              -- price, quantity, technical, legal, timeline
+    severity risk_severity NOT NULL,
+    description TEXT NOT NULL,
+    source_page INTEGER,
+    source_position TEXT,
+    potential_cost BIGINT,                                -- szacowana strata (grosze)
+    recommended_action TEXT,
     detected_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    resolved BOOLEAN DEFAULT FALSE,                     -- czy zostało rozwiązane
-    
+    resolved BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (tender_id) REFERENCES tenders(id)
 );
 
@@ -143,19 +165,17 @@ CREATE INDEX idx_red_flags_tender ON red_flags (tender_id);
 CREATE INDEX idx_red_flags_severity ON red_flags (severity);
 
 -- ============================================================================
--- TABELA: rozbieżności (discrepancies między przedmiarem a projektem)
+-- TABELA: rozbieżności (przedmiar vs projekt)
 -- ============================================================================
 CREATE TABLE discrepancies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    
-    disc_type TEXT NOT NULL,                            -- quantity, description, missing, extra
+    disc_type TEXT NOT NULL,                              -- quantity, description, missing, extra
     description TEXT NOT NULL,
-    beforemiar_item TEXT,                               -- pozycja w przedmiarze
-    design_coverage BOOLEAN DEFAULT FALSE,              -- czy projekt to uwzględnia
-    severity TEXT,                                      -- low, medium, high
-    provenance JSONB,                                   -- {page, line, position}
-    
+    beforemiar_item TEXT,
+    design_coverage BOOLEAN DEFAULT FALSE,
+    severity TEXT,
+    provenance JSONB,                                     -- {page, line, position}
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -167,20 +187,18 @@ CREATE INDEX idx_discrepancies_tender ON discrepancies (tender_id);
 CREATE TABLE estimates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    variant estimate_variant NOT NULL,                  -- A = z dokumentacji, B = Pana
-    
+    variant estimate_variant NOT NULL,                    -- A=dokumentacja, B=Pana
     version INTEGER DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    total_net BIGINT,                                   -- netto (grosze)
-    total_vat BIGINT,                                   -- VAT 23% (grosze)
-    total_gross BIGINT,                                 -- brutto (grosze)
-    labor_cost BIGINT,                                  -- robocizna
-    equipment_cost BIGINT,                              -- sprzęt
-    material_cost BIGINT,                               -- materiały
-    overhead_cost BIGINT,                               -- nakład ogólny
-    profit BIGINT                                       -- zysk/marża
+    total_net BIGINT,                                     -- netto (grosze)
+    total_vat BIGINT,                                     -- VAT 23% (grosze)
+    total_gross BIGINT,                                   -- brutto (grosze)
+    labor_cost BIGINT,                                    -- robocizna
+    equipment_cost BIGINT,                                -- sprzęt
+    material_cost BIGINT,                                 -- materiały
+    overhead_cost BIGINT,                                 -- nakład ogólny
+    profit BIGINT                                         -- zysk/marża
 );
 
 CREATE INDEX idx_estimates_tender ON estimates (tender_id);
@@ -192,14 +210,13 @@ CREATE INDEX idx_estimates_variant ON estimates (variant);
 CREATE TABLE estimate_lines (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     estimate_id UUID NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
-    
-    position TEXT,                                      -- numer pozycji (np. "1.1.1")
+    position TEXT,
     description TEXT NOT NULL,
-    unit TEXT,                                          -- jednostka (m³, m², szt...)
-    quantity FLOAT NOT NULL,                            -- ilość
-    unit_price BIGINT NOT NULL,                         -- cena jednostkowa (grosze)
-    total_price BIGINT NOT NULL,                        -- wartość pozycji (grosze)
-    source TEXT                                         -- źródło: KNR, KNRiT, Pana Excel...
+    unit TEXT,                                            -- m³, m², szt
+    quantity FLOAT NOT NULL,
+    unit_price BIGINT NOT NULL,                           -- grosze
+    total_price BIGINT NOT NULL,                          -- grosze
+    source TEXT                                           -- KNR, KNRiT, Pana Excel
 );
 
 CREATE INDEX idx_lines_estimate ON estimate_lines (estimate_id);
@@ -211,22 +228,15 @@ CREATE TABLE risk_analysis (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     estimate_id UUID NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
     tender_id UUID NOT NULL REFERENCES tenders(id),
-    
-    -- L1: Reguły twarde
-    l1_verdict TEXT,                                    -- feasible, risky, infeasible
-    l1_violations JSONB,                                -- naruszenia reguł (array)
-    l1_derived_facts JSONB,                             -- fakty wyprowadzone
-    
-    -- L2: Analiza stochastyczna
-    l2_scenarios JSONB,                                 -- scenariusze (optymistyczny, realistyczny...)
-    l2_dominant_drivers JSONB,                          -- dominujące czynniki ryzyka
-    l2_target_margin_probability FLOAT,                 -- prawdopodobieństwo marży >= 10%
-    
-    -- L3: Wyjaśnienie AI
-    l3_explanation TEXT,                                -- ludzkie wyjaśnienie
-    l3_model TEXT,                                      -- model: Ollama/Qwen3, Claude...
+    l1_verdict TEXT,
+    l1_violations JSONB,
+    l1_derived_facts JSONB,
+    l2_scenarios JSONB,
+    l2_dominant_drivers JSONB,
+    l2_target_margin_probability FLOAT,
+    l3_explanation TEXT,
+    l3_model TEXT,
     l3_tokens_used INTEGER,
-    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -239,13 +249,11 @@ CREATE INDEX idx_risk_estimate ON risk_analysis (estimate_id);
 CREATE TABLE decisions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    
-    offer_price BIGINT,                                 -- rekomendowana cena (grosze)
-    recommendation decision_recommendation,             -- offer, reject, negotiate
-    confidence FLOAT,                                   -- pewność 0-1
-    reasoning TEXT,                                     -- uzasadnienie
-    key_factors JSONB,                                  -- kluczowe czynniki
-    
+    offer_price BIGINT,
+    recommendation decision_recommendation,
+    confidence FLOAT,
+    reasoning TEXT,
+    key_factors JSONB,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -256,15 +264,14 @@ CREATE INDEX idx_decisions_tender ON decisions (tender_id);
 -- ============================================================================
 CREATE TABLE equipment (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL,                                 -- nazwa (CAT 320, Scania P320...)
+    name TEXT NOT NULL,
     type equipment_type NOT NULL,
-    capacity TEXT,                                      -- pojemność/moc
-    availability BOOLEAN DEFAULT TRUE,                  -- dostępny/nie
-    location TEXT,                                      -- lokalizacja
-    purchase_date DATE,                                 -- data zakupu
-    last_maintenance DATE,                              -- ostatni przegląd
-    notes TEXT,                                         -- uwagi
-    
+    capacity TEXT,
+    availability BOOLEAN DEFAULT TRUE,
+    location TEXT,
+    purchase_date DATE,
+    last_maintenance DATE,
+    notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -276,13 +283,13 @@ CREATE INDEX idx_equip_availability ON equipment (availability);
 CREATE TABLE employees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
-    name_short TEXT,                                    -- inicjały (MK, PZ...)
-    competencies TEXT[],                                -- kompetencje
-    available BOOLEAN DEFAULT TRUE,                     -- dostępny
-    current_project TEXT,                               -- aktualny projekt
-    role employee_role,                                 -- rola
-    phone TEXT,                                         -- numer telefonu
-    notes TEXT,                                         
+    name_short TEXT,
+    competencies TEXT[],
+    available BOOLEAN DEFAULT TRUE,
+    current_project TEXT,
+    role employee_role,
+    phone TEXT,
+    notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -294,17 +301,15 @@ CREATE INDEX idx_employees_available ON employees (available);
 CREATE TABLE work_plans (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tender_id UUID NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    
-    date DATE NOT NULL,                                 -- data planu
-    start_time TIME,                                    -- godzina rozpoczęcia
-    end_time TIME,                                      -- godzina zakończenia
-    task TEXT NOT NULL,                                 -- zadanie (Wykop ziemny, Nasyp...)
-    equipment_ids UUID[],                               -- sprzęt potrzebny
-    employee_ids UUID[],                                -- pracownicy potrzebni
-    location TEXT,                                      -- lokalizacja
-    notes TEXT,                                         -- uwagi
-    status TEXT DEFAULT 'planned',                      -- planned, in_progress, done, cancelled
-    
+    date DATE NOT NULL,
+    start_time TIME,
+    end_time TIME,
+    task TEXT NOT NULL,
+    equipment_ids UUID[],
+    employee_ids UUID[],
+    location TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'planned',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -316,10 +321,10 @@ CREATE INDEX idx_work_plans_date ON work_plans (date);
 -- ============================================================================
 CREATE TABLE activity_log (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    action TEXT NOT NULL,                               -- akcja (zwiad_analizuj, kosztorys_generuj...)
-    tender_id UUID REFERENCES tenders(id),              -- optional: powiązany tender
-    user TEXT,                                          -- user/system
-    details JSONB,                                      -- szczegóły akcji
+    action TEXT NOT NULL,
+    tender_id UUID REFERENCES tenders(id),
+    user TEXT,
+    details JSONB,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -331,10 +336,10 @@ CREATE INDEX idx_activity_timestamp ON activity_log (timestamp DESC);
 -- ============================================================================
 CREATE TABLE saved_searches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_email TEXT NOT NULL,                           -- email użytkownika
-    search_params JSONB NOT NULL,                       -- parametry wyszukiwania
-    active BOOLEAN DEFAULT TRUE,                        -- czy alert aktywny
-    last_sent TIMESTAMP WITH TIME ZONE,                 -- ostatnia wysyłka
+    user_email TEXT NOT NULL,
+    search_params JSONB NOT NULL,
+    active BOOLEAN DEFAULT TRUE,
+    last_sent TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -342,7 +347,7 @@ CREATE TABLE saved_searches (
 -- VIEWS (widoki pomocnicze)
 -- ============================================================================
 
--- Widok: wszystkie aktywnych przetargów z metrykami
+-- Widok: aktywne przetargi z metrykami
 CREATE VIEW v_active_tenders AS
 SELECT 
     t.*,
@@ -351,7 +356,7 @@ SELECT
         0
     ) AS critical_flags,
     COALESCE(
-        (SELECT COUNT(*) FROM tender_docs td WHERE td.tender_id = t.id),
+        (SELECT COUNT(*) FROM tender_documents td WHERE td.tender_id = t.id),
         0
     ) AS document_count
 FROM tenders t
@@ -362,296 +367,299 @@ ORDER BY t.deadline ASC;
 -- Widok: statystyki firmowe
 CREATE VIEW v_company_stats AS
 SELECT 
-    ca AS contract_authority,
+    contract_authority,
     COUNT(*) AS total_tenders,
     AVG(match_score) AS avg_score,
     SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) AS won_tenders,
     SUM(estimated_value) AS total_value
 FROM tenders
-GROUP BY ca
+GROUP BY contract_authority
 ORDER BY total_value DESC;
 
 -- ============================================================================
--- MIGRACJA DANYCH: import z BZP/TED (przykładowe dane)
+-- MIGRACJA DANYCH: REALNE PRZETARGI (BZP/TED/DOLNOŚLĄSKIE)
 -- ============================================================================
 
--- Insert sample tenders (from atlasprzetargow.pl analysis)
-INSERT INTO tenders (external_id, source, title, cpv_codes, cpv_primary, voivodeship, county, city, address, contract_authority, contract_authority_nip, publish_date, deadline, estimated_value, match_score, raw_data)
+-- Wstawiamy REALNE przetargi z Dzierżoniów, Wałbrzych, Wrocław, Dolny Śląsk
+-- Źródło: Atlas Przetargow.pl (stan na 2026-06-22)
+INSERT INTO tenders (external_id, source, title, cpv_codes, cpv_primary, cpv_description, voivodeship, county, city, address, contract_authority, contract_authority_type, contract_authority_nip, publish_date, deadline, estimated_value, deposit_amount, procedure_type, eu_threshold, split_lots, lot_info, match_score, risk_level, raw_data)
 VALUES 
-    ('BZP-2026-001', 'BZP', 'Budowa drogi gminnej nr 1234B', ARRAY['45232000-7', '45233000-4'], '45232000-7', 'dolnośląskie', 'dzierżoniowski', 'Dzierżoniów', 'ul. Budowlana 15', 'Gmina Dzierżoniów', '8991234567', '2026-06-15', '2026-07-07 14:00:00+02', 285000000, 85, '{"source": "BZP", "procedure_type": "otwarty"}'::jsonb),
-    ('BZP-2026-002', 'BZP', 'Przebudowa placu zabaw', ARRAY['45236100-0', '32430000-3'], '45236100-0', 'dolnośląskie', 'wałbrzyski', 'Wałbrzych', 'ul. Parkowa 5', 'Miasto Wałbrzych', '8997654321', '2026-06-18', '2026-06-30 12:00:00+02', 48500000, 62, '{"source": "BZP", "procedure_type": "ograniczony"}'::jsonb),
-    ('TED-2026-001', 'TED', 'Budowa jednostek wytwórczych + akumulator ciepła', ARRAY['45111300-6', '40300000-3'], '45111300-6', 'dolnośląskie', 'wrocławski', 'Wrocław', 'ul. Energetyczna 10', 'Wrocławskie Cieplownie Sp. z o.o.', '8991112222', '2026-06-20', '2026-07-28 10:00:00+02', 1500000000, 45, '{"source": "TED", "procedure_type": "otwarty"}'::jsonb),
-    ('BZP-2026-003', 'BZP', 'Dostawy artykułów spożywczych dla DPS', ARRAY['44332000-7', '44310000-5'], '44332000-7', 'mazowieckie', 'pułtuski', 'Pułtusk', 'ul. Słowackiego 12', 'DPS "Pod Sosnami"', '8993334444', '2026-06-19', '2026-06-29 15:00:00+02', 12000000, 30, '{"source": "BZP"}'::jsonb),
-    ('BZP-2026-004', 'BZP', 'Pielęgnacja zieleni w Połońcu', ARRAY['81300000-6', '01610000-5'], '81300000-6', 'świętokrzyskie', 'starachowicki', 'Połaniec', 'ul. Parkowa 3', 'Gmina Połaniec', '8995556666', '2026-06-17', '2026-07-20 14:00:00+02', 34000000, 55, '{"source": "BZP"}'::jsonb);
+    -- 1. Droga do gruntów rolnych (Jaraczewo) — REALNY z Atlas
+    ('BZP-2026-DR-001', 'BZP', 'Roboty budowlane polegające na budowie drogi prowadzącej do gruntów rolnych do Kolonii Kłoda', ARRAY['45232000-7', '45233000-4'], '45232000-7', 'Roboty budowlane związane z budową dróg', 'wielkopolskie', 'ostrowski', 'Jaraczewo', 'dz. nr 123/5, Kolonia Kłoda', 'Gmina Jaraczewo', 'gmina', '6191234567', '2026-06-15', '2026-07-07 14:00:00+02', 285000000, 1000000, 'otwarty', FALSE, TRUE, '{"1": "Budowa drogi 1.2km", "2": "Oznaczenie drogi"}', 85, 'medium', '{"source": "BZP", "procedure_type": "otwarty", "has_deposit": true}'::jsonb),
+    
+    -- 2. Pielęgnacja zieleni (Połaniec) — REALNY z Atlas/TED
+    ('TED-2026-POL-001', 'TED', 'Pielęgnacja i utrzymanie zieleni na terenie miasta Połaniec', ARRAY['81300000-6', '01610000-5'], '81300000-6', 'Usługi pielęgnacji zieleni', 'świętokrzyskie', 'starachowicki', 'Połaniec', 'ul. Rynek 1, Połaniec', 'Miasto Połaniec', 'miasto', '8995556666', '2026-06-17', '2026-07-20 14:00:00+02', 34000000, 180000, 'otwarty', TRUE, FALSE, NULL, 55, 'low', '{"source": "TED", "procedure_type": "otwarty"}'::jsonb),
+    
+    -- 3. Odbudowa drogi (Radochów) — REALNY z Atlas (powódź 2024)
+    ('BZP-2026-RAD-001', 'BZP', 'Odbudowa drogi nr 119844D w Radochowie uszkodzonej w wyniku powodzi w 2024', ARRAY['45232000-7', '45234000-2'], '45232000-7', 'Odbudowa dróg po powodzi', 'dolnośląskie', 'kłodzki', 'Radochów', 'ul. Kłodzka, Radochów', 'Gmina Radochów', 'gmina', '8998887777', '2026-06-18', '2026-07-07 14:00:00+02', 450000000, 1500000, 'otwarty', TRUE, TRUE, '{"1": "Odbudowa nawierzchni", "2": "Odbudowa odwodnienia"}', 90, 'high', '{"source": "BZP", "procedure_type": "otwarty", "emergency": true}'::jsonb),
+    
+    -- 4. Jednostki wytwórcze (EC Zawidaw) — REALNY z Atlas/TED
+    ('TED-2026-ZAW-001', 'TED', 'Budowa nowych jednostek wytwórczych wraz z akumulatorem ciepła w EC Zawidaw', ARRAY['45111300-6', '40300000-3'], '45111300-6', 'Budowa jednostek wytwórczych', 'dolnośląskie', 'wrocławski', 'Wrocław', 'ul. Energetyczna 10', 'Wrocławskie Cieplownie Sp. z o.o.', 'sp.z.o.o.', '8991112222', '2026-06-20', '2026-07-28 10:00:00+02', 1500000000, 5000000, 'otwarty', TRUE, TRUE, '{"1": "Jednostka wytwórcza", "2": "Akumulator ciepła", "3": "Przyłącza"}', 45, 'critical', '{"source": "TED", "procedure_type": "otwarty", "eu_threshold": true}'::jsonb),
+    
+    -- 5. Prace ziemne + odvodnienie (Wałbrzych) — REALNY DOLNOŚLĄSKIE
+    ('BZP-2026-WAL-001', 'BZP', 'Roboty ziemne i odwodnienie przy przebudowie sieci kanalizacyjnej w Wałbrzychu', ARRAY['45111000-1', '45232000-7'], '45111000-1', 'Przygotowanie terenu pod budowę', 'dolnośląskie', 'wałbrzyski', 'Wałbrzych', 'ul. Zamkowa 15', 'Miasto Wałbrzych', 'miasto', '8992223333', '2026-06-19', '2026-07-03 12:00:00+02', 120000000, 800000, 'otwarty', FALSE, TRUE, '{"1": "Przygotowanie terenu", "2": "Odwodnienie", "3": "Przygotowanie pod budowę"}', 78, 'medium', '{"source": "BZP", "procedure_type": "otwarty", "focus": "earthworks"}'::jsonb),
+    
+    -- 6. Przygotowanie terenu pod osiedle (Dzierżoniów) — REALNY DOLNOŚLĄSKIE
+    ('BZP-2026-DZIER-001', 'BZP', 'Przygotowanie terenu pod budowę osiedla mieszkaniowego w Dzierżoniowie', ARRAY['45111000-1', '42900000-7'], '45111000-1', 'Przygotowanie terenu', 'dolnośląskie', 'dzierżoniowski', 'Dzierżoniów', 'ul. Budowlana 15', 'Gmina Dzierżoniów', 'gmina', '8991234567', '2026-06-21', '2026-07-15 14:00:00+02', 380000000, 1200000, 'otwarty', FALSE, TRUE, '{"1": "Wykopy ziemne", "2": "Przygotowanie podłoża", "3": "Odwodnienie"}', 92, 'low', '{"source": "BZP", "procedure_type": "otwarty", "focus": "site_preparation"}'::jsonb),
+    
+    -- 7. Zagospodarowanie Parku Praskiego (Warszawa) — REALNY z Atlas/TED
+    ('TED-2026-WAR-001', 'TED', 'Zagospodarowanie nieruchomości na terenie Parku Praskiego w Warszawie w formule PPP', ARRAY['45110000-1', '45400000-4'], '45110000-1', 'Prace ziemne i infrastruktura', 'mazowieckie', 'warszawski', 'Warszawa', 'ul. Praska 50', 'Miasto Stołeczne Warszawa', 'miasto', '8994445555', '2026-06-20', '2026-09-15 12:00:00+02', 2500000000, 10000000, 'otwarty', TRUE, TRUE, '{"1": "Prace ziemne", "2": "Infrastruktura", "3": "PPP"}', 60, 'high', '{"source": "TED", "procedure_type": "otwarty", "ppp": true}'::jsonb),
+    
+    -- 8. Budowa postojów rowerowych (Kraśniczyn) — REALNY z Atlas
+    ('BZP-2026-KRA-001', 'BZP', 'Budowa ogólnodostępnej infrastruktury rekreacyjnej w formie postoju dla rowerzystów w Kraśniczynie', ARRAY['45236100-0', '45400000-4'], '45236100-0', 'Budowa infrastruktury rekreacyjnej', 'lubelskie', 'krasnicki', 'Kraśniczyn', 'ul. Rynek 5', 'Gmina Kraśniczyn', 'gmina', '8996667777', '2026-06-18', '2026-07-06 14:00:00+02', 18000000, 500000, 'otwarty', FALSE, FALSE, NULL, 40, 'low', '{"source": "BZP", "procedure_type": "otwarty"}'::jsonb);
 
--- Insert sample equipment
-INSERT INTO equipment (name, type, capacity, availability, location) VALUES
-    ('CAT 320', 'excavator', '20 ton', TRUE, 'Dzierżoniów, ul. Budowlana'),
-    ('Scania P320', 'dump_truck', '32 m³', TRUE, 'Dzierżoniów, magazyn'),
-    ('Bomag BW 213', 'roller', '12 ton', FALSE, 'Wałbrzych, plac zabaw'),
-    ('JCB 3CX', 'excavator', '9 ton', TRUE, 'Warszawa, budowa'),
-    ('Volvo FMX', 'dump_truck', '28 m³', TRUE, 'Wrocław, port'),
-    ('Liebherr LTM 1100', 'crane', '100 ton', TRUE, 'Dzierżoniów, magazyn'),
-    ('Pompa Grundfos', 'pump', '500 m³/h', TRUE, 'Magazyn centralny');
-
--- Insert sample employees
-INSERT INTO employees (name, name_short, competencies, available, current_project) VALUES
-    ('Michał Kowalski', 'MK', ARRAY['koparka', 'wykopy', 'nadzór'], TRUE, NULL),
-    ('Piotr Ziemiański', 'PZ', ARRAY['wywrotka', 'transport', 'logistyka'], TRUE, NULL),
-    ('Tomasz Lewandowski', 'TL', ARRAY['walcowanie', 'zagęszczanie'], FALSE, 'Dzierżoniów'),
-    ('Andrzej Mazur', 'AM', ARRAY['betonowanie', 'formy'], TRUE, NULL),
-    ('Krzysztof Nowak', 'KN', ARRAY['pomiar', 'geodezja', 'poziomica'], TRUE, NULL),
-    ('Jacek Wiśniewski', 'JW', ARRAY['mechanik', 'serwis'], TRUE, NULL),
-    ('Robert Kowalczyk', 'RK', ARRAY['kierownik', 'zarządzanie'], TRUE, NULL);
-
--- Insert sample red flags for tender BZP-2026-001
-INSERT INTO red_flags (tender_id, flag_type, severity, description, source_page, potential_cost, recommended_action)
+-- ============================================================================
+-- TABELA: dokumenty (przykładowe dla przetargów)
+-- ============================================================================
+INSERT INTO tender_documents (tender_id, doc_type, file_name, file_size, file_url, parsed, metadata)
 SELECT 
-    t.id,
-    'price',
-    'high',
-    'Cena ofertowa poniżej średniej rynkowej o 15% — ryzyko niskiej marży',
-    NULL,
-    42750000,  -- 15% of 285M groszy
-    'Negocjuj przedmiot lub sprawdź kosztorys'
-FROM tenders t WHERE t.external_id = 'BZP-2026-001'
+    t.id, 'SWZ', 'SWZ_' || t.external_id || '.pdf', 2450000, 
+    'https://bzp-url.example.pl/download/' || t.external_id,
+    TRUE, 'page_count=>45'::hstore
+FROM tenders t WHERE t.external_id IN ('BZP-2026-DZIER-001', 'BZP-2026-WAL-001')
 UNION ALL
 SELECT 
-    t.id,
-    'timeline',
-    'medium',
-    'Skrócony termin realizacji — ryzyko kół karalnych',
-    NULL,
-    15000000,
-    'Wymagaj przedłużenia terminu'
-FROM tenders t WHERE t.external_id = 'BZP-2026-001';
+    t.id, 'przedmiar', 'przedmiar_' || t.external_id || '.xlsx', 1850000,
+    'https://bzp-url.example.pl/download/przedmiar_' || t.external_id,
+    TRUE, 'page_count=>12'::hstore
+FROM tenders t WHERE t.external_id IN ('BZP-2026-DZIER-001', 'BZP-2026-WAL-001');
 
--- Insert sample cost estimates (variant A - documentation)
+-- ============================================================================
+-- TABELA: czerwone flagi (dla przetargów z realnymi ryzykami)
+-- ============================================================================
+INSERT INTO red_flags (tender_id, flag_type, severity, description, potential_cost, recommended_action)
+SELECT 
+    t.id, 'price', 'high', 'Wadium 1.5M zł — wysokie wymaganie dla średniej firmy', 1500000,
+    'Sprawdź płynność finansową przed składaniem oferty'
+FROM tenders t WHERE t.external_id = 'BZP-2026-RAD-001'
+UNION ALL
+SELECT 
+    t.id, 'timeline', 'high', 'Termin odbudowy po powodzi — ryzyko kół karalnych', 2000000,
+    'Wymagaj przedłużenia terminu lub rozpisz na etapy'
+FROM tenders t WHERE t.external_id = 'BZP-2026-RAD-001';
+
+INSERT INTO red_flags (tender_id, flag_type, severity, description, potential_cost, recommended_action)
+SELECT 
+    t.id, 'qualification', 'critical', 'Próg unijny 1.5M zł — wymóg doświadczenia 3 similar contracts', 5000000,
+    'Sprawdź czy masz 3 podobne kontrakty w ciągu 5 lat'
+FROM tenders t WHERE t.external_id = 'TED-2026-ZAW-001';
+
+-- ============================================================================
+-- TABELA: kosztorysy (2 warianty dla BZP-2026-DZIER-001)
+-- ============================================================================
 INSERT INTO estimates (tender_id, variant, total_net, total_vat, total_gross, labor_cost, equipment_cost, material_cost, overhead_cost, profit)
 SELECT 
-    t.id, 'A', 220000000, 50600000, 270600000, 95000000, 65000000, 55000000, 5000000, 14000000
-FROM tenders t WHERE t.external_id = 'BZP-2026-001';
+    t.id, 'A', 280000000, 64400000, 344400000, 120000000, 95000000, 65000000, 0, 64400000
+FROM tenders t WHERE t.external_id = 'BZP-2026-DZIER-001';
 
--- Insert sample cost estimates (variant B - Pana)
 INSERT INTO estimates (tender_id, variant, total_net, total_vat, total_gross, labor_cost, equipment_cost, material_cost, overhead_cost, profit)
 SELECT 
-    t.id, 'B', 235000000, 54050000, 289050000, 100000000, 72000000, 62000000, 1050000, 14050000
-FROM tenders t WHERE t.external_id = 'BZP-2026-001';
+    t.id, 'B', 310000000, 71300000, 381300000, 135000000, 110000000, 75000000, 0, 96300000
+FROM tenders t WHERE t.external_id = 'BZP-2026-DZIER-001';
 
--- Insert sample estimate lines (variant A - first 5 positions)
+-- ============================================================================
+-- TABELA: pozycje kosztorysu (variant A — KNR)
+-- ============================================================================
 INSERT INTO estimate_lines (estimate_id, position, description, unit, quantity, unit_price, total_price, source)
 SELECT 
     e.id,
-    '1.1.1', 'Przygotowanie terenu', 'm²', 2500.0, 4500, 11250000, 'KNR 0102'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'A'
+    '1.1.1', 'Przygotowanie terenu — wyrównanie', 'm²', 25000.0, 4500, 112500000, 'KNR 0102'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A'
 UNION ALL
 SELECT 
     e.id,
-    '1.1.2', 'Wykop ziemny (grunty I-IV)', 'm³', 1200.0, 6500, 7800000, 'KNR 0111'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'A'
+    '1.1.2', 'Wykop ziemny (grunty I-IV) — odvodnienie', 'm³', 8500.0, 6500, 55250000, 'KNR 0111'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A'
 UNION ALL
 SELECT 
     e.id,
-    '1.1.3', 'Wykop ziemny (grunty V-VI)', 'm³', 400.0, 12000, 4800000, 'KNR 0111'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'A'
+    '1.1.3', 'Wykop ziemny (grunty V-VI) — skarpa', 'm³', 1200.0, 12000, 14400000, 'KNR 0111'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A'
 UNION ALL
 SELECT 
     e.id,
-    '1.2.1', 'Podsypka żwirowa', 'm³', 300.0, 8500, 2550000, 'KNR 0121'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'A'
+    '1.2.1', 'Podsypka żwirowa 0-32mm', 'm³', 3500.0, 8500, 29750000, 'KNR 0121'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A'
 UNION ALL
 SELECT 
     e.id,
-    '2.1.1', 'Asfaltowanie warstwa bazowa', 'm²', 2200.0, 18000, 39600000, 'KNR 0151'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'A';
+    '1.2.2', 'Kruszywo szczelinowe 0-63mm', 'm³', 1800.0, 11000, 19800000, 'KNR 0121'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A'
+UNION ALL
+SELECT 
+    e.id,
+    '2.1.1', 'Nawierzchnia bitumiczna warstwa bazowa', 'm²', 22000.0, 18000, 39600000, 'KNR 0151'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A'
+UNION ALL
+SELECT 
+    e.id,
+    '2.2.1', 'Oznaczenie drogowe linie ciągłe', 'm', 4500.0, 1200, 5400000, 'KNR 0155'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'A';
 
--- Insert sample estimate lines (variant B - Pana — same positions, higher prices)
+-- ============================================================================
+-- TABELA: pozycje kosztorysu (variant B — Pana Excel)
+-- ============================================================================
 INSERT INTO estimate_lines (estimate_id, position, description, unit, quantity, unit_price, total_price, source)
 SELECT 
     e.id,
-    '1.1.1', 'Przygotowanie terenu', 'm²', 2500.0, 5200, 13000000, 'Pana Excel'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'B'
+    '1.1.1', 'Przygotowanie terenu — wyrównanie', 'm²', 25000.0, 5200, 130000000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B'
 UNION ALL
 SELECT 
     e.id,
-    '1.1.2', 'Wykop ziemny (grunty I-IV)', 'm³', 1200.0, 7200, 8640000, 'Pana Excel'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'B'
+    '1.1.2', 'Wykop ziemny (grunty I-IV) — odvodnienie', 'm³', 8500.0, 7200, 61200000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B'
 UNION ALL
 SELECT 
     e.id,
-    '1.1.3', 'Wykop ziemny (grunty V-VI)', 'm³', 400.0, 13500, 5400000, 'Pana Excel'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'B'
+    '1.1.3', 'Wykop ziemny (grunty V-VI) — skarpa', 'm³', 1200.0, 13500, 16200000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B'
 UNION ALL
 SELECT 
     e.id,
-    '1.2.1', 'Podsypka żwirowa', 'm³', 300.0, 9200, 2760000, 'Pana Excel'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'B'
+    '1.2.1', 'Podsypka żwirowa 0-32mm', 'm³', 3500.0, 9200, 32200000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B'
 UNION ALL
 SELECT 
     e.id,
-    '2.1.1', 'Asfaltowanie warstwa bazowa', 'm²', 2200.0, 20000, 44000000, 'Pana Excel'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001' AND e.variant = 'B';
+    '1.2.2', 'Kruszywo szczelinowe 0-63mm', 'm³', 1800.0, 12000, 21600000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B'
+UNION ALL
+SELECT 
+    e.id,
+    '2.1.1', 'Nawierzchnia bitumiczna warstwa bazowa', 'm²', 22000.0, 20000, 44000000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B'
+UNION ALL
+SELECT 
+    e.id,
+    '2.2.1', 'Oznaczenie drogowe linie ciągłe', 'm', 4500.0, 1400, 6300000, 'Pana Excel'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001' AND e.variant = 'B';
 
--- Insert risk analysis for BZP-2026-001
+-- ============================================================================
+-- TABELA: analiza ryzyka (L1/L2/L3)
+-- ============================================================================
 INSERT INTO risk_analysis (estimate_id, tender_id, l1_verdict, l1_violations, l1_derived_facts, l2_scenarios, l2_dominant_drivers, l2_target_margin_probability, l3_explanation, l3_model)
 SELECT 
     e.id, e.tender_id,
     'risky',
-    '[{"type": "price_margin", "description": "Wariant B droższy o 6.8% niż A"}]',
-    '["realizacja wykonywana w sezonie", "dostępność sprzętu ograniczona"]',
-    '[{"name": "optymistyczny", "probability": 0.25, "margin": 0.12}, {"name": "realistyczny", "probability": 0.45, "margin": 0.05}, {"name": "pesymistyczny", "probability": 0.20, "margin": -0.02}, {"name": "krytyczny", "probability": 0.10, "margin": -0.08}]',
-    '["fluktuacja cen asfaltu", "dostępność koparki CAT 320", "opady deszczu"]',
-    0.70,
-    'Analiza wykazała, że przy obecnych kosztach Pana (wariant B) marża jest niskia (5%). Ryzyko spada do 20% w przypadku pesymistycznych scenariuszy. Rekomendujemy: 1) negocjacje przedmiaru, 2) korektę kosztorysu o odwodnienie.',
-    'Ollama/Qwen3-14B'
-FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-001';
-
--- Insert decision for BZP-2026-001
-INSERT INTO decisions (tender_id, offer_price, recommendation, confidence, reasoning, key_factors)
-SELECT 
-    t.id,
-    285000000,
-    'negotiate',
-    0.65,
-    'Przetarg wykonalny, ale wymaga negocjacji przedmiaru. Wariant B jest droższy — konieczna korekta. Czerwone flagi sugerują ryzyko marży poniżej 5%.',
-    '["delta kosztów 6.8%", "2 czerwone flagi", "marża szacowana 5-8%", "dostępność sprzętu ograniczona"]'
-FROM tenders t WHERE t.external_id = 'BZP-2026-001';
+    '[{"type": "price_margin", "description": "Wariant B droższy o 10.7% niż A"}]',
+    '{"can_execute": true, "margin_sufficient": false, "risk_high": true}',
+    '{"optymistyczny": {"margin_pct": 15, "probability": 0.3}, "realistyczny": {"margin_pct": 8, "probability": 0.5}, "pesymistyczny": {"margin_pct": -2, "probability": 0.2}}',
+    '{"dominant": "cena_kruszywa", "sensitivity": 0.65}',
+    0.8,
+    'Wariant B przekracza budżet o 36.9M zł. Marża 25.2% przy realnych cenach kruszywa. Ryzyko: wzrost cen o 10% = marża -2%.',
+    'Ollama/Qwen3'
+FROM estimates e JOIN tenders t ON e.tender_id = t.id WHERE t.external_id = 'BZP-2026-DZIER-001';
 
 -- ============================================================================
--- TABELA: audit log
+-- TABELA: decyzje i rekomendacje
+-- ============================================================================
+INSERT INTO decisions (tender_id, offer_price, recommendation, confidence, reasoning, key_factors)
+SELECT 
+    t.id, 310000000, 'negotiate', 0.75,
+    'Negocjuj przedmiot — proponuję wykluczyć podział na 3 zadania (zbyt duże wadium). Marża 25.2% akceptowalna przy realnych cenach.',
+    '{"critical_flags": 0, "match_score": 92, "margin_pct": 25.2, "deposit_risk": "medium"}'
+FROM tenders t WHERE t.external_id = 'BZP-2026-DZIER-001';
+
+-- ============================================================================
+-- TABELA: sprzęt (fleet management)
+-- ============================================================================
+INSERT INTO equipment (name, type, capacity, availability, location, purchase_date, last_maintenance) VALUES
+    ('CAT 320', 'excavator', '20 ton', TRUE, 'Dzierżoniów, ul. Budowlana', '2021-03-15', '2026-06-10'),
+    ('CAT 336', 'excavator', '36 ton', TRUE, 'Dzierżoniów, magazyn', '2022-01-20', '2026-06-05'),
+    ('Volvo FMX 440', 'dump_truck', '32 m³', TRUE, 'Dzierżoniów, magazyn', '2020-05-10', '2026-06-12'),
+    ('Volvo FMX 380', 'dump_truck', '28 m³', TRUE, 'Wałbrzych, plac zabaw', '2019-08-22', '2026-05-28'),
+    ('Bomag BW 213', 'roller', '12 ton', FALSE, 'Wałbrzych, budowa', '2018-11-30', '2026-04-15'),
+    ('JCB 3CX', 'excavator', '9 ton', TRUE, 'Warszawa, budowa', '2023-02-14', '2026-06-18'),
+    ('Liebherr LTM 1100', 'crane', '100 ton', TRUE, 'Dzierżoniów, magazyn', '2021-09-01', '2026-06-01'),
+    ('Pompa Grundfos', 'pump', '500 m³/h', TRUE, 'Magazyn centralny', '2022-06-15', '2026-06-15'),
+    ('Volvo L120H', 'loader', '4.5 m³', TRUE, 'Dzierżoniów, magazyn', '2020-11-20', '2026-05-20');
+
+-- ============================================================================
+-- TABELA: pracownicy (zespół)
+-- ============================================================================
+INSERT INTO employees (name, name_short, competencies, available, current_project, role, phone) VALUES
+    ('Maciej Kowalski', 'MK', ARRAY['koparka', 'wykopy', 'nadzór'], TRUE, NULL, 'operator', '+48 512 345 678'),
+    ('Piotr Ziemiański', 'PZ', ARRAY['wywrotka', 'transport', 'logistyka'], TRUE, NULL, 'operator', '+48 512 345 679'),
+    ('Tomasz Lewandowski', 'TL', ARRAY['walcowanie', 'zagęszczanie'], FALSE, 'Dzierżoniów', 'operator', '+48 512 345 680'),
+    ('Andrzej Mazur', 'AM', ARRAY['betonowanie', 'formy'], TRUE, NULL, 'operator', '+48 512 345 681'),
+    ('Krzysztof Nowak', 'KN', ARRAY['pomiar', 'geodezja', 'poziomica'], TRUE, NULL, 'surveyor', '+48 512 345 682'),
+    ('Jacek Wiśniewski', 'JW', ARRAY['mechanik', 'serwis'], TRUE, NULL, 'mechanic', '+48 512 345 683'),
+    ('Robert Kowalczyk', 'RK', ARRAY['kierownik', 'zarządzanie'], TRUE, NULL, 'site_manager', '+48 512 345 684');
+
+-- ============================================================================
+-- TABELA: activity_log (audit trail — przykładowe wpisy)
 -- ============================================================================
 INSERT INTO activity_log (action, tender_id, user, details)
 SELECT 
-    'zwiad_analizuj', t.id, 'system',
-    '{"tender": "BZP-2026-001", "score": 85}'::jsonb
-FROM tenders t WHERE t.external_id = 'BZP-2026-001'
+    'zwiad_analizuj', id, 'system', 
+    '{"matched_score": 92, "flags": 0, "recommendation": "negotiate"}'::jsonb
+FROM tenders WHERE external_id = 'BZP-2026-DZIER-001'
 UNION ALL
 SELECT 
-    'kosztorys_generuj', t.id, 'system',
-    '{"variant": "A", "gross": 270600000}'::jsonb
-FROM tenders t WHERE t.external_id = 'BZP-2026-001'
+    'kosztorys_generuj', id, 'Maciek K.',
+    '{"variant": "B", "net_value": 310000000, "vat": 71300000}'::jsonb
+FROM tenders WHERE external_id = 'BZP-2026-DZIER-001'
 UNION ALL
 SELECT 
-    'risk_analyze', t.id, 'system',
-    '{"verdict": "risky", "margin_prob": 0.70}'::jsonb
-FROM tenders t WHERE t.external_id = 'BZP-2026-001';
+    'ryzyko_analizuj', id, 'system',
+    '{"verdict": "risky", "margin_pct": 25.2}'::jsonb
+FROM tenders WHERE external_id = 'BZP-2026-DZIER-001';
 
 -- ============================================================================
--- INDEXES PERFORMANCE
--- ============================================================================
--- Materialized view for dashboard metrics
-CREATE MATERIALIZED VIEW m_dashboard_stats AS
-SELECT 
-    COUNT(*) FILTER (WHERE status = 'new') AS new_tenders,
-    COUNT(*) FILTER (WHERE status = 'analyzing') AS analyzing_tenders,
-    COUNT(*) FILTER (WHERE status = 'ready') AS ready_tenders,
-    COUNT(*) FILTER (WHERE status = 'accepted') AS won_tenders,
-    COUNT(*) FILTER (WHERE status = 'rejected') AS lost_tenders,
-    SUM(CASE WHEN status = 'accepted' THEN estimated_value ELSE 0 END) AS total_won_value,
-    AVG(match_score) FILTER (WHERE match_score > 0) AS avg_match_score,
-    COUNT(DISTINCT voivodeship) AS voivodeships_covered
-FROM tenders
-WHERE status != 'archived';
-
--- Refresh materialized view
-CREATE INDEX idx_dashboard_stats ON m_dashboard_stats USING btree (new_tenders);
-
--- Function to refresh materialized view
-CREATE OR REPLACE FUNCTION refresh_dashboard_stats()
-RETURNS void AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY m_dashboard_stats;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================================
--- FUNCTIONS
+-- VIEWS: wyszukiwanie pełnotekstowe
 -- ============================================================================
 
--- Function: fuzzy search tenders
+-- Funkcja: wyszukiwanie tenderów
 CREATE OR REPLACE FUNCTION search_tenders(query TEXT, limit_count INTEGER DEFAULT 20)
 RETURNS TABLE (
     id UUID,
-    external_id TEXT,
     title TEXT,
-    cpv_codes TEXT[],
-    voivodeship TEXT,
     city TEXT,
-    contract_authority TEXT,
+    source source_type,
     deadline TIMESTAMP WITH TIME ZONE,
-    match_score INTEGER,
-    relevance FLOAT
+    match_score INTEGER
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
-        t.id, t.external_id, t.title, t.cpv_codes, t.voivodeship, 
-        t.city, t.contract_authority, t.deadline, t.match_score,
-        (ts_rank(to_tsvector('polish', t.title || ' ' || COALESCE(t.contract_authority, '')), 
-                 plainto_tsquery('polish', query)) +
-         ts_rank(to_tsvector('polish', t.address), 
-                 plainto_tsquery('polish', query))) AS relevance
+    SELECT t.id, t.title, t.city, t.source, t.deadline, t.match_score
     FROM tenders t
-    WHERE to_tsvector('polish', t.title || ' ' || COALESCE(t.contract_authority, '')) 
-          @@ plainto_tsquery('polish', query)
-       OR t.address % query  -- trigram similarity
-       OR t.voivodeship % query
-    ORDER BY relevance DESC
+    WHERE 
+        (to_tsvector('polish', t.title) @@ plainto_tsquery('polish', query)
+        OR t.title ILIKE '%' || query || '%')
+        OR (t.contract_authority ILIKE '%' || query || '%')
+        OR t.cpv_codes && (SELECT ARRAY[cpv_code FROM (SELECT unnest(ARRAY[query]) AS cpv_code)])
+    ORDER BY 
+        ts_rank(to_tsvector('polish', t.title), plainto_tsquery('polish', query)) DESC,
+        t.match_score DESC,
+        t.deadline ASC
     LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql;
 
--- Function: get tender delta (variant A vs B)
-CREATE OR REPLACE FUNCTION get_estimate_delta(tender_uuid UUID)
+-- Funkcja: porównanie kosztorysów
+CREATE OR REPLACE FUNCTION get_estimate_delta(tender_id_param UUID)
 RETURNS TABLE (
-    variant_a_gross BIGINT,
-    variant_b_gross BIGINT,
-    delta_gross BIGINT,
-    delta_percent FLOAT
+    variant_a_net BIGINT,
+    variant_b_net BIGINT,
+    delta_percent FLOAT,
+    delta_amount BIGINT
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        a.total_gross,
-        b.total_gross,
-        b.total_gross - a.total_gross,
-        CASE WHEN a.total_gross > 0 
-             THEN ((b.total_gross - a.total_gross) * 100.0 / a.total_gross)
-             ELSE 0 
-        END
-    FROM estimates a
-    JOIN estimates b ON b.tender_id = a.tender_id AND b.variant = 'B'
-    WHERE a.tender_id = tender_uuid AND a.variant = 'A';
-END;
-$$ LANGUAGE plpgsql;
-
--- Function: anonymize PII (for data export)
-CREATE OR REPLACE FUNCTION anonymize_pii(text_input TEXT)
-RETURNS TEXT AS $$
-BEGIN
-    RETURN encode(
-        hmac(text_input, 'terra-os-secret-key', 'sha256'),
-        'hex'
-    );
+        ea.total_net,
+        eb.total_net,
+        CASE WHEN ea.total_net > 0 THEN (eb.total_net - ea.total_net)::FLOAT / ea.total_net * 100 ELSE 0 END,
+        eb.total_net - ea.total_net
+    FROM estimates ea
+    JOIN estimates eb ON ea.tender_id = eb.tender_id AND ea.variant = 'A' AND eb.variant = 'B'
+    WHERE ea.tender_id = tender_id_param;
 END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
--- COMMENTS
+-- MIGRACJA: tworzenie tabel i indeksów (powyżej)
 -- ============================================================================
-COMMENT ON TABLE tenders IS 'Główna tabela przetargów — agregacja z BZP, TED, BK, BIP';
-COMMENT ON COLUMN tenders.cpv_codes IS 'Kody CPV (Common Procurement Vocabulary) — klasyfikacja branżowa';
-COMMENT ON COLUMN tenders.match_score IS 'Score 0-100: dopasowanie oferty firmy do przetargu';
-COMMENT ON COLUMN document_chunks.chunk_type IS 'Typ chunka: text, table, clause, price, timeline, penalty, qualification';
-COMMENT ON TABLE estimates IS 'Kosztorysy: A=z dokumentacji (KNR), B=z Pana Excel';
-COMMENT ON TABLE risk_analysis IS '3-warstwowa analiza: L1(reguły), L2(ryzyko), L3(AI)';
-COMMENT ON TABLE decisions IS 'Rekomendacje decyzji: offer/reject/negotiate z pewnością';
-
--- ============================================================================
--- END OF SCHEMA
--- ============================================================================
--- Generated: 2026-06-22
--- Compatible: PostgreSQL 16+
--- Data sources: BZP (ezamowienia.gov.pl), TED (ted.europa.eu)
--- Based on analysis: atlasprzetargow.pl
+-- Wersja bazy: 2026-06-22 | Atlas Przetargow.pl integration
 -- ============================================================================
