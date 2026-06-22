@@ -12,7 +12,7 @@ import type {
 
 // ── Module names used in navigation ────────────────────────────────────────
 
-export type ModuleName = 'zwiad' | 'kosztorys' | 'silnik' | 'decyzja' | 'logistyka';
+export type ModuleName = 'dashboard' | 'zwiad' | 'kosztorys' | 'silnik' | 'decyzja' | 'logistyka';
 
 interface AppState {
   // ── Navigation ──────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ interface AppState {
 
 export const useStore = create<AppState>((set) => ({
   // ── Navigation ──────────────────────────────────────────────────────────
-  currentModule: 'zwiad',
+  currentModule: 'dashboard',
   setCurrentModule: (module) => set({ currentModule: module }),
 
   // ── Tender state ────────────────────────────────────────────────────────

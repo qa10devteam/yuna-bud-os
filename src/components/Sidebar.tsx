@@ -8,11 +8,13 @@ import {
   Brain,
   ClipboardCheck,
   Truck,
+  LayoutDashboard,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 
 const modules = [
+  { id: 'dashboard' as const, icon: LayoutDashboard, name: 'DASHBOARD', desc: 'Panel główny', color: 'text-earth-100' },
   { id: 'zwiad' as const, icon: Shovel, name: 'ZWIAD', desc: 'Zwiad przetargowy', color: 'text-accent-success' },
   { id: 'kosztorys' as const, icon: Calculator, name: 'KOSZTORYS', desc: 'Kosztorys 2 warianty', color: 'text-accent-info' },
   { id: 'silnik' as const, icon: Brain, name: 'SILNIK', desc: 'Silnik decyzyjny', color: 'text-accent-warning' },

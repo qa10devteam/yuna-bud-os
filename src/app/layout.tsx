@@ -17,6 +17,9 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Terra.OS — System Zarządzania Przetargami i Budową',
   description: 'Lokalny system dla wykonawców robót ziemnych — zwiad, kosztorys, silnik decyzyjny',
+  icons: {
+    icon: '/assets/logo.svg',
+  },
 };
 
 export default function RootLayout({
