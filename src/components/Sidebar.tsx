@@ -52,7 +52,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between p-4 border-b border-earth-700">
         {isMenuOpen && (
           <div className="flex items-center gap-2">
-            <img src="/assets/logo/logo.svg" alt="Terra.OS" className="h-8 w-auto" />
+            <img src="/assets/logo/logo.svg" alt="Terra.OS" className="h-10 w-auto" />
           </div>
         )}
         <button
@@ -77,7 +77,7 @@ export function Sidebar() {
                 : 'hover:bg-earth-800/50'
             }`}
           >
-            <Icon className={`w-5 h-5 flex-shrink-0 ${currentModule === id ? color : 'text-earth-400'}`} />
+            <Icon className={`w-8 h-8 flex-shrink-0 ${currentModule === id ? color : 'text-earth-400'}`} />
             {isMenuOpen && (
               <div className="flex-1 text-left">
                 <div className="text-sm font-semibold text-earth-100">{name}</div>

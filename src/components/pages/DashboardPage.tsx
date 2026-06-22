@@ -10,10 +10,10 @@ import {
 } from 'lucide-react';
 
 // Custom SVG Icons
-const ShovelIcon = () => <img src="/assets/icons/shovel.svg" alt="Zwiad" className="w-12 h-12" />;
-const CalcIcon = () => <img src="/assets/icons/calculator.svg" alt="Kosztorys" className="w-12 h-12" />;
-const BrainIcon = () => <img src="/assets/icons/brain.svg" alt="Silnik" className="w-12 h-12" />;
-const ClipboardIcon = () => <img src="/assets/icons/clipboard.svg" alt="Decyzja" className="w-12 h-12" />;
+const ShovelIcon = () => <img src="/assets/icons/shovel.svg" alt="Zwiad" className="w-16 h-16" />;
+const CalcIcon = () => <img src="/assets/icons/calculator.svg" alt="Kosztorys" className="w-16 h-16" />;
+const BrainIcon = () => <img src="/assets/icons/brain.svg" alt="Silnik" className="w-16 h-16" />;
+const ClipboardIcon = () => <img src="/assets/icons/clipboard.svg" alt="Decyzja" className="w-16 h-16" />;
 
 const modules = [
   {
