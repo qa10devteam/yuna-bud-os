@@ -1,0 +1,19 @@
+# Dev infra only. Production bundles Postgres+Ollama inside the Tauri app.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: terraos
+      POSTGRES_USER: terraos
+      POSTGRES_PASSWORD: change_me
+    ports: ["5432:5432"]
+    volumes: ["terraos_pg:/var/lib/postgresql/data"]
+  ollama:
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: ["terraos_ollama:/root/.ollama"]
+    # GPU passthrough on Path B hosts:
+    # deploy: { resources: { reservations: { devices: [{ capabilities: ["gpu"] }] } } }
+volumes:
+  terraos_pg:
+  terraos_ollama:
