@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from terra_shared.errors import TerraError
-from .routers import health, zwiad, documents, estimator, engine, rfq, chat, module3
+from .routers import health, zwiad, documents, estimator, engine, rfq, chat, module3, system
 
 
 @asynccontextmanager
@@ -51,3 +51,4 @@ app.include_router(engine.router)
 app.include_router(rfq.router)
 app.include_router(chat.router)
 app.include_router(module3.router)
+app.include_router(system.router)
