@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Terra.OS
 
-## Getting Started
+**System Zarządzania Robotami Ziemnymi** dla polskich firm budowlanych.
 
-First, run the development server:
+Platforma obejmuje: Zwiad (odkrycie przetargów), Kosztorysant (wycena), Silnik (engine decyzyjny), Mózg (zarządzanie placem budowy).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Struktura monorepo
+
+```
+terra-os/
+├── apps/ui/          # Next.js 16 simulation UI (demo dla klienta)
+├── services/api/     # FastAPI local REST API (Python 3.12)
+├── packages/db/      # SQLAlchemy 2.0 models + Alembic migrations
+├── packages/shared/  # Provenance, Flag, AuditWriter, Errors
+├── spec/             # Pełna specyfikacja techniczna (M0–M9)
+└── tests/            # pytest (zero-network)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Python backend
+python3.12 -m pip install -e packages/shared -e packages/db -e services/api
+DB_PASSWORD=xxx python3.12 -m alembic -c packages/db/alembic.ini upgrade head
+uvicorn services.api.services.api.main:app --host 127.0.0.1 --port 8765
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# UI (demo)
+cd apps/ui && npm ci && npm run dev
 
-## Learn More
+# Tests
+python3.12 -m pytest tests/
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **M0** ✅ Scaffold, DB schema (32 tables), /health, 14 tests green
+- **M1–M9** 🔄 In progress per spec/09_milestones_acceptance.md
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Spec
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [SPEC.md](SPEC.md) and [spec/](spec/) for full technical specification.
