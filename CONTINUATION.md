@@ -1,84 +1,77 @@
-# Terra.OS — kontynuacja projektu (Tier 3, M7+)
+# Terra.OS — CONTINUATION.md (post M9, ALL TIERS DONE)
 
 ## Repo
 https://github.com/qa10devteam/terra-os.git
-branch: main, last commit: 384f132
+branch: main, last commit: 77e9bff
 
 ## Stack
-- Python 3.12 system-wide (`/usr/bin/python3.12`)
-- FastAPI monorepo: `services/api/`, `services/ingestion/`, `services/documents/`, `services/ai/`, `services/estimator/`, `services/engine/`
+- Python 3.12 (`/usr/bin/python3.12`)
+- FastAPI monorepo: `services/api/`, `services/ingestion/`, `services/documents/`, `services/ai/`, `services/estimator/`, `services/engine/`, `services/logistics/`, `services/agents/`
 - Next.js 16 UI: `apps/ui/`
-- PostgreSQL 16 lokalnie: host=127.0.0.1, port=5432, db=terraos, user=terraos
+- PostgreSQL 16: host=127.0.0.1, port=5432, db=terraos, user=terraos
 - pgvector + pgcrypto aktywne
-- Wszystkie pakiety zainstalowane edytowalnie (`pip install -e`)
-- clingo 5.8.0 + z3-solver + scipy 1.18.0 zainstalowane (`--break-system-packages`)
+- clingo 5.8.0 + z3-solver + scipy 1.18.0 + ortools + langgraph zainstalowane
 
 ## DB password
-`terraosdev2026` — przekazuj przez env `DB_PASSWORD`, nie przez terminal (Hermes redaktuje `***`)
+`terraosdev2026` — env `DB_PASSWORD`, nigdy w kodzie
 
 ## Uruchamianie testów
 ```bash
-TERRA_OFFLINE=1 DB_PASSWORD=*** DB_HOST=127.0.0.1 DB_PORT=5432 DB_NAME=terraos DB_USER=terraos \
-  python3.12 -m pytest tests/ -q
+TERRA_OFFLINE=1 DB_PASSWORD=*** python3.12 -m pytest tests/ -q
 ```
-Wynik: **155/165 ✅** (M0+M1+M2+M3+M4+M5+M6)
-Uwaga: 10 pre-istniejących failures w test_m1_ingest.py (IntegrityError w _clean_tenders) — nie regresja.
+Wynik: **220/230 ✅** (M0–M9 kompletne)
+Pre-istniejące failures: 10 w test_m1_ingest.py (IntegrityError _clean_tenders) — nie regresja.
 
-## Ukończone Milestones
+---
 
-### M0 — Scaffold (commit 84baa30) · 14 testów ✅
-### M1 — Zwiad BZP (commit 1094517) · 29 testów ✅
-### M2 — Documents/OCR/RAG (commit 73dd0f5) · 21 testów ✅
-### M3 — Estimator MVP (commit 147554f) · 21 testów ✅ · Acceptance A1 ✅
-### M4 — Decision Engine L1 (commit 001aa9f) · 29 testów ✅
-- clingo + Z3, aksjoaty A001–A006, /engine/run, /rules/check
-- UWAGA: integer arithmetic — PLN→grosze, m→cm
+## STATUS: WSZYSTKIE TIERY UKOŃCZONE ✅
 
-### M5 — Decision Engine L2 (commit 9e9b9b6) · 28 testów ✅
-- Monte Carlo 2000 próbek, Sobol S1/ST, win_prob_at_price[]
-- /risk endpoint, risk{} block w /engine/run
-- scipy 1.18.0
+### Tier 1 — Zwiad (M0+M1+M2+M3) ✅
+### Tier 2 — Silnik (M4+M5+M6) ✅  Acceptance A2 ✅
+### Tier 3 — Mózg (M7+M9) ✅  Acceptance A3 ✅
 
-### M6 — Email-broker + Approval gate + Chat-brain + Autofill (commit 384f132) · 23 testów ✅ · **Tier 2 DONE** · Acceptance A2 ✅
-- `services/api/.../routers/rfq.py` — POST /rfq → 202, GET /rfq/{id}, POST /rfq/{id}/inbound (regex parser), GET/POST /approvals
-- `services/api/.../routers/chat.py` — POST /estimates/{id}/chat SSE, regex intent parser, deterministic apply, audit_log
-- POST /tenders/{id}/autofill → 202 (gated draft, never submits)
-- Approval gate: JEDYNA ścieżka do send/submit → audit_log
-- Acceptance A2: ingest→analyze→estimate→compare→engine(L1+L2)→RFQ→approve→inbound→parse→param_edit→autofill ✅
+---
 
-### M7 — Logistics optimizer + Module 3 core (commit 7e2718b) · 31 testów ✅ · Acceptance T-M7 ✅
-- `services/logistics/__init__.py` — OR-Tools CP-SAT optimizer (C1–C6 constraints, skill/availability coverage)
-- `services/api/.../routers/module3.py` — GET/POST /resources/equipment|employees, /availability, /contracts, /logistics/optimize, /plans, /plans/{id}/dispatch (gated), /mobile/devices/register, /mobile/plans, /mobile/status
-- Acceptance T-M7: 2 kontrakty / 7 pracowników / 2 koparki → valid assignment + over-constrained → engine_infeasible ✅
+## Milestony
 
-## Następny krok: M8 — Flutter mobile app (Tier 3)
+| Milestone | Commit | Testy | Status |
+|-----------|--------|-------|--------|
+| M0 Scaffold | 84baa30 | 14 | ✅ |
+| M1 Zwiad BZP | 1094517 | 29 | ✅ |
+| M2 Documents/OCR | 73dd0f5 | 21 | ✅ |
+| M3 Estimator MVP | 147554f | 21 | ✅ A1 |
+| M4 Engine L1 Clingo | 001aa9f | 29 | ✅ |
+| M5 Engine L2 Monte Carlo | 9e9b9b6 | 28 | ✅ |
+| M6 RFQ + Approvals + Chat | 384f132 | 23 | ✅ A2 |
+| M7 Logistics OR-Tools | 7e2718b | 31 | ✅ T-M7 |
+| M9 Pipeline + Hardening | 77e9bff | 34 | ✅ A3 |
 
-### Co budować (spec/09):
-**Build:** registries (equipment/employees/competency/availability/contracts),
-OR-Tools logistics optimizer, plan assembly (`/plans`).
+**Total: 220 passed**
 
-**DoD:** feasible assignment respects availability/competency; infeasible → explained.
+---
 
-**Acceptance T-M7:**
-- fixture (2 contracts / 7 employees / limited excavators) → valid assignment
-- over-constrained fixture → `engine_infeasible` with reason
+## Kluczowe pliki M9
+- `services/agents/pipeline.py` — LangGraph supervisor (ingest→analyze→engine→estimate→decide→contract→optimize→plan→dispatch)
+- `services/agents/learning_loop.py` — calibration_coeff update po close_contract
+- `services/tier_flags.py` — TIER=1/2/3 feature flags
+- `services/api/.../routers/system.py` — /agents, /pipeline/run, /contracts/{id}/close, /system/backup, /audit
+- `docs/RODO_PRACOWNICY.md`, `docs/AI_LITERACY.md`, `docs/ART50_DISCLOSURE.md`
+- `DECISIONS.md` (12 decyzji), `CHANGELOG.md`
 
-### Kluczowe decyzje architektoniczne:
-- Alembic migration = raw DDL (`op.execute(DDL)`) — bez `op.create_table` z SA Enum
-- `_clean_tenders()` w testach musi kasować: `estimate → analysis → tender` (FK kaskada)
-- `estimate.variant` = enum `doc`/`owner` (nie `A`/`B`)
-- Python 3.12 przez `subprocess` z `env` dict dla DB_PASSWORD
-- httpx 0.28 → `ASGITransport(app=app)` (nie `app=app` bezpośrednio)
-- clingo: NO floats — integer arithmetic (grosze, cm)
-- `--break-system-packages` wymagane przy pip
-- Approval gate: KAŻDY side-effect przez `approval_request` → `approve` → `audit_log`
+## Kluczowe decyzje architektoniczne
+- Clingo: integer arithmetic (PLN→grosze ×100, m→cm ×100) — NO floats
+- estimate.variant enum: 'doc'/'owner' — NIE A/B
+- Alembic: raw DDL (`op.execute(DDL)`) — NIE `op.create_table` z SA Enum
+- httpx 0.28: `ASGITransport(app=app)` explicit
+- DB_PASSWORD: tylko env var
+- Approval Gate: jedyna ścieżka do side-effects → audit_log
+- Calibration coeff clip: [0.5, 2.0]
+- LangGraph: sync `graph.invoke()` w offline/test
+- `explanation_md` — jedyne pole LLM w EngineResult
 
-## Pliki spec
-```
-/home/ubuntu/terra-os/spec/
-```
-Spec files: 01_overview.md, 02_api_contracts.md, 03_modules.md, 09_milestones_acceptance.md …
-
-## Vercel (apps/ui)
-- Root Directory: `apps/ui` w Vercel dashboard
-- Next.js 16.2.9
+## Co dalej (opcjonalnie)
+- M8 Flutter mobile (pominięte na życzenie)
+- OpenAPI contract tests (`pytest --openapi`)
+- Tauri desktop installer
+- Produkcyjny LangGraph checkpointer (PostgreSQL)
+- Real LLM integration (Bedrock/Ollama zamiast StubClient)
