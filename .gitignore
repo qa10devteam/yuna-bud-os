@@ -45,3 +45,13 @@ apps/ui/.next/
 
 # Env
 .env
+
+# Binary data - do not commit
+data/qdrant_storage/
+data/qdrant_pl_warsaw_3072.snapshot
+data/ddc_cwicr_pl_warsaw_workitems.parquet
+*.parquet
+*.snapshot
+*.mmap
+*.pkl
+models/
