@@ -169,7 +169,14 @@ def list_tenders(
 @router.get("/tenders/{tender_id}", response_model=TenderDetail)
 def get_tender(tender_id: str) -> TenderDetail:
     """Get full tender details by ID."""
+    import uuid as _uuid
     from sqlalchemy import text
+    # Validate UUID format early — invalid UUID causes PG syntax error → 500
+    try:
+        _uuid.UUID(tender_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Tender not found")
+
     engine = get_engine()
 
     with engine.connect() as conn:

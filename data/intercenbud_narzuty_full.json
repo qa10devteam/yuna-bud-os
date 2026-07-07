@@ -1,0 +1,2858 @@
+{
+  "2026Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2026Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2025Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2025Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2025Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2025Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2024Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2024Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2024Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2024Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2023Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2023Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2023Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2023Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2022Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2022Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2022Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2022Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2021Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2021Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2021Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2021Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2020Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2020Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2020Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2020Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2019Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2019Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2019Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2019Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2018Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2018Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2018Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2018Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2017Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2017Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2017Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2017Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2016Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2016Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2016Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2016Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2015Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2015Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2015Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2015Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2014Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2014Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2014Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2014Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2013Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2013Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2013Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2013Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2012Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2012Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2012Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2012Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2011Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2011Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2011Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2011Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2010Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2010Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2010Q2": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2010Q1": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2009Q4": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ],
+  "2009Q3": [
+    {
+      "idNarzutu": 1,
+      "idCenySred": 10075,
+      "nazwa": "roboty ogólnobudowlane",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 2,
+      "idCenySred": 10076,
+      "nazwa": "instalacje sanitarne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 3,
+      "idCenySred": 10077,
+      "nazwa": "instalacje elektryczne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 4,
+      "idCenySred": 10078,
+      "nazwa": "roboty inżynieryjne",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    },
+    {
+      "idNarzutu": 7,
+      "idCenySred": 10079,
+      "nazwa": "roboty specjalistyczne - wysoki std",
+      "kosztyPosrednie": 0,
+      "zysk": 0,
+      "kosztyZakupu": 0
+    }
+  ]
+}

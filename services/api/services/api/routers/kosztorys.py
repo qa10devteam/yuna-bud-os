@@ -188,7 +188,27 @@ def update_kosztorys_item(
         conn.commit()
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="Pozycja nie istnieje")
-    return {"id": item_id, "status": "updated"}
+        # Return updated row so client can confirm reflected values
+        row = conn.execute(
+            sa.text("""
+                SELECT id, tender_id, description, unit, quantity, unit_price,
+                       (quantity * unit_price) AS total_price, updated_at
+                FROM kosztorys_items WHERE id = :item_id
+            """),
+            {"item_id": item_id},
+        ).fetchone()
+    if not row:
+        return {"id": item_id, "status": "updated"}
+    return {
+        "id": str(row[0]),
+        "tender_id": str(row[1]),
+        "description": row[2],
+        "unit": row[3],
+        "quantity": float(row[4]) if row[4] is not None else None,
+        "unit_price": float(row[5]) if row[5] is not None else None,
+        "total_price": float(row[6]) if row[6] is not None else None,
+        "status": "updated",
+    }
 
 
 @router.delete("/{tender_id}/{item_id}")

@@ -48,7 +48,21 @@ from .routers import (
     notifications, search, audit, analytics,
     benchmark, advanced_analytics, analytics_v2,
     organizations,
+    offers,  # Faza 7 — Oferty
 )
+
+# Faza 3 — nowe routery analytics/intelligence
+try:
+    from .routers import tender_alerts
+    from .routers import tender_bookmarks
+    from .routers import competitor_watch
+    from .routers import buyer_crm
+    from .routers import market_intelligence
+    _phase3_routers = [tender_alerts, tender_bookmarks, competitor_watch, buyer_crm, market_intelligence]
+except ImportError as e:
+    import logging
+    logging.getLogger(__name__).warning("Phase 3 routers import error: %s", e)
+    _phase3_routers = []
 
 # Fazy 41-60 — optional routers (graceful import)
 _optional_routers = []
@@ -215,10 +229,14 @@ app.include_router(chat.router)
 app.include_router(module3.router)
 app.include_router(system.router)
 app.include_router(export.router)
+app.include_router(offers.router)   # Faza 7 — Oferty
 app.include_router(bzp.router)
 app.include_router(market_data.router)
 
 # Fazy 63-81 — Advanced routers (other agent)
+for _r in _phase3_routers:
+    app.include_router(_r.router)
+
 app.include_router(monitoring.router)
 app.include_router(gdpr.router)
 app.include_router(api_keys.router)
