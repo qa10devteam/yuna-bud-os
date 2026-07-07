@@ -21,7 +21,7 @@ TED_API_BASE = "https://api.ted.europa.eu/v3"
 
 
 class TedSearchRequest(BaseModel):
-    query: str = "earthworks construction Poland"
+    query: str = "construction works Poland"
     page: int = 1
     limit: int = 20
     country: str = "PL"
@@ -109,7 +109,7 @@ def ted_sync(
     limit: int = Query(20, ge=1, le=100),
 ) -> dict:
     """Synchronizuj przetargi EU z TED API."""
-    background_tasks.add_task(_sync_ted, "earthworks construction", country, limit)
+    background_tasks.add_task(_sync_ted, "construction building works", country, limit)
     return {
         "status": "started",
         "country": country,

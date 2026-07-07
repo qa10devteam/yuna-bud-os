@@ -7,18 +7,18 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { useStore } from '@/store/useStore';
 import { showToast } from '@/components/Toast';
 
-const CPV_CATEGORIES = [
-  { code: '45000000', label: 'Roboty budowlane' },
-  { code: '45200000', label: 'Roboty budowlane w zakresie obiektów budowlanych' },
-  { code: '45230000', label: 'Roboty budowlane w zakresie budowy rurociągów, linii komunikacyjnych i elektroenergetycznych' },
-  { code: '45300000', label: 'Roboty instalacyjne' },
-  { code: '45400000', label: 'Roboty wykończeniowe' },
-  { code: '45500000', label: 'Wynajem maszyn i sprzętu' },
-  { code: '71000000', label: 'Usługi architektoniczne, inżynieryjne i planowania' },
-  { code: '71300000', label: 'Usługi inżynieryjne' },
-  { code: '45100000', label: 'Przygotowanie terenu pod budowę' },
-  { code: '45600000', label: 'Roboty elewacyjne' },
+const CPV_OPTIONS = [
+  { code: '45111', label: 'Roboty ziemne i drenaż',         sector: 'earthworks' },
+  { code: '45233', label: 'Drogi, mosty, infrastruktura',   sector: 'roads' },
+  { code: '45210', label: 'Kubatura — budynki i hale',      sector: 'cubature' },
+  { code: '45400', label: 'Remonty i roboty wykończeniowe', sector: 'cubature' },
+  { code: '45231', label: 'Sieci wod-kan i gazowe',         sector: 'utilities' },
+  { code: '45310', label: 'Instalacje elektryczne',         sector: 'utilities' },
+  { code: '45221', label: 'Mosty i konstrukcje specjalne',  sector: 'specialised' },
+  { code: '45',    label: 'Ogólne roboty budowlane',        sector: 'generic' },
 ];
+
+const CPV_CATEGORIES = CPV_OPTIONS;
 
 const VOIVODESHIPS = [
   'dolnośląskie', 'kujawsko-pomorskie', 'lubelskie', 'lubuskie',
@@ -39,6 +39,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     name: user?.name ?? '',
     nip: '',
     cpv: [] as string[],
+    sector: '' as string,
     regions: [] as string[],
   });
 
@@ -61,7 +62,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         await fetch(`/api/v2/organizations/${user.org_id}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cpv_codes: formData.cpv, regions: formData.regions }),
+          body: JSON.stringify({ cpv_codes: formData.cpv, regions: formData.regions, sector: formData.sector }),
         }).catch(() => {});
         await fetch('/api/v1/ingest/run', {
           method: 'POST',
@@ -78,9 +79,11 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   }
 
   function toggleCpv(code: string) {
+    const option = CPV_OPTIONS.find(o => o.code === code);
     setFormData(d => ({
       ...d,
       cpv: d.cpv.includes(code) ? d.cpv.filter(c => c !== code) : [...d.cpv, code],
+      sector: option?.sector ?? d.sector,
     }));
   }
 

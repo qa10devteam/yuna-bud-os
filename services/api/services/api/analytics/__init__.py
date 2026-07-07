@@ -352,13 +352,66 @@ Szukaj szczególnie: kar umownych, braku waloryzacji, krótkich terminów, solid
 
 # CPV group benchmarks (PLN/m²) — approximate market data
 CPV_BENCHMARKS: dict[str, dict] = {
-    "45": {"min": 1800, "mean": 3200, "max": 6000, "label": "Roboty budowlane ogólne"},
-    "4521": {"min": 2500, "mean": 4200, "max": 8000, "label": "Budynki"},
-    "4523": {"min": 800, "mean": 1500, "max": 3000, "label": "Autostrady i drogi"},
-    "4524": {"min": 2000, "mean": 3800, "max": 7000, "label": "Kanalizacja i wodociągi"},
-    "4525": {"min": 1500, "mean": 2800, "max": 5500, "label": "Instalacje"},
-    "4526": {"min": 600, "mean": 1200, "max": 2500, "label": "Roboty ziemne"},
-    "4528": {"min": 3000, "mean": 5500, "max": 12000, "label": "Instalacje elektr."},
+    "45": {
+        "min": 1800, "mean": 3200, "max": 6000,
+        "label": "Roboty budowlane ogólne"
+    },
+    "4521": {
+        "min": 2500, "mean": 4200, "max": 8000,
+        "label": "Budynki"
+    },
+    "45210": {
+        "min": 2200, "mean": 2800, "max": 6500,
+        "label": "Kubatura — budynki i hale"
+    },
+    "4523": {
+        "min": 800, "mean": 1500, "max": 3000,
+        "label": "Autostrady i drogi"
+    },
+    "45233": {
+        "min": 300, "mean": 380, "max": 600,
+        "label": "Drogi i chodniki"
+    },
+    "4524": {
+        "min": 2000, "mean": 3800, "max": 7000,
+        "label": "Kanalizacja i wodociągi"
+    },
+    "45231": {
+        "min": 450, "mean": 650, "max": 1100,
+        "label": "Sieci rurociągowe"
+    },
+    "4525": {
+        "min": 1500, "mean": 2800, "max": 5500,
+        "label": "Instalacje"
+    },
+    "4526": {
+        "min": 600, "mean": 1200, "max": 2500,
+        "label": "Roboty ziemne"
+    },
+    "45111": {
+        "min": 150, "mean": 210, "max": 380,
+        "label": "Roboty ziemne"
+    },
+    "4528": {
+        "min": 3000, "mean": 5500, "max": 12000,
+        "label": "Instalacje elektr."
+    },
+    "45221": {
+        "min": 3000, "mean": 4500, "max": 8000,
+        "label": "Mosty i wiadukty"
+    },
+    "45400": {
+        "min": 300, "mean": 450, "max": 700,
+        "label": "Roboty wykończeniowe"
+    },
+    "45310": {
+        "min": 200, "mean": 280, "max": 450,
+        "label": "Instalacje elektryczne"
+    },
+    "45330": {
+        "min": 240, "mean": 320, "max": 520,
+        "label": "Instalacje sanitarne"
+    },
 }
 
 

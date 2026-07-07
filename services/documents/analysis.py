@@ -190,7 +190,7 @@ def analyze_tender(
 def _llm_detect_redflags(text: str, llm: LLMClient, *, doc_id: str) -> list[RedFlag]:
     """LLM-enhanced red-flag detection."""
     prompt = (
-        "Przeanalizuj dokument przetargowy pod kątem ryzyk dla wykonawcy robót ziemnych.\n"
+        "Przeanalizuj dokument przetargowy pod kątem ryzyk dla wykonawcy robót budowlanych.\n"
         "Szukaj: uciążliwe klauzule, wysokie kary, brak waloryzacji, krótkie terminy, "
         "asymetryczne zapisy, brak odwodnienia, niezgodności.\n"
         f"Tekst:\n{text[:3000]}\n"

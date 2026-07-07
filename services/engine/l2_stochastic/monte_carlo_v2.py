@@ -29,6 +29,15 @@ from scipy.stats.qmc import Sobol
 
 logger = logging.getLogger(__name__)
 
+try:
+    from services.engine.l2_stochastic.sector_profiles import (
+        GENERIC_PROFILE, SectorProfile, detect_sector
+    )
+    _SECTOR_PROFILES_AVAILABLE = True
+except ImportError:
+    _SECTOR_PROFILES_AVAILABLE = False
+    SectorProfile = None  # type: ignore
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Bayesian Priors — 6 kategorii robót ziemnych
@@ -192,10 +201,26 @@ class MonteCarloSampler:
         n_samples: int = 10_000,
         seed: int = 42,
         priors: list[BayesianPrior] | None = None,
+        sector_profile=None,  # SectorProfile | None
     ) -> None:
         self.n_samples = n_samples
         self.seed = seed
-        self.priors = priors if priors is not None else EARTHWORKS_PRIORS
+
+        # Sector profile support (Variant B — dynamic Bayesian priors)
+        self.sector_profile = None
+        if sector_profile is not None and _SECTOR_PROFILES_AVAILABLE:
+            self.sector_profile = sector_profile
+        elif _SECTOR_PROFILES_AVAILABLE and priors is None:
+            self.sector_profile = GENERIC_PROFILE
+
+        # Build priors from sector_profile if not explicitly provided
+        if priors is not None:
+            self.priors = priors
+        elif self.sector_profile is not None:
+            self.priors = self._build_priors_from_profile(self.sector_profile)
+        else:
+            self.priors = EARTHWORKS_PRIORS
+
         self._k = len(self.priors)
 
         # Win probability model (trenowany lazily)
@@ -207,6 +232,21 @@ class MonteCarloSampler:
         # Uwaga: Sobol wymaga n >= 2^m dla m wymiarów; scramble=True poprawia
         # równomierność przy małych n
         self._sobol: Sobol = Sobol(d=self._k, scramble=True, seed=seed)
+
+    @staticmethod
+    def _build_priors_from_profile(profile) -> list[BayesianPrior]:
+        """Build BayesianPrior list from a SectorProfile (Variant B dynamic priors)."""
+        priors = []
+        for factor in profile.factors:
+            priors.append(BayesianPrior(
+                name=factor.name,
+                distribution="lognormal",
+                mu=factor.mu,
+                sigma=factor.sigma,
+                min_val=max(0.5, factor.mu - 3 * factor.sigma),
+                max_val=min(3.0, factor.mu + 3 * factor.sigma),
+            ))
+        return priors if priors else EARTHWORKS_PRIORS
 
     # ── 3.1 Próbkowanie ────────────────────────────────────────────────────────
 

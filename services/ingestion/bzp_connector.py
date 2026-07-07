@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 BZP_BASE = "https://ezamowienia.gov.pl/mo-board/api/v1"
 _NOTICE_EP = f"{BZP_BASE}/notice"
 
-# CPV codes relevant to earthworks + roads
+# CPV codes — pełne budownictwo (CPV 45)
+# Zachowane dla kompatybilności wstecznej
 EARTHWORKS_CPV = [
     "45111200-0",  # Przygotowanie terenu + roboty ziemne — PRIMARY
     "45111000-8",  # Roboty ziemne ogólne
@@ -29,8 +30,19 @@ EARTHWORKS_CPV = [
     "45112500-0",  # Tereny poprzemysłowe
 ]
 
+# CPV codes — pełne budownictwo (CPV 45)
+CONSTRUCTION_CPV_PREFIXES = [
+    "45",  # Cała dywizja 45 — Roboty budowlane
+]
+
 # CPV prefixes for broader matching (first 5 digits = division)
+# Zachowane dla kompatybilności wstecznej
 EARTHWORKS_CPV_PREFIXES = {"45111", "45112", "45233", "45231", "45232", "45246"}
+
+
+def is_construction_scope(cpv_codes: list[str]) -> bool:
+    """Return True if any CPV code is in construction scope (division 45)."""
+    return any(c.startswith("45") for c in cpv_codes)
 
 
 class BZPRawNotice:
@@ -48,16 +60,8 @@ class BZPRawNotice:
 
 
 def _cpv_matches(cpv_list: list[str]) -> bool:
-    """Return True if any CPV code is in earthworks scope."""
-    for code in cpv_list:
-        clean = code.strip().replace(" ", "")
-        if clean in EARTHWORKS_CPV:
-            return True
-        # prefix match (first 5 chars, ignoring dash/suffix)
-        prefix = clean[:5]
-        if prefix in EARTHWORKS_CPV_PREFIXES:
-            return True
-    return False
+    """Return True if any CPV code is in construction scope (backward compat alias)."""
+    return is_construction_scope(cpv_list)
 
 
 class BZPConnector:
@@ -100,7 +104,7 @@ class BZPConnector:
 
         Returns all matching notices (paginated internally).
         """
-        cpv_codes = cpv_codes or EARTHWORKS_CPV
+        cpv_codes = cpv_codes or EARTHWORKS_CPV  # fallback to earthworks for backward compat
         results: list[BZPRawNotice] = []
         page = 0
 

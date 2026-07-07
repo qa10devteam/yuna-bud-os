@@ -47,15 +47,9 @@ class OwnerProfileSnap:
         self.value_min = Decimal(str(value_min_pln))
         self.value_max = Decimal(str(value_max_pln))
         self.keywords: list[str] = keywords or [
-            "roboty ziemne",
-            "droga",
-            "nasyp",
-            "wykop",
-            "kanalizacja",
-            "melioracja",
-            "rowów",
-            "przebudowa drogi",
-            "budowa drogi",
+            "roboty budowlane", "roboty ziemne", "budowa", "przebudowa", "remont",
+            "instalacja", "sieć", "wodociąg", "kanalizacja", "droga", "most",
+            "kubatura", "hala", "budynek", "rozbiórka", "modernizacja",
         ]
 
 

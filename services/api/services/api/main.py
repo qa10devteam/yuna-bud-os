@@ -3,7 +3,30 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
+import json
 sys.path.insert(0, "/home/ubuntu/terra-os/packages/vendor")
+
+# ─── Structured JSON logging (Task 114) ───────────────────────────────────────
+
+class JSONFormatter(logging.Formatter):
+    """Emit log records as single-line JSON objects for Loki/structured sinks."""
+    def format(self, record: logging.LogRecord) -> str:
+        return json.dumps({
+            "level": record.levelname,
+            "msg": record.getMessage(),
+            "logger": record.name,
+            "ts": self.formatTime(record),
+        })
+
+_root_logger = logging.getLogger()
+if _root_logger.handlers:
+    _root_logger.handlers[0].setFormatter(JSONFormatter())
+else:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(JSONFormatter())
+    _root_logger.addHandler(_handler)
+    _root_logger.setLevel(logging.INFO)
 
 import time
 from contextlib import asynccontextmanager
@@ -74,6 +97,7 @@ from .auth import router as auth_router
 from .middleware.validation import validate_request
 from .middleware.rate_limit import limiter
 from .middleware.tenant import TenantMiddleware, install_rls_on_engine
+from .middleware.csrf import CSRFMiddleware
 
 
 # ─── Lifespan ──────────────────────────────────────────────────────────────────
@@ -100,11 +124,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="Terra.OS API",
     version="0.1.0",
-    description="Local-only REST API for Terra.OS earthworks management system.",
+    description="Terra.OS — platforma decyzyjna dla wykonawców robót budowlanych (przetargi publiczne)",
     lifespan=lifespan,
     docs_url="/docs" if os.getenv("ENVIRONMENT", "dev") == "dev" else None,
     redoc_url=None,
 )
+
+# ─── Prometheus metrics (Task 112) ────────────────────────────────────────────
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+except ImportError:
+    pass  # prometheus_fastapi_instrumentator not installed — skip
 
 # Attach slowapi limiter state to app
 app.state.limiter = limiter
@@ -136,6 +167,7 @@ class RequestCounterMiddleware(BaseHTTPMiddleware):
 # ─── Register middleware (order matters: outer → inner) ────────────────────────
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(RequestCounterMiddleware)
 app.add_middleware(TenantMiddleware)
 

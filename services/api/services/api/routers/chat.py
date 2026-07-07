@@ -278,7 +278,7 @@ def general_chat(body: GeneralChatRequest):
             )
         elif any(w in msg for w in ['pomoc', 'jak', 'help', 'co to', 'co umiesz']):
             answer = (
-                "Terra.OS — system wsparcia decyzji dla wykonawców robót ziemnych. "
+                "Terra.OS — system wsparcia decyzji dla wykonawców robót budowlanych. "
                 "**Flow:** Zwiad (lista BZP) → dokumentacja → Kosztorys (2 warianty) → Silnik (ryzyko) → Decyzja (GO/NO-GO). "
                 "Możesz mnie zapytać o: przetargi, kosztorysy, ryzyko, parametry wyceny, dokumentację."
             )

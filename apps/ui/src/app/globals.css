@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* ── Dark mode CSS variables (Task 140) ─────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F0D0A;
+    --card: #1A1712;
+    --border: #2D2820;
+    --text-primary: #F5F0EB;
+    --text-secondary: #C4B8A8;
+    --text-muted: #7A6E60;
+  }
+}
+
+.dark {
+  --bg: #0F0D0A;
+  --card: #1A1712;
+  --border: #2D2820;
+  --text-primary: #F5F0EB;
+  --text-secondary: #C4B8A8;
+  --text-muted: #7A6E60;
+}
+
 @theme {
   --color-earth-950: #09090b;
   --color-earth-900: #18181b;

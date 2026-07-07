@@ -33,6 +33,14 @@ SAMPLE_RATES = [
     {"key": "wywóz_ziemi_km", "unit": "tkm", "rate_pln": 4.20, "source": "market"},
     {"key": "nasyp_zagęszczony_m3", "unit": "m3", "rate_pln": 22.00, "source": "knr_prior"},
     {"key": "odwodnienie_mb", "unit": "mb", "rate_pln": 85.00, "source": "market"},
+    # Multi-sector rate cards (refactor: full construction industry)
+    {"key": "robocizna_budowlana_h",   "unit": "h",   "rate_pln": 45.00, "source": "gus_prior"},
+    {"key": "robocizna_drogowa_m2",    "unit": "m2",  "rate_pln": 85.00, "source": "gus_prior"},
+    {"key": "robocizna_kubatura_m2",   "unit": "m2",  "rate_pln": 120.00, "source": "gus_prior"},
+    {"key": "robocizna_instalacje_m",  "unit": "m",   "rate_pln": 95.00, "source": "gus_prior"},
+    {"key": "beton_c20_25_m3",         "unit": "m3",  "rate_pln": 420.00, "source": "gus_prior"},
+    {"key": "stal_zbrojeniowa_t",      "unit": "t",   "rate_pln": 4800.00, "source": "gus_prior"},
+    {"key": "asfalt_beton_t",          "unit": "t",   "rate_pln": 580.00, "source": "gus_prior"},
 ]
 
 
@@ -64,7 +72,7 @@ def seed() -> None:
                     {"type": "zagęszczarka_płytowa", "model": "Bomag BPR 70/70D", "count": 2},
                     {"type": "walec_wibracyjny", "model": "Hamm HD 10 VV", "count": 1},
                 ],
-                scope_notes="Roboty ziemne, drogi gminne i powiatowe, odwodnienia, nasypy, 7 osób.",
+                scope_notes="Roboty budowlane: kubatura, sieci, drogi. Działa na przetargach publicznych.",
             )
             session.add(owner)
             print(f"[seed] Created owner_profile {OWNER_ID}")

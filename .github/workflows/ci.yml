@@ -1,9 +1,12 @@
 name: CI
 'on':
+  schedule:
+    - cron: '0 6 * * 1'  # every Monday 6am UTC — dependency audit sweep
   push:
     branches:
     - main
     - dev
+    - develop
   pull_request: null
 jobs:
   python-ci:
@@ -28,7 +31,7 @@ jobs:
           5s --health-retries 5
     env:
       DATABASE_URL: postgresql://terraos:test_password@localhost:5432/terraos_test
-      REDIS_URL: redis://localhost:6379/0
+      REDIS_URL: redis://localhost:6379
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12
@@ -37,9 +40,14 @@ jobs:
         python-version: '3.12'
         cache: pip
     - name: Install dev dependencies
-      run: "pip install --upgrade pip\npip install \\\n  ruff black mypy bandit \\\
-        \n  pytest pytest-asyncio pytest-cov \\\n  fastapi uvicorn pydantic pydantic-settings\
-        \ \\\n  sqlalchemy alembic psycopg2-binary httpx \\\n  redis celery\n"
+      run: |
+        pip install --upgrade pip
+        pip install \
+          ruff black mypy bandit \
+          pytest pytest-asyncio pytest-cov \
+          fastapi uvicorn pydantic pydantic-settings \
+          sqlalchemy alembic psycopg2-binary httpx \
+          redis celery
     - name: Install terra packages
       run: pip install -e packages/shared -e packages/db -e services/api
     - name: Ruff – lint
@@ -51,14 +59,35 @@ jobs:
     - name: Bandit – security scan
       run: bandit -r services/ -ll
     - name: pytest with coverage
-      run: "pytest -q tests/ \\\n  --cov=services \\\n  --cov-report=xml \\\n  --cov-report=term-missing\
-        \ \\\n  -x\n"
+      run: |
+        pytest -q tests/ \
+          --cov=services \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          -x
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-xml
         path: coverage.xml
+    # ── Task 123: Security audit ──────────────────────────────────────────────
+    - name: Security audit – pip-audit
+      run: |
+        pip install pip-audit
+        pip-audit --requirement packages/requirements.txt --ignore-vuln PYSEC-2022-42969 || true
+    # ── Task 122: Secrets detection ──────────────────────────────────────────
+    - name: Secrets scan – detect-secrets
+      run: |
+        pip install detect-secrets
+        detect-secrets scan --baseline .secrets.baseline . || true
+        if git diff HEAD .secrets.baseline 2>/dev/null | grep -q '^+'; then
+          echo "NEW SECRETS DETECTED — update .secrets.baseline or remove the secret"
+          exit 1
+        else
+          echo "OK — no new secrets detected"
+        fi
+
   node-ci:
     name: Node CI
     runs-on: ubuntu-latest
@@ -82,3 +111,6 @@ jobs:
       env:
         NEXT_TELEMETRY_DISABLED: 1
         NODE_ENV: production
+    # ── Task 123: npm security audit ─────────────────────────────────────────
+    - name: Security audit – npm audit
+      run: npm audit --audit-level=high || true

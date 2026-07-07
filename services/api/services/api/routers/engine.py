@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 import uuid
 from typing import Any
 
@@ -16,6 +17,18 @@ from terra_db.session import get_engine
 from services.engine.l1_symbolic import run_l1, Violation
 from services.engine.l2_stochastic import run_l2, RiskInput, DEFAULT_RISK_FACTORS
 from services.engine.l2_stochastic import MonteCarloSampler, RiskBlock as RiskBlockV2
+
+try:
+    from services.engine.l2_stochastic.sector_profiles import detect_sector as _detect_sector
+    _SECTOR_DETECT_AVAILABLE = True
+except ImportError:
+    _SECTOR_DETECT_AVAILABLE = False
+
+try:
+    from ..metrics import ENGINE_RUNS, ENGINE_LATENCY
+    _METRICS_AVAILABLE = True
+except ImportError:
+    _METRICS_AVAILABLE = False
 
 router = APIRouter(prefix="/api/v1", tags=["engine"])
 
@@ -59,6 +72,8 @@ class EngineResultSchema(BaseModel):
     violations: list[ViolationSchema]
     risk: RiskSchema | None = None
     explanation_md: str
+    sector: str | None = None
+    sector_label: str | None = None
 
 
 class RuleCheckResponse(BaseModel):
@@ -78,62 +93,84 @@ def run_engine(request: Request, tender_id: str, seed: int = 42, n_samples: int 
     Stores violations in discrepancy table; stores risk in risk_run table.
     """
     engine = get_engine()
+    _t0 = time.monotonic()
 
-    tender_dict, przedmiar_items, key_facts, estimate_dict = _load_tender_data(engine, tender_id)
+    # Derive tenant_id from request state (set by TenantMiddleware) or fallback
+    tenant_id = getattr(getattr(request, 'state', None), 'tenant_id', 'unknown') or 'unknown'
 
-    # --- L1 ---
-    l1_result = run_l1(
-        tender=tender_dict,
-        przedmiar_items=przedmiar_items,
-        estimate=estimate_dict,
-        analysis={"key_facts": key_facts},
-    )
-    _store_discrepancies(engine, tender_id, l1_result.violations)
+    try:
+        tender_dict, przedmiar_items, key_facts, estimate_dict = _load_tender_data(engine, tender_id)
 
-    # --- L2 ---
-    risk_result = None
-    risk_schema = None
-    owner_cost = float(estimate_dict.get("total_net_pln") or 0) if estimate_dict else 0
-    market_price = float(tender_dict.get("value_pln") or 0)
-
-    if owner_cost > 0:
-        ri = RiskInput(
-            owner_cost=owner_cost,
-            market_price=market_price or owner_cost * 1.2,
-            risk_factors=DEFAULT_RISK_FACTORS,
-            seed=seed,
-            n_samples=n_samples,
+        # --- L1 ---
+        l1_result = run_l1(
+            tender=tender_dict,
+            przedmiar_items=przedmiar_items,
+            estimate=estimate_dict,
+            analysis={"key_facts": key_facts},
         )
-        risk_result = run_l2(ri)
-        _store_risk_run(engine, tender_id, estimate_dict, risk_result)
+        _store_discrepancies(engine, tender_id, l1_result.violations)
 
-        risk_schema = RiskSchema(
-            margin_p10=risk_result.margin_p10,
-            margin_p50=risk_result.margin_p50,
-            margin_p90=risk_result.margin_p90,
-            win_prob_at_price=[
-                WinProbSchema(**p.to_dict()) for p in risk_result.win_prob_at_price
-            ],
-            drivers=[DriverSchema(**d.to_dict()) for d in risk_result.drivers],
-            n_samples_used=risk_result.n_samples_used,
-            n_rejected=risk_result.n_rejected,
-        )
+        # --- L2 ---
+        risk_result = None
+        risk_schema = None
+        owner_cost = float(estimate_dict.get("total_net_pln") or 0) if estimate_dict else 0
+        market_price = float(tender_dict.get("value_pln") or 0)
 
-    return EngineResultSchema(
-        feasible=l1_result.feasible,
-        violations=[
-            ViolationSchema(
-                axiom_code=v.axiom_code,
-                axiom_id=v.axiom_id,
-                severity=v.severity,
-                message=v.message,
-                provenance=v.provenance,
+        # Detect sector from CPV codes (Variant B)
+        cpv_codes = tender_dict.get("cpv_codes") or []
+        sector = None
+        if _SECTOR_DETECT_AVAILABLE and cpv_codes:
+            sector = _detect_sector(cpv_codes if isinstance(cpv_codes, list) else [cpv_codes])
+
+        if owner_cost > 0:
+            ri = RiskInput(
+                owner_cost=owner_cost,
+                market_price=market_price or owner_cost * 1.2,
+                risk_factors=DEFAULT_RISK_FACTORS,
+                seed=seed,
+                n_samples=n_samples,
             )
-            for v in l1_result.violations
-        ],
-        risk=risk_schema,
-        explanation_md=l1_result.explanation_md,
-    )
+            risk_result = run_l2(ri)
+            _store_risk_run(engine, tender_id, estimate_dict, risk_result)
+
+            risk_schema = RiskSchema(
+                margin_p10=risk_result.margin_p10,
+                margin_p50=risk_result.margin_p50,
+                margin_p90=risk_result.margin_p90,
+                win_prob_at_price=[
+                    WinProbSchema(**p.to_dict()) for p in risk_result.win_prob_at_price
+                ],
+                drivers=[DriverSchema(**d.to_dict()) for d in risk_result.drivers],
+                n_samples_used=risk_result.n_samples_used,
+                n_rejected=risk_result.n_rejected,
+            )
+
+        # Record metrics on success
+        if _METRICS_AVAILABLE:
+            ENGINE_RUNS.labels(tenant_id=tenant_id, status='success').inc()
+            ENGINE_LATENCY.labels(tenant_id=tenant_id).observe(time.monotonic() - _t0)
+
+        return EngineResultSchema(
+            feasible=l1_result.feasible,
+            violations=[
+                ViolationSchema(
+                    axiom_code=v.axiom_code,
+                    axiom_id=v.axiom_id,
+                    severity=v.severity,
+                    message=v.message,
+                    provenance=v.provenance,
+                )
+                for v in l1_result.violations
+            ],
+            risk=risk_schema,
+            explanation_md=l1_result.explanation_md,
+            sector=sector.key if sector else None,
+            sector_label=sector.label_pl if sector else None,
+        )
+    except Exception:
+        if _METRICS_AVAILABLE:
+            ENGINE_RUNS.labels(tenant_id=tenant_id, status='error').inc()
+        raise
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -18,10 +18,15 @@ CPV_BENCHMARKS: dict[str, dict] = {
     "45111": {"label": "Roboty ziemne", "price_per_m2": 210, "std_pct": 0.38},
     "45112": {"label": "Kopanie i niwelacja terenu", "price_per_m2": 195, "std_pct": 0.40},
     "45200": {"label": "Roboty budowlane", "price_per_m2": 3200, "std_pct": 0.30},
+    "45210": {"label": "Kubatura", "price_per_m2": 2800, "std_pct": 0.28},
+    "45221": {"label": "Mosty i wiadukty", "price_per_m2": 4500, "std_pct": 0.40},
     "45230": {"label": "Drogi i autostrady", "price_per_m2": 650, "std_pct": 0.25},
-    "45233": {"label": "Budowa dróg", "price_per_m2": 680, "std_pct": 0.25},
+    "45231": {"label": "Sieci rurociągowe", "price_per_m2": 650, "std_pct": 0.35},
+    "45233": {"label": "Drogi i chodniki", "price_per_m2": 380, "std_pct": 0.30},
     "45300": {"label": "Instalacje budowlane", "price_per_m2": 450, "std_pct": 0.30},
-    "45400": {"label": "Wykończenie budynków", "price_per_m2": 800, "std_pct": 0.35},
+    "45310": {"label": "Instalacje elektryczne", "price_per_m2": 280, "std_pct": 0.22},
+    "45330": {"label": "Instalacje sanitarne", "price_per_m2": 320, "std_pct": 0.24},
+    "45400": {"label": "Roboty wykończeniowe", "price_per_m2": 450, "std_pct": 0.25},
 }
 
 REGION_COEFFICIENTS: dict[str, float] = {

@@ -7,9 +7,10 @@ sys.path.insert(0, "/home/ubuntu/terra-os/packages/vendor")
 import hashlib
 import re
 from datetime import datetime, timezone
+from secrets import token_urlsafe
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -121,10 +122,34 @@ def _token_response(db: Session, user_row: Any) -> TokenResponse:
     )
 
 
+def _set_auth_cookies(response: Response, access_token: str) -> None:
+    """Set httpOnly session cookie + readable csrf_token cookie (double-submit pattern)."""
+    csrf_token = token_urlsafe(32)
+    secure = True  # set False only for local http dev via env
+    response.set_cookie(
+        "session",
+        access_token,
+        httponly=True,
+        samesite="strict",
+        secure=secure,
+        max_age=3600,
+        path="/",
+    )
+    response.set_cookie(
+        "csrf_token",
+        csrf_token,
+        httponly=False,  # Must be readable by JS
+        samesite="strict",
+        secure=secure,
+        max_age=3600,
+        path="/",
+    )
+
+
 # ─── routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: DB):
+def register(body: RegisterRequest, response: Response, db: DB):
     # Check duplicate
     existing = db.execute(
         text("SELECT id FROM users WHERE email = :email"), {"email": body.email}
@@ -163,11 +188,13 @@ def register(body: RegisterRequest, db: DB):
     # Faza 81: send welcome email
     send_welcome_email(body.email, body.name)
 
-    return _token_response(db, user_row._mapping)
+    token_resp = _token_response(db, user_row._mapping)
+    _set_auth_cookies(response, token_resp.access_token)
+    return token_resp
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, db: DB):
+def login(body: LoginRequest, response: Response, db: DB):
     user_row = db.execute(
         text("SELECT id, email, name, password_hash, org_id, role, is_active FROM users WHERE email = :email"),
         {"email": body.email},
@@ -179,7 +206,9 @@ def login(body: LoginRequest, db: DB):
     if not user_row.is_active:
         raise HTTPException(status_code=403, detail="Konto dezaktywowane")
 
-    return _token_response(db, user_row._mapping)
+    token_resp = _token_response(db, user_row._mapping)
+    _set_auth_cookies(response, token_resp.access_token)
+    return token_resp
 
 
 @router.post("/refresh", response_model=TokenResponse)
