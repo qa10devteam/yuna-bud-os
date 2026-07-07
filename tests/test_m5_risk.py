@@ -22,7 +22,7 @@ os.environ.setdefault("DB_HOST", "127.0.0.1")
 os.environ.setdefault("DB_PORT", "5432")
 os.environ.setdefault("DB_NAME", "terraos")
 os.environ.setdefault("DB_USER", "terraos")
-os.environ.setdefault("DB_PASSWORD", "terraosdev2026")
+os.environ.setdefault("DB_PASSWORD", "terra_dev_2026")
 
 from services.engine.l2_stochastic import (
     run_l2, RiskInput, RiskFactor, RiskResult,

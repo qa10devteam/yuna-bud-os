@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["bzp"])
 
 BZP_BASE = "https://ezamowienia.gov.pl/mo-board/api/v1/notice"
-DEFAULT_TENANT_ID = "c48186e2-599a-4c00-910d-9ed16cc5c86e"
+DEFAULT_TENANT_ID = "ec3d1e16-2139-48c2-93b5-ffe0defd606d"
 
 # CPV 45xxxxxx — roboty budowlane i ziemne
 CPV_WORKS_PREFIXES = (

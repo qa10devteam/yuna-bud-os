@@ -12,7 +12,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "packages", "vendor"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "packages", "shared"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "packages", "db"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "api"))
+# services/api appended last — avoids shadowing terra-os/services (ingestion, engine…)
+_api_p = os.path.join(os.path.dirname(__file__), "..", "services", "api")
+if _api_p not in sys.path:
+    sys.path.append(_api_p)
 
 os.environ.setdefault("TERRA_OFFLINE", "1")
 os.environ.setdefault("ENVIRONMENT", "dev")
@@ -383,9 +386,20 @@ class TestAppImport:
         assert app is not None
         assert app.title == "Terra.OS API"
 
+    def _app_paths(self, app):
+        """Collect all route paths recursively (handles FastAPI _IncludedRouter)."""
+        paths: set = set()
+        for r in getattr(app, 'routes', []):
+            if hasattr(r, 'path'):
+                paths.add(r.path)
+            orig = getattr(r, 'original_router', None)
+            if orig:
+                paths |= self._app_paths(orig)
+        return paths
+
     def test_app_has_required_routes(self):
         from services.api.services.api.main import app
-        paths = {route.path for route in app.routes}
+        paths = self._app_paths(app)
         assert "/api/v1/health" in paths
 
     def test_security_headers_middleware_registered(self):
@@ -395,18 +409,18 @@ class TestAppImport:
 
     def test_gdpr_routes_registered_in_app(self):
         from services.api.services.api.main import app
-        paths = {route.path for route in app.routes}
+        paths = self._app_paths(app)
         assert "/api/v2/gdpr/export" in paths
         assert "/api/v2/gdpr/account" in paths
 
     def test_monitoring_routes_registered(self):
         from services.api.services.api.main import app
-        paths = {route.path for route in app.routes}
+        paths = self._app_paths(app)
         assert "/api/v2/metrics" in paths
         assert "/api/v2/system/status" in paths
 
     def test_billing_routes_registered(self):
         from services.api.services.api.main import app
-        paths = {route.path for route in app.routes}
+        paths = self._app_paths(app)
         assert "/api/v2/billing/plans" in paths
         assert "/api/v2/billing/checkout" in paths

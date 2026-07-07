@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 
@@ -102,6 +103,17 @@ def upsert_tender(
 
 
 def get_or_create_default_tenant(engine: Engine) -> str:
+    """Return the default tenant ID for ingestion.
+
+    Priority:
+    1. DEFAULT_TENANT_ID env var (used in tests / CI to pin a specific org)
+    2. First tenant in the `tenant` table ordered by created_at
+    3. Create a new tenant row if the table is empty
+    """
+    pinned = os.getenv("DEFAULT_TENANT_ID")
+    if pinned:
+        return pinned
+
     with engine.begin() as conn:
         row = conn.execute(
             sa.text("SELECT id FROM tenant ORDER BY created_at LIMIT 1")
@@ -114,3 +126,4 @@ def get_or_create_default_tenant(engine: Engine) -> str:
             {"id": new_id, "name": "Default Tenant"},
         )
         return new_id
+

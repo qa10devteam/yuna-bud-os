@@ -54,6 +54,8 @@ __all__ = [
     "RiskResult",
     "DEFAULT_RISK_FACTORS",
     "run_l2",
+    "_margin",
+    "_win_prob_at",
     # v2
     "MonteCarloSampler",
     "RiskBlock",
@@ -158,6 +160,13 @@ DEFAULT_RISK_FACTORS = [
 # Helper: win probability (v1 — parametric fallback)
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _margin(offer_price: float, cost_samples: "np.ndarray") -> "np.ndarray":
+    """(offer - cost) / offer — vectorised. Returns 0.0 when offer==0."""
+    if offer_price == 0:
+        return np.zeros_like(cost_samples)
+    return (offer_price - cost_samples) / offer_price
+
+
 def _win_prob_at(offer_price: float, market_price: float) -> float:
     """Simplified win probability model (v1 parametric)."""
     if market_price <= 0:
@@ -206,8 +215,21 @@ def run_l2(
         # Here we skip passing constraints to not over-constrain v2's own logic.
         pass
 
-    # Run v2 sampler
-    sampler_v2 = MonteCarloSampler(n_samples=n, seed=seed)
+    # Run v2 sampler — build priors from v1 risk_factors if provided
+    factors_v1 = risk_input.risk_factors or DEFAULT_RISK_FACTORS
+    from .monte_carlo_v2 import BayesianPrior
+    priors_v2 = [
+        BayesianPrior(
+            name=f.name,
+            distribution="lognormal",
+            mu=f.mean,
+            sigma=f.std,
+            min_val=f.min_val,
+            max_val=f.max_val,
+        )
+        for f in factors_v1
+    ]
+    sampler_v2 = MonteCarloSampler(n_samples=n, seed=seed, priors=priors_v2)
     mp = market_price if market_price > 0 else owner_cost * 1.2
 
     risk_block: RiskBlock = sampler_v2.run(

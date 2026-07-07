@@ -16,6 +16,7 @@ Endpoints:
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from datetime import date, datetime
 from typing import Any
@@ -536,6 +537,9 @@ def field_status(body: FieldStatusCreate) -> dict:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _get_tenant_id(engine: Any) -> str:
+    pinned = os.getenv("DEFAULT_TENANT_ID")
+    if pinned:
+        return pinned
     with engine.connect() as conn:
         row = conn.execute(sa.text("SELECT id FROM tenant LIMIT 1")).fetchone()
     if not row:
