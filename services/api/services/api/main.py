@@ -73,6 +73,7 @@ from .auth import router as auth_router
 # ─── Middleware helpers ────────────────────────────────────────────────────────
 from .middleware.validation import validate_request
 from .middleware.rate_limit import limiter
+from .middleware.tenant import TenantMiddleware, install_rls_on_engine
 
 
 # ─── Lifespan ──────────────────────────────────────────────────────────────────
@@ -83,6 +84,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         from .performance import apply_recommended_indexes
         apply_recommended_indexes()
+    except Exception:
+        pass
+    # Faza RLS: Install tenant RLS checkout listener on engine
+    try:
+        from terra_db.session import get_engine
+        install_rls_on_engine(get_engine())
     except Exception:
         pass
     yield
@@ -130,6 +137,7 @@ class RequestCounterMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestCounterMiddleware)
+app.add_middleware(TenantMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
