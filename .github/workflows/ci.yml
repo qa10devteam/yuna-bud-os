@@ -1,52 +1,84 @@
 name: CI
-
-on:
+'on':
   push:
-    branches: [main, dev]
-  pull_request:
-
+    branches:
+    - main
+    - dev
+  pull_request: null
 jobs:
-  python-tests:
+  python-ci:
+    name: Python CI
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: terraos_test
+          POSTGRES_USER: terraos
+          POSTGRES_PASSWORD: test_password
+        ports:
+        - 5432:5432
+        options: --health-cmd "pg_isready -U terraos" --health-interval 10s --health-timeout
+          5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+        - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout
+          5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://terraos:test_password@localhost:5432/terraos_test
+      REDIS_URL: redis://localhost:6379/0
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install packages (no network in unit tests)
-        run: |
-          pip install fastapi uvicorn pydantic pydantic-settings sqlalchemy alembic psycopg2-binary httpx pytest pytest-asyncio
-
-      - name: Install terra packages
-        run: |
-          pip install -e packages/shared -e packages/db -e services/api
-
-      - name: Run unit tests (zero network)
-        run: pytest -q tests/
-
-  ui-checks:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: pip
+    - name: Install dev dependencies
+      run: "pip install --upgrade pip\npip install \\\n  ruff black mypy bandit \\\
+        \n  pytest pytest-asyncio pytest-cov \\\n  fastapi uvicorn pydantic pydantic-settings\
+        \ \\\n  sqlalchemy alembic psycopg2-binary httpx \\\n  redis celery\n"
+    - name: Install terra packages
+      run: pip install -e packages/shared -e packages/db -e services/api
+    - name: Ruff – lint
+      run: ruff check services/ packages/
+    - name: Black – format check
+      run: black --check services/ packages/
+    - name: mypy – type check (strict=false)
+      run: mypy --ignore-missing-imports --no-strict-optional services/
+    - name: Bandit – security scan
+      run: bandit -r services/ -ll
+    - name: pytest with coverage
+      run: "pytest -q tests/ \\\n  --cov=services \\\n  --cov-report=xml \\\n  --cov-report=term-missing\
+        \ \\\n  -x\n"
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-xml
+        path: coverage.xml
+  node-ci:
+    name: Node CI
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/ui
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: apps/ui/package-lock.json
-
-      - name: Install
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
+    - uses: actions/checkout@v4
+    - name: Setup Node 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: npm
+        cache-dependency-path: apps/ui/package-lock.json
+    - name: Install dependencies
+      run: npm ci
+    - name: ESLint
+      run: npm run lint
+    - name: Next.js build (includes type-check)
+      run: npm run build
+      env:
+        NEXT_TELEMETRY_DISABLED: 1
+        NODE_ENV: production

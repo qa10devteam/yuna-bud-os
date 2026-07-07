@@ -1,0 +1,64 @@
+name: Deploy – Staging
+'on':
+  workflow_run:
+    workflows:
+    - Build & Scan Docker Images
+    types:
+    - completed
+    branches:
+    - main
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Deploy via SSH – pull & restart
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: deploy
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        script: 'set -e
+
+          cd /opt/terra-os
+
+          IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml pull
+
+          IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up
+          -d --no-deps api ui celery-worker
+
+          sudo systemctl restart terra-api terra-ui 2>/dev/null || true
+
+          '
+    - name: Health check – /api/v1/market/stats
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: deploy
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        script: "for i in $(seq 1 12); do\n  curl -sf http://localhost:8000/api/v1/market/stats\
+          \ && echo 'Health OK' && exit 0\n  echo \"Attempt $i failed, waiting 5s…\"\
+          \n  sleep 5\ndone\necho 'Health check failed after 60s'\nexit 1\n"
+    - name: Slack – notify success
+      if: success()
+      continue-on-error: true
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: '{"text":"✅ Terra.OS *staging* deploy succeeded – commit `${{ github.sha
+          }}` – <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
+          github.run_id }}|View run>"}'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    - name: Slack – notify failure
+      if: failure()
+      continue-on-error: true
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: '{"text":"❌ Terra.OS *staging* deploy FAILED – <${{ github.server_url
+          }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"}'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

@@ -1,0 +1,54 @@
+# ────────────────────────────────────────────────────────────────
+#  Dockerfile.api  –  Terra.OS API  (multi-stage, python:3.12-slim)
+# ────────────────────────────────────────────────────────────────
+
+# ── Stage 1: builder ─────────────────────────────────────────────
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+# Build-time system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy source trees needed for editable installs
+COPY packages/ packages/
+COPY services/ services/
+
+# Install all terra packages in editable mode
+RUN pip install --no-cache-dir \
+    -e packages/shared \
+    -e packages/db \
+    -e services/api
+
+# ── Stage 2: runtime ─────────────────────────────────────────────
+FROM python:3.12-slim
+
+# Non-root user
+RUN groupadd -r terra && useradd -r -g terra terra
+
+# Runtime-only system deps (curl for healthcheck, libpq5 for psycopg2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy installed Python libs & binaries from builder
+COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
+COPY --from=builder /usr/local/bin            /usr/local/bin
+
+# Copy application source (packages/ + services/)
+COPY --from=builder /app .
+
+USER terra
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health/live || exit 1
+
+# Module path: services/api/services/api/main.py  →  services.api.services.api.main:app
+CMD ["python", "-m", "uvicorn", "services.api.services.api.main:app", \
+     "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

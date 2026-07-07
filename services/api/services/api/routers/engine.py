@@ -7,12 +7,15 @@ import uuid
 from typing import Any
 
 import sqlalchemy as sa
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+
+from ..middleware.rate_limit import limiter
 
 from terra_db.session import get_engine
 from services.engine.l1_symbolic import run_l1, Violation
 from services.engine.l2_stochastic import run_l2, RiskInput, DEFAULT_RISK_FACTORS
+from services.engine.l2_stochastic import MonteCarloSampler, RiskBlock as RiskBlockV2
 
 router = APIRouter(prefix="/api/v1", tags=["engine"])
 
@@ -67,7 +70,8 @@ class RuleCheckResponse(BaseModel):
 # ──────────────────────────────────────────────────────────────────────────────
 
 @router.post("/tenders/{tender_id}/engine/run", response_model=EngineResultSchema)
-def run_engine(tender_id: str, seed: int = 42, n_samples: int = 2000) -> EngineResultSchema:
+@limiter.limit("10/hour")
+def run_engine(request: Request, tender_id: str, seed: int = 42, n_samples: int = 2000) -> EngineResultSchema:
     """Run L1 symbolic + L2 stochastic engine for a tender.
 
     Loads tender, analysis (key_facts + przedmiar_items) and latest estimate.
@@ -227,6 +231,75 @@ def run_risk(tender_id: str, seed: int = 42, n_samples: int = 2000) -> RiskSchem
         drivers=[DriverSchema(**d.to_dict()) for d in result.drivers],
         n_samples_used=result.n_samples_used,
         n_rejected=result.n_rejected,
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GET /tenders/{id}/engine/l2  (v2 full RiskBlock)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class RiskDriverSchema(BaseModel):
+    name: str
+    sobol_s1: float
+    sobol_total: float
+
+
+class RiskBlockSchema(BaseModel):
+    p10: float
+    p50: float
+    p90: float
+    win_prob: float
+    drivers: list[RiskDriverSchema]
+    cv: float
+    samples_count: int
+    n_rejected: int
+
+
+@router.get("/tenders/{tender_id}/engine/l2", response_model=RiskBlockSchema)
+def get_engine_l2(
+    tender_id: str,
+    seed: int = 42,
+    n_samples: int = 10000,
+    n_competitors: int = 3,
+) -> RiskBlockSchema:
+    """Run L2 Monte Carlo v2 (Sobol + Bayesian priors) and return full RiskBlock.
+
+    Returns absolute cost percentiles (p10/p50/p90 in PLN), win probability,
+    Sobol sensitivity drivers, coefficient of variation, and sample counts.
+    """
+    engine = get_engine()
+    tender_dict, _, _, estimate_dict = _load_tender_data(engine, tender_id)
+
+    owner_cost = float(estimate_dict.get("total_net_pln") or 0) if estimate_dict else 0
+    market_price = float(tender_dict.get("value_pln") or 0)
+    if owner_cost <= 0:
+        raise HTTPException(status_code=422, detail="No estimate found — run POST /estimate first")
+
+    mp = market_price if market_price > 0 else owner_cost * 1.2
+
+    sampler = MonteCarloSampler(n_samples=n_samples, seed=seed)
+    risk_block: RiskBlockV2 = sampler.run(
+        base_cost=owner_cost,
+        market_price=mp,
+        n_competitors=n_competitors,
+    )
+
+    return RiskBlockSchema(
+        p10=risk_block.p10,
+        p50=risk_block.p50,
+        p90=risk_block.p90,
+        win_prob=risk_block.win_prob,
+        drivers=[
+            RiskDriverSchema(
+                name=d.name,
+                sobol_s1=d.sobol_s1,
+                sobol_total=d.sobol_total,
+            )
+            for d in risk_block.drivers
+        ],
+        cv=risk_block.cv,
+        samples_count=risk_block.samples_count,
+        n_rejected=risk_block.n_rejected,
     )
 
 

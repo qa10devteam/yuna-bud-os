@@ -1,0 +1,91 @@
+name: Deploy – Production
+'on':
+  push:
+    tags:
+    - v*
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type yes to confirm production deploy
+        required: true
+        default: 'no'
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.event_name == 'push' || github.event.inputs.confirm == 'yes' }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Deploy via SSH – pull & restart
+      id: deploy
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: deploy
+        key: ${{ secrets.PROD_SSH_KEY }}
+        script: 'set -e
+
+          cd /opt/terra-os
+
+          # Snapshot current tag for rollback
+
+          CURRENT_TAG=$(docker inspect --format=''{{index .RepoTags 0}}'' $(docker
+          compose -f docker-compose.prod.yml ps -q api) 2>/dev/null | grep -oP '':\K.*''
+          || echo ''latest'')
+
+          echo "ROLLBACK_TAG=$CURRENT_TAG" > /opt/terra-os/.rollback_tag
+
+          IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml pull
+
+          IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up
+          -d --no-deps api ui celery-worker
+
+          sudo systemctl restart terra-api terra-ui 2>/dev/null || true
+
+          '
+    - name: Health check – /api/v1/market/stats
+      id: healthcheck
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: deploy
+        key: ${{ secrets.PROD_SSH_KEY }}
+        script: "for i in $(seq 1 12); do\n  curl -sf http://localhost:8000/api/v1/market/stats\
+          \ && echo 'Health OK' && exit 0\n  echo \"Attempt $i failed, waiting 5s…\"\
+          \n  sleep 5\ndone\necho 'Health check failed after 60s'\nexit 1\n"
+    - name: Rollback on failure
+      if: failure()
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: deploy
+        key: ${{ secrets.PROD_SSH_KEY }}
+        script: "echo '⚠️  Deploy failed – initiating rollback'\ncd /opt/terra-os\n\
+          # systemd @previous instance rollback\nsudo systemctl restart terra-api@previous\
+          \ terra-ui@previous 2>/dev/null || true\n# Docker fallback rollback\nif\
+          \ [ -f /opt/terra-os/.rollback_tag ]; then\n  source /opt/terra-os/.rollback_tag\n\
+          \  IMAGE_TAG=$ROLLBACK_TAG docker compose -f docker-compose.prod.yml up\
+          \ -d --no-deps api ui\nfi\necho 'Rollback complete'\n"
+    - name: Slack – notify success
+      if: success()
+      continue-on-error: true
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: '{"text":"🚀 Terra.OS *production* deploy succeeded – tag `${{ github.ref_name
+          }}` – <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
+          github.run_id }}|View run>"}'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    - name: Slack – notify failure
+      if: failure()
+      continue-on-error: true
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: '{"text":"🔴 Terra.OS *production* deploy FAILED – rollback initiated
+          – <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id
+          }}|View run>"}'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

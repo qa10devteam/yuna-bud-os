@@ -756,8 +756,8 @@ class CachedMonteCarloSampler:
 
     def run(
         self,
-        tender_id: str,
-        base_cost: float,
+        tender_id_or_costs: "str | dict",
+        base_cost: float | None = None,
         market_price: float | None = None,
         l1_constraints: list[dict] | None = None,
         offer_price: float | None = None,
@@ -767,8 +767,24 @@ class CachedMonteCarloSampler:
         """
         Uruchamia sampler z Redis caching.
 
+        Obsługuje dwa tryby wywołania:
+          1. tender_id (str) + base_cost (float) — standardowy tryb API
+          2. costs_dict (dict) — tryb bezpośredni: {category: base_cost_pln, ...}
+             W tym trybie base_cost = sum(values), tender_id = "direct"
+
         Jeśli Redis niedostępny — działa bez cache (graceful degradation).
         """
+        if isinstance(tender_id_or_costs, dict):
+            # Tryb słownikowy: {"roboty_ziemne": 1000000, ...}
+            costs_dict = tender_id_or_costs
+            tender_id = "direct"
+            if base_cost is None:
+                base_cost = float(sum(costs_dict.values())) if costs_dict else 0.0
+        else:
+            tender_id = str(tender_id_or_costs)
+            if base_cost is None:
+                raise ValueError("base_cost must be provided when tender_id is a string")
+
         params = {
             "base_cost": base_cost,
             "market_price": market_price,

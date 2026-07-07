@@ -1,0 +1,177 @@
+# ─────────────────────────────────────────────────────────────────
+#  docker-compose.prod.yml  –  Terra.OS Production Stack
+#
+#  Required keys in .env.prod:
+#    POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB
+#    IMAGE_TAG           (defaults to 'latest')
+#    NEXT_PUBLIC_API_URL (defaults to '/api')
+#
+#  Services: nginx, ui, api, celery-worker, postgres, redis
+#  Start:    docker compose -f docker-compose.prod.yml up -d
+# ─────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── Reverse proxy ─────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      api:
+        condition: service_healthy
+      ui:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+  # ── Next.js UI ────────────────────────────────────────────────
+  ui:
+    image: ghcr.io/qa10devteam/terra-os-ui:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      PORT: "3000"
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+  # ── FastAPI / uvicorn ─────────────────────────────────────────
+  api:
+    image: ghcr.io/qa10devteam/terra-os-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-terraos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-terraos}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+    command:
+      - python
+      - -m
+      - uvicorn
+      - services.api.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --workers
+      - "2"
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ── Celery worker ─────────────────────────────────────────────
+  celery-worker:
+    image: ghcr.io/qa10devteam/terra-os-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-terraos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-terraos}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+    command:
+      - python
+      - -m
+      - celery
+      - -A
+      - services.api.worker.celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=4
+      - --queues=default,priority
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ── PostgreSQL 15 ─────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-terraos}
+      POSTGRES_USER: ${POSTGRES_USER:-terraos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-terraos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - backend
+
+  # ── Redis 7 ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - backend
+
+# ── Volumes ──────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_cache:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

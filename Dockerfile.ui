@@ -1,0 +1,66 @@
+# ────────────────────────────────────────────────────────────────
+#  Dockerfile.ui  –  Terra.OS Next.js frontend (node:20-alpine)
+#
+#  Prerequisites: apps/ui/next.config.mjs must have output: 'standalone'
+#  (terra-os adds this automatically – see next.config.mjs)
+# ────────────────────────────────────────────────────────────────
+
+# ── Stage 1: deps ────────────────────────────────────────────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# libc6-compat required for some npm native addons on Alpine
+RUN apk add --no-cache libc6-compat
+
+COPY apps/ui/package.json apps/ui/package-lock.json ./
+
+# Install production + dev deps (dev needed for Next.js build)
+RUN npm ci
+
+# ── Stage 2: builder ─────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy full UI source tree
+COPY apps/ui/ .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+# Activates output: 'standalone' in next.config.mjs → required for Docker
+ENV NEXT_OUTPUT=standalone
+
+# Build generates .next/standalone + .next/static
+RUN npm run build
+
+# ── Stage 3: runner (minimal image) ──────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Non-root user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser  --system --uid 1001 nextjs
+
+# Copy standalone output (self-contained Node server + node_modules subset)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static    ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public          ./public
+
+USER nextjs
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD wget -qO- http://localhost:3000/ || exit 1
+
+# standalone build produces server.js at project root
+CMD ["node", "server.js"]

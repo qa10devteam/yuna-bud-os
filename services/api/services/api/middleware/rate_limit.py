@@ -1,7 +1,7 @@
 """Faza 63 — Rate limiting via slowapi.
 
 Rules:
-  - 100 req/min per IP  (general)
+  - 200 req/min per IP  (general)
   - 10 req/min per IP   for /api/v2/auth/* (brute-force protection)
 """
 from __future__ import annotations
@@ -15,6 +15,6 @@ from slowapi.util import get_remote_address
 # Global limiter instance — imported in main.py
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["100/minute"],
+    default_limits=["200/minute"],
     storage_uri="memory://",
 )
