@@ -137,18 +137,28 @@ def list_tenders(
     params: dict[str, Any] = {"limit": limit, "tenant_id": tenant_id}
 
     # Cursor-based keyset pagination (published_at DESC, id DESC)
+    # Only applies when sort is by published_at (default); other sorts use offset via cursor.
     cursor_clause = ""
+    cursor_offset = 0
+    sort_key = sort or "published"
     if cursor:
         decoded = _decode_cursor(cursor)
         if decoded:
             c_at, c_id = decoded
-            # For DESC ordering: next page rows have (published_at, id) < (c_at, c_id)
-            cursor_clause = (
-                "AND (t.published_at < :cursor_at "
-                "OR (t.published_at = :cursor_at AND t.id < :cursor_id::uuid))"
-            )
-            params["cursor_at"] = c_at
-            params["cursor_id"] = c_id
+            if sort_key == "published":
+                # Keyset pagination by (published_at, id)
+                cursor_clause = (
+                    "AND (t.published_at < :cursor_at "
+                    "OR (t.published_at = :cursor_at AND t.id < CAST(:cursor_id AS uuid)))"
+                )
+                params["cursor_at"] = c_at
+                params["cursor_id"] = c_id
+            else:
+                # For non-published sorts, cursor encodes an offset
+                try:
+                    cursor_offset = int(c_at) if c_at else 0
+                except (ValueError, TypeError):
+                    cursor_offset = 0
 
     if status:
         conditions.append("t.status = CAST(:status AS tender_status)")
@@ -192,10 +202,18 @@ def list_tenders(
         "value":       "t.value_pln DESC NULLS LAST, t.id DESC",
         "published":   "t.published_at DESC NULLS LAST, t.id DESC",
     }
-    order_clause = sort_map.get(sort or "published", sort_map["published"])
+    order_clause = sort_map.get(sort_key, sort_map["published"])
 
     # Count uses base WHERE without cursor so total is always the full filtered count
     count_sql = f"SELECT COUNT(*) FROM tender t WHERE {where}"
+
+    # For non-published sorts, use OFFSET-based pagination to avoid keyset issues
+    if sort_key != "published" and cursor_offset > 0:
+        params["offset_val"] = cursor_offset
+        offset_clause = "OFFSET :offset_val"
+    else:
+        offset_clause = ""
+
     list_sql = f"""
         SELECT t.id, t.title, t.buyer, t.cpv, t.voivodeship,
                t.value_pln, t.deadline_at, t.status,
@@ -205,6 +223,7 @@ def list_tenders(
         WHERE {where} {cursor_clause}
         ORDER BY {order_clause}
         LIMIT :limit
+        {offset_clause}
     """
 
     with engine.connect() as conn:
@@ -234,7 +253,12 @@ def list_tenders(
     next_cursor: str | None = None
     if len(items) == limit and items:
         last = items[-1]
-        next_cursor = _encode_cursor(last.published_at, last.id)
+        if sort_key == "published":
+            next_cursor = _encode_cursor(last.published_at, last.id)
+        else:
+            # Encode next offset as cursor for non-published sorts
+            next_offset = cursor_offset + limit
+            next_cursor = _encode_cursor(str(next_offset), last.id)
 
     return Page(items=items, total=total, cursor=next_cursor)
 

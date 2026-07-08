@@ -353,8 +353,14 @@ function EstimatesTab({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await authFetch(`/api/v1/tenders/${tenderId}/estimates`);
-      setEstimates((data as EstimateItem[]) ?? []);
+      const raw = await authFetch(`/api/v2/estimates?tender_id=${tenderId}`) as unknown;
+      if (Array.isArray(raw)) {
+        setEstimates(raw as EstimateItem[]);
+      } else if (raw && typeof raw === 'object' && 'items' in raw) {
+        setEstimates((raw as { items: EstimateItem[] }).items ?? []);
+      } else {
+        setEstimates([]);
+      }
     } catch {
       // silently fail
     } finally {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useStore } from '@/store/useStore';
 
 // ── API Base — uses relative path so it works through any proxy ──────────────
 const API_BASE = '';
@@ -37,19 +38,27 @@ export interface ActivityItem {
   type: 'tender' | 'estimate' | 'decision' | 'alert';
 }
 
+// ── Auth helper — reads token from Zustand store ──────────────────────────────
+
 // ── Dashboard Stats (derived from tenders) ───────────────────────────────────
 
 export function useDashboardStats() {
   const [data, setData] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const accessToken = useStore((s) => s.accessToken);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchStats() {
       setIsLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/api/v1/tenders?limit=50`);
+        const res = await fetch(`${API_BASE}/api/v1/tenders?limit=50`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const tenders: TenderItem[] = json.items || [];
@@ -78,7 +87,7 @@ export function useDashboardStats() {
     }
     fetchStats();
     return () => { cancelled = true; };
-  }, []);
+  }, [accessToken]);
 
   return { data, isLoading, error };
 }
@@ -90,6 +99,7 @@ export function useTenders(statusFilter?: string) {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const accessToken = useStore((s) => s.accessToken);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +108,12 @@ export function useTenders(statusFilter?: string) {
       try {
         const params = new URLSearchParams({ limit: '50' });
         if (statusFilter) params.set('status', statusFilter);
-        const res = await fetch(`${API_BASE}/api/v1/tenders?${params}`);
+        const res = await fetch(`${API_BASE}/api/v1/tenders?${params}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!cancelled) {
@@ -113,7 +128,8 @@ export function useTenders(statusFilter?: string) {
     }
     fetchTenders();
     return () => { cancelled = true; };
-  }, [statusFilter]);
+  }, [statusFilter, accessToken]);
 
   return { data, total, isLoading, error };
 }
+

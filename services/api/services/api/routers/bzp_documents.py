@@ -42,6 +42,15 @@ def _resolve_ocds_id(url: str | None, external_id: str | None) -> str | None:
         if ocds_id:
             return ocds_id
 
+        # Also try to extract tenderId directly from URL path if not ocds- format
+        # e.g. https://ezamowienia.gov.pl/mp-client/tenders/some-uuid
+        import re as _re
+        m = _re.search(r'/tenders/([^/?#]+)', url)
+        if m:
+            candidate = m.group(1)
+            if candidate and len(candidate) > 5:
+                return candidate
+
     # Fallback: query BZP notice details by bzpNumber
     if external_id:
         try:
@@ -54,6 +63,22 @@ def _resolve_ocds_id(url: str | None, external_id: str | None) -> str | None:
                 data = resp.json()
                 if isinstance(data, dict) and "tenderId" in data:
                     return data["tenderId"]
+        except Exception:
+            pass
+
+        # Second fallback: search via the notice board API
+        try:
+            resp = httpx.get(
+                f"{BZP_BASE}/mo-board/api/v1/notice/search",
+                params={"bzpNumber": external_id, "pageSize": 1, "pageNumber": 0},
+                headers={"Accept": "application/json"},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                items = data if isinstance(data, list) else data.get("items", [])
+                if items and isinstance(items, list) and items[0].get("tenderId"):
+                    return items[0]["tenderId"]
         except Exception:
             pass
 
@@ -120,7 +145,19 @@ def fetch_tender_documents(
     # Extract OCDS tender ID from URL or resolve via BZP API
     ocds_id = _resolve_ocds_id(row.url, row.external_id)
     if not ocds_id:
-        raise HTTPException(status_code=400, detail="Nie udalo sie ustalic OCDS ID przetargu. Brak linku do ezamowienia.gov.pl")
+        source_info = f"source={row.source}, external_id={row.external_id or 'brak'}, url={row.url or 'brak'}"
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "cannot_resolve_ocds_id",
+                "message": (
+                    "Nie udało się ustalić OCDS ID przetargu. "
+                    "Przetarg nie posiada linku do ezamowienia.gov.pl lub numer BZP jest nieznany. "
+                    f"({source_info})"
+                ),
+                "hint": "Przetargi spoza BZP (TED, BIP, manual) nie mają dokumentów SWZ w ezamowienia.gov.pl",
+            },
+        )
 
     bzp_number = row.external_id
 

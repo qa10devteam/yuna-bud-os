@@ -58,6 +58,7 @@ def _encode_cursor(row) -> str:
 
 # ─── Concrete routes FIRST — prevents path-param shadowing ────────────────────
 
+@router.get("/count")
 @router.get("/unread-count")
 def unread_count(user: AuthUser) -> dict:
     """Fast unread notification count for the authenticated user."""

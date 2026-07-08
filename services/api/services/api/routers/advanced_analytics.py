@@ -55,7 +55,7 @@ GUARANTEE_PATTERN = re.compile(r"gwarancj[a-z]*.*?(\d+)\s*(?:lat|lata|miesięcy)
 PAYMENT_PATTERN = re.compile(r"termin\s+płatności.*?(\d+)\s*dni", re.IGNORECASE)
 
 
-@router.post("/ai/analyze-swz")
+@router.post("/ai/analyze-swz", operation_id="analyze_swz_advanced")
 def analyze_swz(
     req: AnalyzeSWZRequest,
     _user=Depends(get_current_user),

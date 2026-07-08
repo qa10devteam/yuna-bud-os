@@ -373,7 +373,7 @@ def extract_tender_id_from_url(url: str) -> str | None:
         https://ezamowienia.gov.pl/mp-client/tenders/ocds-148610-xxx → ocds-148610-xxx
         https://ezamowienia.gov.pl/mp-client/search/list/ocds-148610-xxx → ocds-148610-xxx
     """
-    m = re.search(r'(ocds-\d+-[a-f0-9\-]+)', url)
+    m = re.search(r'(ocds-\d+-[a-f0-9\-]+)', url or "")
     return m.group(1) if m else None
 
 
