@@ -18,6 +18,7 @@ import { PolandHeatmap } from '@/components/PolandHeatmap';
 import { showToast } from '@/components/Toast';
 import { useAuthFetch } from '@/lib/api-v2';
 import { useStore } from '@/store/useStore';
+import { AutomationSuggestions } from '@/components/pages/AutomationPage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
