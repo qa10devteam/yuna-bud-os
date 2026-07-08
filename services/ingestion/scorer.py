@@ -119,27 +119,48 @@ def load_scoring_config(tenant_id: str) -> ScoringWeights:
 
 def load_cpv_win_rates(tenant_id: str | None = None) -> dict[str, float]:
     """
-    Ładuje win-rates per CPV prefix (5 cyfr) z bzp_results.
-    Zwraca {cpv_prefix: 0.0–1.0}.
+    Ładuje win-rates per CPV prefix (5 cyfr) z historical_bids.
+    Zwraca {cpv_prefix: 0.0–1.0} — ratio won/total dla każdego CPV.
+    Fallback: jeśli brak danych per-tenant, użyj globalnych.
     """
     engine = get_engine()
     win_rates: dict[str, float] = {}
     try:
         with engine.connect() as conn:
-            # Global win rates z bzp_results (kto często wygrywał)
-            rows = conn.execute(text("""
-                SELECT LEFT(cpv_main, 5) as prefix, COUNT(*) as wins
-                FROM bzp_results
-                WHERE cpv_main IS NOT NULL AND length(cpv_main) >= 5
+            # Per-tenant win rates z historical_bids
+            tenant_filter = "AND org_id = :tid" if tenant_id else ""
+            rows = conn.execute(text(f"""
+                SELECT
+                    LEFT(cpv, 5) as prefix,
+                    COUNT(*) FILTER (WHERE won = true) as wins,
+                    COUNT(*) as total
+                FROM historical_bids
+                WHERE cpv IS NOT NULL AND length(cpv) >= 5
+                {tenant_filter}
                 GROUP BY prefix
+                HAVING COUNT(*) >= 2
                 ORDER BY wins DESC
                 LIMIT 500
-            """)).fetchall()
+            """), {"tid": tenant_id} if tenant_id else {}).fetchall()
 
-        if rows:
-            max_wins = max(r[1] for r in rows) or 1
-            for prefix, wins in rows:
-                win_rates[prefix] = min(1.0, wins / max_wins)
+            if not rows:
+                # Fallback: globalne dane (wszystkie tenantów)
+                rows = conn.execute(text("""
+                    SELECT
+                        LEFT(cpv, 5) as prefix,
+                        COUNT(*) FILTER (WHERE won = true) as wins,
+                        COUNT(*) as total
+                    FROM historical_bids
+                    WHERE cpv IS NOT NULL AND length(cpv) >= 5
+                    GROUP BY prefix
+                    HAVING COUNT(*) >= 1
+                    ORDER BY wins DESC
+                    LIMIT 500
+                """)).fetchall()
+
+        for prefix, wins, total in rows:
+            win_rates[prefix] = round(wins / max(total, 1), 4)
+
     except Exception as e:
         logger.warning(f"load_cpv_win_rates failed: {e}")
 
