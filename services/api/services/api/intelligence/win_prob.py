@@ -42,29 +42,33 @@ def _fetch_ratios(cpv_prefix: str, nuts2: Optional[str] = None) -> list[float]:
     engine = get_engine()
     try:
         with engine.connect() as conn:
+            # Use actual column names: winning_price_pln, estimated_value_pln, cpv_codes (array)
             if nuts2:
                 rows = conn.execute(
                     text(
                         """
-                        SELECT winning_price, estimated_value
+                        SELECT winning_price_pln, estimated_value_pln
                         FROM market_results
-                        WHERE cpv_code LIKE :cpv_pattern
-                          AND nuts2 = :nuts2
-                          AND estimated_value > 0
-                          AND winning_price IS NOT NULL
+                        WHERE :cpv_pattern = ANY(cpv_codes)
+                          AND estimated_value_pln > 0
+                          AND winning_price_pln IS NOT NULL
                         """
                     ),
-                    {"cpv_pattern": f"{cpv_prefix}%", "nuts2": nuts2},
+                    {"cpv_pattern": f"{cpv_prefix}"},
                 ).fetchall()
             else:
                 rows = conn.execute(
                     text(
                         """
-                        SELECT winning_price, estimated_value
+                        SELECT winning_price_pln, estimated_value_pln
                         FROM market_results
-                        WHERE cpv_code LIKE :cpv_pattern
-                          AND estimated_value > 0
-                          AND winning_price IS NOT NULL
+                        WHERE EXISTS (
+                            SELECT 1 FROM unnest(cpv_codes) c
+                            WHERE c LIKE :cpv_pattern
+                        )
+                          AND estimated_value_pln > 0
+                          AND winning_price_pln IS NOT NULL
+                        LIMIT 2000
                         """
                     ),
                     {"cpv_pattern": f"{cpv_prefix}%"},
@@ -193,15 +197,17 @@ def get_market_benchmarks(cpv_prefix: str) -> dict:
                     """
                     SELECT
                         COUNT(*) AS cnt,
-                        AVG(winning_price::float / NULLIF(estimated_value, 0))  AS avg_ratio,
-                        STDDEV(winning_price::float / NULLIF(estimated_value, 0)) AS std_ratio,
+                        AVG(winning_price_pln::float / NULLIF(estimated_value_pln, 0))  AS avg_ratio,
+                        STDDEV(winning_price_pln::float / NULLIF(estimated_value_pln, 0)) AS std_ratio,
                         PERCENTILE_CONT(0.5) WITHIN GROUP (
-                            ORDER BY winning_price::float / NULLIF(estimated_value, 0)
+                            ORDER BY winning_price_pln::float / NULLIF(estimated_value_pln, 0)
                         ) AS median_ratio
                     FROM market_results
-                    WHERE cpv_code LIKE :cpv_pattern
-                      AND estimated_value > 0
-                      AND winning_price IS NOT NULL
+                    WHERE EXISTS (
+                        SELECT 1 FROM unnest(cpv_codes) c WHERE c LIKE :cpv_pattern
+                    )
+                      AND estimated_value_pln > 0
+                      AND winning_price_pln IS NOT NULL
                     """
                 ),
                 {"cpv_pattern": f"{cpv_prefix}%"},
