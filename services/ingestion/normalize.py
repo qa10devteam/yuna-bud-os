@@ -414,3 +414,137 @@ def normalize_ted_notice(notice: dict[str, Any]) -> TenderIn | None:
         url=url,
         raw=notice,
     )
+
+
+# ---------------------------------------------------------------------------
+# BIP normalizer (Faza 8)
+# ---------------------------------------------------------------------------
+
+def normalize_bip_notice(notice: dict) -> "TenderIn | None":
+    """Normalize a BIPTender (as dict) or raw BIP notice dict to TenderIn.
+
+    BIP notices are scraped from decentralized municipal BIP sites, so the
+    structure varies. We support two inputs:
+    1. A dict produced by dataclasses.asdict(BIPTender) — keys: title, url,
+       published, description, bip_site_id, bip_site_name, region
+    2. A raw dict from ezamowienia Board API or similar structured source
+
+    Returns None if the notice lacks a title or URL.
+    """
+    if not notice:
+        return None
+
+    # --- Title ---
+    title = (
+        notice.get("title")
+        or notice.get("orderObject")
+        or notice.get("name")
+        or notice.get("subject")
+        or ""
+    ).strip()
+    if not title:
+        return None
+
+    # --- URL / External ID ---
+    url = (
+        notice.get("url")
+        or notice.get("link")
+        or notice.get("procurementUrl")
+        or ""
+    ).strip() or None
+
+    # External ID: use URL hash (deterministic, same logic as BIPTender.external_id)
+    import hashlib
+    raw_id = (
+        notice.get("external_id")
+        or notice.get("id")
+        or notice.get("bipNumber")
+    )
+    if raw_id:
+        external_id = str(raw_id).strip()
+    elif url:
+        external_id = "bip:" + hashlib.md5(url.encode()).hexdigest()[:16]
+    else:
+        return None  # Cannot create a unique identifier
+
+    # --- Buyer ---
+    buyer = (
+        notice.get("buyer")
+        or notice.get("bip_site_name")
+        or notice.get("organizationName")
+        or notice.get("orderingPartyName")
+        or ""
+    ).strip() or None
+
+    # --- CPV codes ---
+    # BIP sub-threshold tenders often lack CPV; accept empty list (will pass filter)
+    cpv_raw = (
+        notice.get("cpv")
+        or notice.get("cpvCode")
+        or notice.get("cpv_code")
+        or notice.get("cpvCodes")
+        or ""
+    )
+    cpv = normalize_cpv(cpv_raw)
+
+    # --- Voivodeship ---
+    raw_voiv = (
+        notice.get("voivodeship")
+        or notice.get("region")
+        or notice.get("bip_region")
+        or notice.get("organizationProvince")
+        or ""
+    )
+    voivodeship = normalize_voivodeship(raw_voiv) if raw_voiv else None
+
+    # --- Value ---
+    value_pln = (
+        parse_value(notice.get("value_pln"))
+        or parse_value(notice.get("estimatedValue"))
+        or parse_value(notice.get("contractValue"))
+        or _parse_value_from_html(notice.get("description", ""))
+    )
+
+    # --- Deadline ---
+    deadline_raw = (
+        notice.get("deadline")
+        or notice.get("deadline_at")
+        or notice.get("submittingOffersDate")
+        or notice.get("submissionDeadlineDate")
+    )
+    deadline_at = parse_datetime(str(deadline_raw)) if deadline_raw else None
+
+    # --- Published ---
+    published_raw = (
+        notice.get("published")
+        or notice.get("published_at")
+        or notice.get("publicationDate")
+        or notice.get("pub_date")
+    )
+    if published_raw:
+        # BIPTender.published is a date object — convert to datetime
+        if hasattr(published_raw, "year"):
+            # Already a date/datetime
+            from datetime import timezone as _tz
+            published_at = datetime(
+                published_raw.year, published_raw.month, published_raw.day,
+                tzinfo=timezone.utc,
+            )
+        else:
+            published_at = parse_datetime(str(published_raw))
+    else:
+        published_at = None
+
+    return TenderIn(
+        source="bip",
+        external_id=external_id,
+        title=title,
+        buyer=buyer,
+        cpv=cpv,
+        voivodeship=voivodeship,
+        value_pln=value_pln,
+        deadline_at=deadline_at,
+        published_at=published_at,
+        url=url,
+        raw=notice,
+    )

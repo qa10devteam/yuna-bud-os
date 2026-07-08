@@ -12,7 +12,7 @@ from .filters import apply_filters
 from .fixtures import load_bzp_fixtures
 from .normalize import normalize_bzp_notice, normalize_ted_notice
 from .repository import get_or_create_default_tenant, upsert_tender
-from .scorer import OwnerProfileSnap, score_tender
+from .scorer import OwnerProfileSnap, ScoringWeights, load_scoring_config, score_tender
 from .ted_connector import TEDConnector
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,6 @@ def run_ingest(
     """
     result = IngestResult()
     use_fixtures = offline if offline is not None else TERRA_OFFLINE
-    profile = owner_profile or OwnerProfileSnap()
 
     date_from = date.today() - timedelta(days=days_back)
     date_to = date.today()
@@ -115,18 +114,30 @@ def run_ingest(
 
     result.normalized = len(tenders_in)
 
-    # Step 3: Filter
+    # Step 3: Resolve tenant + load per-tenant scoring config
+    tenant_id = get_or_create_default_tenant(engine)
+
+    # Load per-tenant scoring weights (falls back to defaults if not configured)
+    if owner_profile is not None:
+        profile: ScoringWeights = owner_profile
+    else:
+        profile = load_scoring_config(str(tenant_id))
+
+    # For geo pre-filtering: use preferred_regions from profile if it's OwnerProfileSnap
+    # (has .voivodeships), otherwise fall back to preferred_regions
+    _voivodeships = set(getattr(profile, "voivodeships", None) or list(profile.preferred_regions))
+
+    # Step 3 (filter): Filter
     passed, dropped = apply_filters(
         tenders_in,
-        voivodeships=profile.voivodeships,
+        voivodeships=_voivodeships,
     )
     result.passed_filter = len(passed)
     result.dropped_filter = len(dropped)
     logger.info("Filter: %d passed, %d dropped", result.passed_filter, result.dropped_filter)
 
     # Step 4+5: Score + Upsert
-    tenant_id = get_or_create_default_tenant(engine)
-
+    # tenant_id and profile already loaded above (Step 3)
     for tender in passed:
         try:
             score_result = score_tender(tender, profile)
@@ -163,7 +174,7 @@ def run_ingest(
         except Exception as exc:
             logger.error("BIP ingest failed: %s", exc)
 
-    # Step 7 (optional): Cross-source deduplication
+    # Step 7 (optional): Same-source deduplication
     if run_dedup and not use_fixtures:
         try:
             from services.ingestion.deduplicator import run_deduplicator
@@ -172,5 +183,20 @@ def run_ingest(
             logger.info("Dedup: %d new duplicate pairs", result.dedup_pairs)
         except Exception as exc:
             logger.error("Dedup failed: %s", exc)
+
+    # Step 7b (optional): Cross-source BZP↔TED deduplication
+    if run_dedup and not use_fixtures:
+        try:
+            from services.ingestion.deduplicator import find_cross_source_duplicates
+            cross_stats = find_cross_source_duplicates(engine)
+            cross_pairs = cross_stats.get("pairs_marked", 0)
+            result.dedup_pairs += cross_pairs
+            logger.info(
+                "Cross-source dedup (BZP↔TED): %d pairs marked, %d skipped",
+                cross_pairs,
+                cross_stats.get("skipped", 0),
+            )
+        except Exception as exc:
+            logger.error("Cross-source dedup failed: %s", exc)
 
     return result

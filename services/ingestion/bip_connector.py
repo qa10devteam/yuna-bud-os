@@ -894,3 +894,278 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# Faza 8 — High-level API: fetch_bip_announcements()
+# ---------------------------------------------------------------------------
+
+# Hard-coded seed list of BIP sites with known working procurement pages.
+# These are larger cities with consistent BIP CMS that can be scraped reliably.
+# Format: (site_name, procurement_listing_url, link_pattern_regex, region)
+_BIP_SEED_SITES: list[tuple[str, str, str, str]] = [
+    (
+        "Toruń",
+        "https://bip.torun.pl/przetargi/23",
+        r"https://bip\.torun\.pl/przetarg/\d+[^\s\"]*",
+        "kujawsko-pomorskie",
+    ),
+    (
+        "Białystok",
+        "https://bip.bialystok.pl/postepowania/zamowienia",
+        r"/postepowania/zamowienia/[^\s\"]+\.html",
+        "podlaskie",
+    ),
+    (
+        "Gdańsk BIP",
+        "https://bip.gdansk.pl/urzad-miejski/zamowienia-publiczne",
+        r"https://bip\.gdansk\.pl/[^\s\"]*zamowien[^\s\"]*",
+        "pomorskie",
+    ),
+    (
+        "Wrocław BIP",
+        "https://bip.um.wroc.pl/przetargi",
+        r"https://bip\.um\.wroc\.pl/przetarg[^\s\"]*",
+        "dolnośląskie",
+    ),
+    (
+        "Zielona Góra",
+        "https://bip.zielonagora.pl/zamowienia_publiczne/131/status/rodzaj/wzp/zwr/",
+        r"https://bip\.zielonagora\.pl/[^\s\"]*zamow[^\s\"]*\d+[^\s\"]*",
+        "lubuskie",
+    ),
+    (
+        "Opole BIP",
+        "https://bip.um.opole.pl/przetargi,9",
+        r"https://bip\.um\.opole\.pl/przetarg[^\s\"]*",
+        "opolskie",
+    ),
+    (
+        "Bielsko-Biała",
+        "https://bip.bielsko-biala.pl/zamowienia-publiczne",
+        r"https://bip\.bielsko-biala\.pl/[^\s\"]*zamow[^\s\"]*",
+        "śląskie",
+    ),
+    (
+        "Szczecin BIP",
+        "https://bip.um.szczecin.pl/chapter_11013.asp",
+        r"https://bip\.um\.szczecin\.pl/[^\s\"]*przetarg[^\s\"]*",
+        "zachodniopomorskie",
+    ),
+    (
+        "Katowice BIP",
+        "https://bip.katowice.eu/Strony/default.aspx?menu=562",
+        r"https://bip\.katowice\.eu/[^\s\"]*przetarg[^\s\"]*",
+        "śląskie",
+    ),
+    (
+        "Poznań BIP",
+        "https://bip.poznan.pl/bip/zamowienia-publiczne,75",
+        r"https://bip\.poznan\.pl/bip/[^\s\"]*zamow[^\s\"]*",
+        "wielkopolskie",
+    ),
+]
+
+
+def _scrape_seed_site(
+    client: httpx.Client,
+    name: str,
+    listing_url: str,
+    link_pattern: str,
+    region: str,
+    cutoff: date,
+) -> list[BIPTender]:
+    """Scrape a known seed BIP site for tenders newer than cutoff date."""
+    tenders: list[BIPTender] = []
+    try:
+        resp = client.get(listing_url, timeout=12.0)
+        if resp.status_code != 200:
+            logger.debug("Seed %s HTTP %d", name, resp.status_code)
+            return []
+        html = resp.text
+
+        # Find individual tender links
+        found_urls = re.findall(link_pattern, html)
+        if not found_urls:
+            # Fallback: use generic scraper
+            tenders = scrape_listing_page(client, listing_url)
+            for t in tenders:
+                t.bip_site_name = name
+                t.region = region
+            return tenders
+
+        seen: set[str] = set()
+        base = listing_url
+        for href in found_urls:
+            # Absolute URL
+            url = href if href.startswith("http") else urljoin(base, href)
+            if url in seen:
+                continue
+            seen.add(url)
+
+            # Extract anchor text: find href="..." and take text until </a>
+            # Pattern: href="URL">TEXT</a>
+            idx = html.find(href)
+            if idx == -1:
+                continue
+
+            # Look for text AFTER the URL (closing ">") up to </a>
+            close_gt = html.find(">", idx + len(href))
+            close_a = html.find("</a>", idx + len(href)) if close_gt != -1 else -1
+            title = ""
+            if close_gt != -1 and close_a != -1 and close_a > close_gt:
+                raw_text = html[close_gt + 1: close_a]
+                # Strip inner HTML tags
+                title = re.sub(r"<[^>]+>", " ", raw_text)
+                title = re.sub(r"\s+", " ", title).strip()
+
+            if not title or len(title) < 5:
+                # Fallback: text before the href in the anchor
+                pre = html[max(0, idx - 300): idx]
+                title_m2 = re.search(r">([^<]{15,350})$", pre)
+                title = title_m2.group(1).strip() if title_m2 else ""
+
+            # Last resort: use URL path as title hint
+            if not title or len(title) < 5:
+                title = url
+
+            # Extract date from nearby context
+            ctx = html[max(0, idx - 50): idx + 200]
+            pub_date = None
+            date_m = re.search(r"(\d{4}[-./]\d{2}[-./]\d{2}|\d{2}[-./]\d{2}[-./]\d{4})", ctx)
+            if date_m:
+                pub_date = _parse_date(date_m.group(1))
+
+            if pub_date and pub_date < cutoff:
+                continue  # Too old
+
+            tenders.append(BIPTender(
+                title=title[:300] or f"BIP tender from {name}",
+                url=url,
+                published=pub_date,
+                bip_site_name=name,
+                region=region,
+            ))
+
+        logger.info("Seed %s: %d tenders from %s", name, len(tenders), listing_url)
+    except Exception as e:
+        logger.warning("Seed site %s failed: %s", name, e)
+    return tenders
+
+
+def _extract_link_text(html: str, url_fragment: str) -> str:
+    """Extract the anchor text for a URL fragment found in HTML."""
+    idx = html.find(url_fragment)
+    if idx == -1:
+        return ""
+    # Search forward from end of URL for closing </a>
+    anchor_end = html.find("</a>", idx)
+    if anchor_end == -1:
+        return ""
+    snippet = html[idx: anchor_end + 4]
+    # Strip HTML tags
+    text = re.sub(r"<[^>]+>", " ", snippet)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:300]
+
+
+def fetch_bip_announcements(
+    days_back: int = 7,
+    max_pages: int = 5,
+    region: str | None = None,
+    include_seed_sites: bool = True,
+    include_gov_api: bool = True,
+    max_gov_sites: int = 30,
+    workers: int = 6,
+) -> list[BIPTender]:
+    """High-level BIP fetcher — returns list of BIPTender objects.
+
+    Two strategies (both run in parallel by default):
+    1. Seed sites: Known-good BIP portals with reliable procurement listings
+       (fast, ~10-20 sites, no URL discovery needed)
+    2. Gov.pl API: Discover BIP sites from the national register, then scrape
+       (slower but broader; limited by max_gov_sites per call)
+
+    Args:
+        days_back: How many days back to fetch (filter by published date)
+        max_pages: Unused (kept for API compatibility)
+        region: Optional voivodeship filter (slug like 'slaskie', 'mazowieckie')
+        include_seed_sites: Whether to use the hard-coded seed site list
+        include_gov_api: Whether to discover sites via gov.pl API
+        max_gov_sites: Max gov.pl-discovered sites to process (slow!)
+        workers: Thread pool workers for parallel scraping
+
+    Returns:
+        List of BIPTender objects (may include duplicates across sources).
+    """
+    cutoff = date.today() - timedelta(days=days_back)
+    all_tenders: list[BIPTender] = []
+
+    client = _make_client()
+
+    try:
+        # Strategy 1: Seed sites (fast, reliable)
+        if include_seed_sites:
+            seed_sites = _BIP_SEED_SITES
+            if region:
+                # Filter by region (match on the slug key or display name)
+                region_display = REGIONS.get(region, region)
+                seed_sites = [
+                    s for s in seed_sites
+                    if s[3].lower() in (region.lower(), region_display.lower())
+                ]
+
+            logger.info("Scraping %d BIP seed sites...", len(seed_sites))
+            if workers > 1:
+                from concurrent.futures import ThreadPoolExecutor as _TPE
+                def _do_seed(args):
+                    name, url, pat, reg = args
+                    with _make_client() as c:
+                        return _scrape_seed_site(c, name, url, pat, reg, cutoff)
+                with _TPE(max_workers=min(workers, len(seed_sites) or 1)) as pool:
+                    results = list(pool.map(_do_seed, seed_sites))
+                for batch in results:
+                    all_tenders.extend(batch)
+            else:
+                for name, url, pat, reg in seed_sites:
+                    batch = _scrape_seed_site(client, name, url, pat, reg, cutoff)
+                    all_tenders.extend(batch)
+
+        # Strategy 2: Gov.pl API discovery (slower)
+        if include_gov_api and max_gov_sites > 0:
+            logger.info("Discovering BIP sites via gov.pl API (max=%d)...", max_gov_sites)
+            sites = build_site_index(
+                client,
+                GROUP_GMINY,
+                region_filter=region,
+                max_sites=max_gov_sites,
+            )
+            if sites:
+                scrape_args = [(s, cutoff) for s in sites if True]
+                if workers > 1:
+                    from concurrent.futures import ThreadPoolExecutor as _TPE2
+                    with _TPE2(max_workers=workers) as pool:
+                        results2 = list(pool.map(_scrape_site, scrape_args))
+                    for site_result, batch in results2:
+                        all_tenders.extend(batch)
+                else:
+                    for site_result, batch in map(_scrape_site, scrape_args):
+                        all_tenders.extend(batch)
+                logger.info("Gov.pl API discovery: %d sites, %d tenders", len(sites), len(all_tenders))
+
+    finally:
+        client.close()
+
+    # Deduplicate by URL
+    seen_urls: set[str] = set()
+    deduped: list[BIPTender] = []
+    for t in all_tenders:
+        if t.url not in seen_urls:
+            seen_urls.add(t.url)
+            deduped.append(t)
+
+    logger.info(
+        "fetch_bip_announcements: %d raw → %d unique tenders (cutoff=%s)",
+        len(all_tenders), len(deduped), cutoff,
+    )
+    return deduped

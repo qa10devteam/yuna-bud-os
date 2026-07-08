@@ -37,13 +37,27 @@ logger = logging.getLogger("daily_ingest")
 def main() -> None:
     days_back = int(os.getenv("INGEST_DAYS_BACK", "2"))
     include_ted = os.getenv("INGEST_INCLUDE_TED", "true").lower() == "true"
-    logger.info("Starting daily ingest (days_back=%d, ted=%s)", days_back, include_ted)
+    include_bip = os.getenv("INGEST_INCLUDE_BIP", "false").lower() == "true"
+    bip_region = os.getenv("INGEST_BIP_REGION") or None          # e.g. "slaskie"
+    bip_max_sites = int(os.getenv("INGEST_BIP_MAX_SITES", "50"))
+    logger.info(
+        "Starting daily ingest (days_back=%d, ted=%s, bip=%s, bip_region=%s)",
+        days_back, include_ted, include_bip, bip_region,
+    )
 
     from terra_db.session import get_engine
     from ingestion.pipeline import run_ingest
 
     engine = get_engine()
-    result = run_ingest(engine=engine, days_back=days_back, offline=False, include_ted=include_ted)
+    result = run_ingest(
+        engine=engine,
+        days_back=days_back,
+        offline=False,
+        include_ted=include_ted,
+        include_bip=include_bip,
+        bip_region=bip_region,
+        bip_max_sites=bip_max_sites,
+    )
 
     logger.info(
         "Ingest complete: fetched=%d, created=%d, updated=%d, dropped=%d, errors=%d",

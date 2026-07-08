@@ -132,7 +132,7 @@ def list_tenders(
     source: str | None = Query(default=None),
     min_value: float | None = Query(default=None),
     max_value: float | None = Query(default=None),
-    hide_duplicates: bool = Query(default=False),
+    hide_duplicates: bool = Query(default=True),
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     sort: str | None = Query(default=None),
