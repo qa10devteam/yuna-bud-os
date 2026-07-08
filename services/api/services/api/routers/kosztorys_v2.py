@@ -40,19 +40,19 @@ router = APIRouter(prefix="/api/v2/kosztorys", tags=["kosztorys-v2"])
 # ─── Models ───────────────────────────────────────────────────────────────────
 
 class KosztorysCreate(BaseModel):
-    nazwa: str
+    nazwa: str = Field(..., min_length=1, max_length=300)
     tender_id: str | None = None
     inwestor: str | None = None
     obiekt: str | None = None
     lokalizacja: str | None = None
-    typ: str = "ofertowy"
-    kwartalnr: int = 2
-    kwartalrok: int = 2026
-    ko_r_pct: float = 70.0
-    ko_s_pct: float = 30.0
-    z_pct: float = 12.5
-    kz_pct: float = 7.1
-    vat_pct: float = 23.0
+    typ: str = Field(default="ofertowy", pattern=r"^(ofertowy|inwestorski|zamienny|powykonawczy)$")
+    kwartalnr: int = Field(default=2, ge=1, le=4)
+    kwartalrok: int = Field(default=2026, ge=2000, le=2100)
+    ko_r_pct: float = Field(default=70.0, ge=0, le=500)
+    ko_s_pct: float = Field(default=30.0, ge=0, le=500)
+    z_pct: float = Field(default=12.5, ge=0, le=100)
+    kz_pct: float = Field(default=7.1, ge=0, le=100)
+    vat_pct: float = Field(default=23.0, ge=0, le=100)
     notes: str | None = None
 
 
@@ -81,17 +81,17 @@ class DzialCreate(BaseModel):
 
 
 class PozycjaCreate(BaseModel):
-    lp: int = 1
+    lp: int = Field(default=1, ge=1)
     dzial_id: str | None = None
     kst_code: str | None = None
     katalog: str | None = None
     pozycja_nr: str | None = None
-    opis: str
-    jednostka: str = "m2"
-    ilosc: float = 1.0
-    r_jcena: float = 0.0
-    m_jcena: float = 0.0
-    s_jcena: float = 0.0
+    opis: str = Field(..., min_length=1, max_length=500)
+    jednostka: str = Field(default="m2", min_length=1, max_length=20)
+    ilosc: float = Field(default=1.0, ge=0)
+    r_jcena: float = Field(default=0.0, ge=0)
+    m_jcena: float = Field(default=0.0, ge=0)
+    s_jcena: float = Field(default=0.0, ge=0)
     icb_id_r: int | None = None
     icb_id_m: int | None = None
     icb_id_s: int | None = None
