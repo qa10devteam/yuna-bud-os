@@ -54,6 +54,37 @@ def main() -> None:
         result.errors,
     )
 
+    # Faza 19 — Alert Dispatcher: wyślij emaile dla nowych przetargów
+    _run_alert_dispatcher()
+
+
+def _run_alert_dispatcher() -> None:
+    """Uruchom alert dispatcher po ingresie — sprawdź przetargi z ostatnich 25 godzin.
+
+    Używamy 25h (nie 24h) jako margines bezpieczeństwa na wypadek opóźnień.
+    """
+    logger.info("Starting alert dispatcher (post-ingest)...")
+    try:
+        from ingestion.alert_dispatcher import check_new_tenders_for_alerts
+
+        db_dsn = (
+            f"host={os.getenv('DB_HOST', '127.0.0.1')} "
+            f"port={os.getenv('DB_PORT', '5432')} "
+            f"dbname={os.getenv('DB_NAME', 'terraos')} "
+            f"user={os.getenv('DB_USER', 'terraos')}"
+        )
+        stats = check_new_tenders_for_alerts(since_minutes=25 * 60, db_dsn=db_dsn)
+        logger.info(
+            "Alert dispatcher done: checked=%d fired=%d emails=%d tenders=%d",
+            stats["alerts_checked"],
+            stats["alerts_fired"],
+            stats["emails_sent"],
+            stats["tenders_found"],
+        )
+    except Exception as exc:
+        # Nie przerywamy ingresu z powodu błędu alertów
+        logger.error("Alert dispatcher error (non-fatal): %s", exc)
+
 
 if __name__ == "__main__":
     main()

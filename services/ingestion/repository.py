@@ -43,6 +43,7 @@ def upsert_tender(
                 sa.text(
                     "UPDATE tender SET "
                     "  title=:title, buyer=:buyer, voivodeship=:voivodeship, "
+                    "  nuts_code=:nuts_code, "
                     "  value_pln=:value_pln, deadline_at=:deadline_at, "
                     "  published_at=:published_at, url=:url, "
                     "  match_score=:match_score, match_reason=:match_reason, "
@@ -54,6 +55,7 @@ def upsert_tender(
                     "title": tender.title,
                     "buyer": tender.buyer,
                     "voivodeship": tender.voivodeship,
+                    "nuts_code": getattr(tender, "nuts_code", None),
                     "value_pln": float(tender.value_pln) if tender.value_pln else None,
                     "deadline_at": tender.deadline_at,
                     "published_at": tender.published_at,
@@ -71,11 +73,11 @@ def upsert_tender(
             sa.text(
                 "INSERT INTO tender "
                 "(id, tenant_id, source, external_id, title, buyer, cpv, "
-                " voivodeship, value_pln, deadline_at, published_at, url, "
+                " voivodeship, nuts_code, value_pln, deadline_at, published_at, url, "
                 " status, match_score, match_reason, raw, created_at) "
                 "VALUES "
                 "(:id, :tenant_id, :source, :ext_id, :title, :buyer, cast(:cpv as text[]), "
-                " :voivodeship, :value_pln, :deadline_at, :published_at, :url, "
+                " :voivodeship, :nuts_code, :value_pln, :deadline_at, :published_at, :url, "
                 " cast(:status as tender_status), :match_score, :match_reason, "
                 " cast(:raw as jsonb), :created_at)"
             ),
@@ -88,6 +90,7 @@ def upsert_tender(
                 "buyer": tender.buyer,
                 "cpv": "{" + ",".join(tender.cpv) + "}",
                 "voivodeship": tender.voivodeship,
+                "nuts_code": getattr(tender, "nuts_code", None),
                 "value_pln": float(tender.value_pln) if tender.value_pln else None,
                 "deadline_at": tender.deadline_at,
                 "published_at": tender.published_at,

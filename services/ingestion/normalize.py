@@ -144,6 +144,7 @@ class TenderIn:
         "buyer",
         "cpv",
         "voivodeship",
+        "nuts_code",
         "value_pln",
         "deadline_at",
         "published_at",
@@ -160,6 +161,7 @@ class TenderIn:
         buyer: str | None,
         cpv: list[str],
         voivodeship: str | None,
+        nuts_code: str | None = None,
         value_pln: Decimal | None,
         deadline_at: datetime | None,
         published_at: datetime | None,
@@ -172,6 +174,7 @@ class TenderIn:
         self.buyer = buyer
         self.cpv = cpv
         self.voivodeship = voivodeship
+        self.nuts_code = nuts_code
         self.value_pln = value_pln
         self.deadline_at = deadline_at
         self.published_at = published_at
@@ -370,11 +373,9 @@ def normalize_ted_notice(notice: dict[str, Any]) -> TenderIn | None:
     # Buyer — {"pol": ["Gmina Warszawa"]} or list
     buyer = _ted_str(notice.get("organisation-name-buyer"))
 
-    # City — list ["Warszawa"]
-    city_raw = notice.get("organisation-city-buyer")
-    if isinstance(city_raw, list):
-        city_raw = city_raw[0] if city_raw else None
-    voivodeship = None  # TED doesn't provide NUTS/voivodeship — enriched later
+    # NUTS code + voivodeship — try NUTS fields from raw, then city name fallback
+    from .nuts_mapping import extract_nuts_from_raw  # local import to avoid circular deps
+    nuts_code, voivodeship = extract_nuts_from_raw(notice)
 
     # Value — lot level first, global fallback
     value_pln = _ted_value(
@@ -406,6 +407,7 @@ def normalize_ted_notice(notice: dict[str, Any]) -> TenderIn | None:
         buyer=buyer,
         cpv=cpv,
         voivodeship=voivodeship,
+        nuts_code=nuts_code,
         value_pln=value_pln,
         deadline_at=deadline_at,
         published_at=published_at,

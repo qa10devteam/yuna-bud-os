@@ -55,3 +55,4 @@ data/ddc_cwicr_pl_warsaw_workitems.parquet
 *.mmap
 *.pkl
 models/
+logs/alert_dispatcher.log

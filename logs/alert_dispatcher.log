@@ -1,0 +1,8 @@
+2026-07-08 15:50:24,738 [INFO] run_alert_dispatcher: Starting alert dispatcher (since_minutes=10080, dry_run=True)
+2026-07-08 15:50:25,886 [INFO] ingestion.alert_dispatcher: Alert dispatcher: szukam przetargów od 2026-07-01T15:50:25.886818+00:00 (ostatnie 10080 min)
+2026-07-08 15:50:25,895 [INFO] ingestion.alert_dispatcher: Aktywnych alertów: 1
+2026-07-08 15:50:25,901 [INFO] ingestion.alert_dispatcher: Alert 'Roboty budowlane CPV45': 20 nowych przetargów → wysyłam digest
+2026-07-08 15:50:25,901 [INFO] ingestion.alert_dispatcher: [DRY-RUN] Alert='Roboty budowlane CPV45' to=mateusz@qa10.io tenders=20
+2026-07-08 15:50:25,901 [INFO] ingestion.alert_dispatcher: [DRY-RUN] HTML preview saved: /tmp/terra_alert_preview_05ef52d7.html
+2026-07-08 15:50:25,902 [INFO] ingestion.alert_dispatcher: Alert dispatcher zakończony: {'alerts_checked': 1, 'alerts_fired': 1, 'emails_sent': 1, 'tenders_found': 20, 'skipped': 0, 'since_minutes': 10080}
+2026-07-08 15:50:25,902 [INFO] run_alert_dispatcher: Alert dispatcher complete: checked=1 fired=1 emails=1 tenders=20 skipped=0
