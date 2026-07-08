@@ -340,6 +340,98 @@ export function AutomationHistory({
   );
 }
 
+// ─── N8n Status Panel ─────────────────────────────────────────────────────────
+
+interface N8nWorkflow {
+  id: string;
+  name: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function N8nStatusPanel({ authFetch }: { authFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
+  const [status, setStatus] = useState<{ healthy: boolean; version?: string; workflow_count?: number } | null>(null);
+  const [workflows, setWorkflows] = useState<N8nWorkflow[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    authFetch('/api/v2/automations/n8n/status')
+      .then(r => r.json())
+      .then(data => setStatus(data?.n8n || data))
+      .catch(() => setStatus({ healthy: false }));
+    authFetch('/api/v2/automations/n8n/workflows')
+      .then(r => r.json())
+      .then(data => setWorkflows(Array.isArray(data?.workflows) ? data.workflows : []))
+      .catch(() => {});
+  }, []);
+
+  const statusColor = status?.healthy ? 'text-green-600' : 'text-red-500';
+  const statusIcon = status?.healthy ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertTriangle className="w-4 h-4 text-red-400" />;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 font-semibold text-gray-800 text-sm">
+          <Activity className="w-4 h-4 text-indigo-400" />
+          <span>n8n Engine</span>
+          {status && (
+            <span className={`text-xs font-normal ${statusColor}`}>
+              {status.healthy ? `v${status.version || '?'} — aktywny` : 'niedostepny'}
+            </span>
+          )}
+        </div>
+        {statusIcon}
+      </div>
+
+      <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+        <span>Workflows: <strong>{status?.workflow_count ?? workflows.length}</strong></span>
+        <span>Aktywne: <strong>{workflows.filter(w => w.active).length}</strong></span>
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="ml-auto text-indigo-500 hover:text-indigo-700 flex items-center gap-1"
+        >
+          <Settings className="w-3 h-3" />
+          {expanded ? 'Ukryj' : 'Szczegóły'}
+        </button>
+      </div>
+
+      {expanded && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="space-y-2 mt-2"
+        >
+          {workflows.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">Brak wdrożonych workflow.</p>
+          ) : (
+            workflows.map(wf => (
+              <div key={wf.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+                {wf.active
+                  ? <ToggleRight className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  : <ToggleLeft className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                }
+                <span className="flex-1 truncate text-gray-700">{wf.name}</span>
+                <span className="text-gray-400 font-mono">{wf.id.substring(0, 8)}</span>
+              </div>
+            ))
+          )}
+          <a
+            href="http://localhost:5678"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-indigo-500 hover:underline mt-1"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Otwórz n8n UI
+          </a>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 // ─── Full Automation Page ────────────────────────────────────────────────────
 
 export default function AutomationPage() {
@@ -365,6 +457,7 @@ export default function AutomationPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
+          <N8nStatusPanel authFetch={authFetch} />
           <WebhookManager authFetch={authFetch} />
         </div>
         <div className="space-y-6">
