@@ -455,6 +455,38 @@ export function useTopBuyersCpv(cpv_prefix: string, limit = 20) {
   return { data, loading, total };
 }
 
+// Seasonality
+export interface SeasonalityRow {
+  month: number;
+  n_tenders: number;
+  avg_value: number;
+  total_value: number;
+  avg_competition: number;
+}
+
+export interface SeasonalityResponse {
+  data: SeasonalityRow[];
+}
+
+export function useSeasonality(cpv_prefix?: string) {
+  const fetch = useAuthFetch();
+  const [data, setData] = useState<SeasonalityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (cpv_prefix) params.set('cpv_prefix', cpv_prefix);
+    fetch(`/api/v2/intelligence/seasonality?${params}`)
+      .then((d: SeasonalityResponse) => { if (!cancelled) setData(d.data || []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [fetch, cpv_prefix]);
+
+  return { data, loading };
+}
+
 // ── Alerts hooks ──────────────────────────────────────────────────────────────
 
 export function useAlerts() {

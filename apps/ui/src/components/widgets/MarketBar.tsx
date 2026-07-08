@@ -112,7 +112,7 @@ export function MarketBar() {
 
   useEffect(() => {
     fetchRates();
-    const timer = setInterval(fetchRates, 60_000);
+    const timer = setInterval(fetchRates, 300_000); // 5 minutes — NBP data changes at most once/day
     return () => clearInterval(timer);
   }, [fetchRates]);
 

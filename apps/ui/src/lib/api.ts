@@ -62,6 +62,7 @@ export function useDashboardStats() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const tenders: TenderItem[] = json.items || [];
+        const totalTenders: number = json.total ?? tenders.length;
         if (!cancelled) {
           const pipelineCounts = tenders.reduce((acc, t) => {
             acc[t.status] = (acc[t.status] || 0) + 1;
@@ -69,7 +70,7 @@ export function useDashboardStats() {
           }, {} as Record<string, number>);
           
           setData({
-            activeTenders: tenders.length,
+            activeTenders: totalTenders,
             totalValue: tenders.reduce((s, t) => s + (t.value_pln || 0), 0),
             avgScore: tenders.length > 0
               ? Math.round(tenders.reduce((s, t) => s + (t.match_score || 0), 0) / tenders.length * 100)

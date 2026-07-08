@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import unicodedata
 import uuid
 from typing import Any
@@ -189,12 +190,25 @@ def list_tenders(
 
     if cpv:
         codes = [c.strip() for c in cpv.split(",")]
-        if len(codes) == 1 and len(codes[0]) <= 2:
-            conditions.append(
-                "EXISTS (SELECT 1 FROM unnest(t.cpv) c WHERE c LIKE :cpv_prefix)"
-            )
-            params["cpv_prefix"] = codes[0] + "%"
+        # A full CPV code looks like '45111200-0' (10 chars with dash) or
+        # '45111200' (8 digits). Treat a single code without comma as a prefix
+        # search if it's shorter than a full 8-digit CPV (i.e. < 9 chars before dash).
+        if len(codes) == 1:
+            code = codes[0]
+            # Full CPV: 8 digits optionally followed by '-X' (e.g. '45111200-0')
+            is_full_cpv = bool(re.match(r'^\d{8}(-\d)?$', code))
+            if is_full_cpv:
+                # Exact or near-exact: use array overlap
+                conditions.append("t.cpv && :cpv_arr")
+                params["cpv_arr"] = "{" + code + "}"
+            else:
+                # Prefix search: matches '45', '451', '4511', '45111200', etc.
+                conditions.append(
+                    "EXISTS (SELECT 1 FROM unnest(t.cpv) c WHERE c LIKE :cpv_prefix)"
+                )
+                params["cpv_prefix"] = code + "%"
         else:
+            # Multiple comma-separated codes: exact array overlap
             conditions.append("t.cpv && :cpv_arr")
             params["cpv_arr"] = "{" + ",".join(codes) + "}"
 

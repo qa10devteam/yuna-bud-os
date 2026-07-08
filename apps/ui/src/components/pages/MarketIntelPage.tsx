@@ -14,10 +14,10 @@ import { PageShell } from '@/components/PageShell';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import {
   useIntelSummary, useIntelTrends, useCompetitorsTop, useBuyersTop,
-  useInflation, useFTS, useWinRates, useTopBuyersCpv,
+  useInflation, useFTS, useWinRates, useTopBuyersCpv, useSeasonality,
   fmtMln, fmtPct, PROVINCE_MAP, CPV_LABELS,
   type TrendRow, type ContractorTop, type BuyerTop,
-  type WinRateRow, type TopBuyerCpvRow,
+  type WinRateRow, type TopBuyerCpvRow, type SeasonalityRow,
 } from '@/lib/api-v2';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -254,6 +254,60 @@ function fmtPln(v: number | null | undefined): string {
   return `${Math.round(v)} zł`;
 }
 
+// ── Seasonality chart ─────────────────────────────────────────────────────────
+const MONTH_LABELS = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+
+function SeasonalityChart({ data, loading }: { data: SeasonalityRow[]; loading: boolean }) {
+  if (loading) return <div className="h-52 animate-pulse bg-earth-800 rounded-xl" />;
+  if (!data.length) return <div className="h-52 flex items-center justify-center text-earth-500 text-sm">Brak danych</div>;
+
+  const chartData = data.map(r => ({
+    month: MONTH_LABELS[(r.month - 1) % 12],
+    przetargi: r.n_tenders,
+    wartość: +(r.total_value / 1_000_000).toFixed(1),
+    konkurencja: r.avg_competition,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+          <XAxis dataKey="month" tick={{ fill: '#71717a', fontSize: 11 }} />
+          <YAxis tick={{ fill: '#71717a', fontSize: 11 }} />
+          <Tooltip
+            contentStyle={{ background: '#1a1712', border: '1px solid #3f3f46', borderRadius: 8 }}
+            labelStyle={{ color: '#f5f0eb' }}
+            formatter={(v: number, name: string) => [
+              name === 'wartość' ? fmtMln(v) : v,
+              name === 'przetargi' ? 'Przetargi' : name === 'wartość' ? 'Wartość (mln)' : 'Śr. ofert',
+            ]}
+          />
+          <Bar dataKey="przetargi" fill="#10b981" fillOpacity={0.8} radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="grid grid-cols-3 gap-3">
+        {(() => {
+          const peak = data.reduce((m, r) => r.n_tenders > m.n_tenders ? r : m, data[0]);
+          const slow = data.reduce((m, r) => r.n_tenders < m.n_tenders ? r : m, data[0]);
+          const avgComp = (data.reduce((s, r) => s + r.avg_competition, 0) / data.length).toFixed(1);
+          return [
+            { label: 'Szczyt aktywności', value: MONTH_LABELS[(peak.month - 1) % 12], sub: `${peak.n_tenders.toLocaleString('pl-PL')} przetargów` },
+            { label: 'Najspokojniejszy', value: MONTH_LABELS[(slow.month - 1) % 12], sub: `${slow.n_tenders.toLocaleString('pl-PL')} przetargów` },
+            { label: 'Śr. konkurencja', value: avgComp, sub: 'ofert / przetarg' },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="p-3 bg-earth-800 rounded-lg">
+              <div className="text-xs text-earth-500">{label}</div>
+              <div className="text-lg font-bold text-earth-100 mt-1">{value}</div>
+              <div className="text-xs text-earth-600 mt-0.5">{sub}</div>
+            </div>
+          ));
+        })()}
+      </div>
+    </div>
+  );
+}
+
 // ── Win-rates table ───────────────────────────────────────────────────────────
 function WinRatesTable({ data, loading }: { data: WinRateRow[]; loading: boolean }) {
   if (loading) return <div className="h-48 animate-pulse bg-earth-800 rounded-xl" />;
@@ -446,13 +500,14 @@ const PROVINCE_PILLS = [
 export function MarketIntelPage() {
   const [cpv, setCpv] = useState('45');
   const [province, setProvince] = useState('');
-  const [tab, setTab] = useState<'trends' | 'competitors' | 'buyers' | 'inflation' | 'wygrane'>('trends');
+  const [tab, setTab] = useState<'trends' | 'competitors' | 'buyers' | 'inflation' | 'wygrane' | 'seasonality'>('trends');
 
   const { data: summary, loading: sumLoading } = useIntelSummary(cpv || undefined);
   const { data: trends, loading: trendsLoading } = useIntelTrends(cpv || undefined, 8, province || undefined);
   const { data: competitors, loading: compLoading } = useCompetitorsTop(cpv || undefined, province || undefined);
   const { data: buyers, loading: buyersLoading } = useBuyersTop(cpv || undefined, province || undefined);
   const { data: inflation, loading: inflLoading } = useInflation(undefined, 'R');
+  const { data: seasonality, loading: seasLoading } = useSeasonality(cpv || undefined);
 
   const trendIcon = summary?.quarterly_trend === 'up' ? TrendingUp : summary?.quarterly_trend === 'down' ? TrendingDown : Minus;
   const _ = trendIcon; // suppress unused
@@ -569,6 +624,7 @@ export function MarketIntelPage() {
               { key: 'competitors', label: 'Konkurenci', icon: Users },
               { key: 'buyers', label: 'Zamawiający', icon: Building2 },
               { key: 'inflation', label: 'Inflacja ICB', icon: Filter },
+              { key: 'seasonality', label: 'Sezonowość', icon: BarChart3 },
               { key: 'wygrane', label: 'Wygrane', icon: Award },
             ].map(({ key, label, icon: Icon }) => (
               <button
@@ -658,6 +714,18 @@ export function MarketIntelPage() {
                     })()}
                   </div>
                 )}
+              </div>
+            )}
+
+            {tab === 'seasonality' && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-earth-100">Sezonowość przetargów — aktywność miesięczna</h3>
+                  <p className="text-xs text-earth-500 mt-0.5">
+                    Liczba i wartość przetargów wg miesiąca • {cpv ? `CPV ${cpv}` : 'Wszystkie CPV'} • dane BZP 2024–2025
+                  </p>
+                </div>
+                <SeasonalityChart data={seasonality} loading={seasLoading} />
               </div>
             )}
 

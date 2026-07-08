@@ -805,3 +805,53 @@ connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authenti
 2026-07-08 10:20:14,520 [INFO] ingestion.pipeline: Filter: 548 passed, 1149 dropped
 2026-07-08 10:20:15,623 [INFO] ingestion.pipeline: Ingest done: IngestResult(fetched=3417, norm=1697, passed=548, dropped=1149, created=3, updated=545, errors=0)
 2026-07-08 10:20:15,629 [INFO] daily_ingest: Ingest complete: fetched=3417, created=3, updated=545, dropped=1149, errors=0
+2026-07-08 15:33:16,048 [INFO] daily_ingest: Starting daily ingest (days_back=14, ted=True)
+2026-07-08 15:33:18,669 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-24T00%3A00%3A00&PublicationDateTo=2026-06-24T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:19,704 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-24T12%3A00%3A00&PublicationDateTo=2026-06-24T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:20,467 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-25T00%3A00%3A00&PublicationDateTo=2026-06-25T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:21,154 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-25T12%3A00%3A00&PublicationDateTo=2026-06-25T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:21,933 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-26T00%3A00%3A00&PublicationDateTo=2026-06-26T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:22,664 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-26T12%3A00%3A00&PublicationDateTo=2026-06-26T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:23,498 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-27T00%3A00%3A00&PublicationDateTo=2026-06-27T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:24,410 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-27T12%3A00%3A00&PublicationDateTo=2026-06-27T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:25,192 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-28T00%3A00%3A00&PublicationDateTo=2026-06-28T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:26,349 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-28T12%3A00%3A00&PublicationDateTo=2026-06-28T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:29,078 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-29T00%3A00%3A00&PublicationDateTo=2026-06-29T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:31,441 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-29T12%3A00%3A00&PublicationDateTo=2026-06-29T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:34,089 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-30T00%3A00%3A00&PublicationDateTo=2026-06-30T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:34,932 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-06-30T12%3A00%3A00&PublicationDateTo=2026-06-30T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:35,824 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-01T00%3A00%3A00&PublicationDateTo=2026-07-01T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:36,501 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-01T12%3A00%3A00&PublicationDateTo=2026-07-01T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:37,309 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-02T00%3A00%3A00&PublicationDateTo=2026-07-02T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:38,027 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-02T12%3A00%3A00&PublicationDateTo=2026-07-02T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:38,800 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-03T00%3A00%3A00&PublicationDateTo=2026-07-03T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:39,250 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-03T12%3A00%3A00&PublicationDateTo=2026-07-03T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:39,389 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-04T00%3A00%3A00&PublicationDateTo=2026-07-04T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:39,435 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-04T12%3A00%3A00&PublicationDateTo=2026-07-04T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:39,714 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-05T00%3A00%3A00&PublicationDateTo=2026-07-05T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:40,239 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-05T12%3A00%3A00&PublicationDateTo=2026-07-05T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:43,803 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-06T00%3A00%3A00&PublicationDateTo=2026-07-06T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:45,136 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-06T12%3A00%3A00&PublicationDateTo=2026-07-06T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:48,434 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-07T00%3A00%3A00&PublicationDateTo=2026-07-07T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:50,387 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-07T12%3A00%3A00&PublicationDateTo=2026-07-07T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:52,232 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-08T00%3A00%3A00&PublicationDateTo=2026-07-08T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:53,246 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-08T12%3A00%3A00&PublicationDateTo=2026-07-08T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-08 15:33:53,391 [INFO] ingestion.bzp_connector: BZP fetch complete: 6235 unique notices over 15 days
+2026-07-08 15:33:53,391 [INFO] ingestion.pipeline: BZP fetched 6235 raw notices
+2026-07-08 15:33:53,644 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-08 15:33:54,080 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-08 15:33:56,078 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-08 15:33:58,058 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-08 15:34:00,050 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-08 15:34:00,439 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-08 15:34:00,620 [INFO] ingestion.ted_connector: TED fetch complete: 582 unique notices (20260624 to 20260708)
+2026-07-08 15:34:00,620 [INFO] ingestion.pipeline: TED fetched 582 raw notices
+2026-07-08 15:34:03,477 [INFO] ingestion.pipeline: Filter: 1138 passed, 2231 dropped
+2026-07-08 15:34:06,414 [INFO] ingestion.pipeline: Ingest done: IngestResult(fetched=6817, norm=3369, passed=1138, dropped=2231, created=1138, updated=0, errors=0, bip=0, dedup=0)
+2026-07-08 15:34:06,450 [INFO] services.ingestion.deduplicator: Loaded 1144 tenders for deduplication
+2026-07-08 15:34:06,495 [INFO] services.ingestion.deduplicator: Searching for duplicate pairs (title sim >= 0.55)...
+2026-07-08 15:34:13,793 [INFO] services.ingestion.deduplicator: Candidate pairs from pg_trgm: 4
+2026-07-08 15:34:13,793 [INFO] services.ingestion.deduplicator: Confirmed duplicate pairs: 1
+2026-07-08 15:34:13,795 [INFO] services.ingestion.deduplicator: Deduplication done: 1 pairs found, 1 new, 0 skipped
+2026-07-08 15:34:13,796 [INFO] ingestion.pipeline: Dedup: 1 new duplicate pairs
+2026-07-08 15:34:13,808 [INFO] daily_ingest: Ingest complete: fetched=6817, created=1138, updated=0, dropped=2231, errors=0
