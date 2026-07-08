@@ -1,0 +1,47 @@
+{
+  "name": "Terra-OS: Deadline Alert → Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "terra-deadline-alert",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-1",
+      "name": "Webhook: Tender Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst entity = body.entity_data;\n\nif (body.event !== 'tender.deadline_approaching') return [];\n\nconst deadline = entity.deadline_at ? new Date(entity.deadline_at) : null;\nconst daysLeft = deadline ? Math.ceil((deadline - Date.now()) / 86400000) : '?';\n\nconst msg = `⏰ <b>DEADLINE za ${daysLeft} dni!</b>\\n\\n` +\n  `📋 ${entity.title || 'Przetarg'}\\n` +\n  `🏢 ${entity.buyer || '-'}\\n` +\n  `📍 ${entity.voivodeship || '-'}\\n` +\n  `💰 ${entity.value_pln ? Number(entity.value_pln).toLocaleString('pl-PL') + ' PLN' : '-'}\\n\\n` +\n  `Termin: ${deadline ? deadline.toLocaleDateString('pl-PL') : '-'}`;\n\nreturn [{ json: { chatId: $env.TELEGRAM_CHAT_ID, text: msg } }];"
+      },
+      "id": "code-1",
+      "name": "Build Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "tg-1",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Tender Event": { "main": [[{ "node": "Build Alert", "type": "main", "index": 0 }]] },
+    "Build Alert": { "main": [[{ "node": "Send Telegram", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Terra-OS Simply-Clever: tender.deadline_approaching → Telegram alert. Ustaw env TELEGRAM_CHAT_ID w n8n."
+  }
+}

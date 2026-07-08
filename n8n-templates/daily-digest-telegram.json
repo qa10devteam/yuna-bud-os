@@ -1,0 +1,92 @@
+{
+  "name": "Terra-OS: Daily Digest → Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtHour": 7 }] }
+      },
+      "id": "cron-1",
+      "name": "Codziennie o 7:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:8100/api/v2/kosztorys?status=draft&limit=50",
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.TERRA_API_TOKEN }}" }
+          ]
+        }
+      },
+      "id": "http-drafts",
+      "name": "Get Draft Kosztorysy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:8100/api/v2/zwiad/pipeline?stage=new&limit=20",
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.TERRA_API_TOKEN }}" }
+          ]
+        }
+      },
+      "id": "http-tenders",
+      "name": "Get New Tenders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-1",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const drafts = $('Get Draft Kosztorysy').first().json || [];\nconst tenders = $('Get New Tenders').first().json || [];\n\nconst draftList = Array.isArray(drafts) ? drafts : (drafts.items || []);\nconst tenderList = Array.isArray(tenders) ? tenders : (tenders.items || []);\n\nlet msg = '📊 <b>Poranny raport Terra-OS</b>\\n\\n';\n\nmsg += `📋 <b>Kosztorysy draft (${draftList.length}):</b>\\n`;\nfor (const k of draftList.slice(0, 5)) {\n  msg += `  • ${k.nazwa || 'Bez nazwy'}\\n`;\n}\nif (draftList.length > 5) msg += `  ... i ${draftList.length - 5} więcej\\n`;\n\nmsg += `\\n🔍 <b>Nowe przetargi (${tenderList.length}):</b>\\n`;\nfor (const t of tenderList.slice(0, 5)) {\n  const val = t.value_pln ? ` | ${Number(t.value_pln).toLocaleString('pl-PL')} PLN` : '';\n  msg += `  • ${(t.title || '').slice(0, 60)}${val}\\n`;\n}\nif (tenderList.length > 5) msg += `  ... i ${tenderList.length - 5} więcej\\n`;\n\nmsg += '\\n💡 <i>Wygenerowano automatycznie przez Terra-OS + n8n</i>';\n\nreturn [{ json: { chatId: $env.TELEGRAM_CHAT_ID, text: msg } }];"
+      },
+      "id": "code-1",
+      "name": "Build Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "tg-1",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Codziennie o 7:00": { "main": [[{ "node": "Get Draft Kosztorysy", "type": "main", "index": 0 }, { "node": "Get New Tenders", "type": "main", "index": 0 }]] },
+    "Get Draft Kosztorysy": { "main": [[{ "node": "Merge Data", "type": "main", "index": 0 }]] },
+    "Get New Tenders": { "main": [[{ "node": "Merge Data", "type": "main", "index": 1 }]] },
+    "Merge Data": { "main": [[{ "node": "Build Digest", "type": "main", "index": 0 }]] },
+    "Build Digest": { "main": [[{ "node": "Send Telegram", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Terra-OS Simply-Clever: codzienny poranny digest — drafty + nowe przetargi → Telegram. Ustaw TERRA_API_TOKEN i TELEGRAM_CHAT_ID."
+  }
+}

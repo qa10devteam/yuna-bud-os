@@ -1,0 +1,72 @@
+{
+  "name": "Terra-OS: Kosztorys PDF → Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "terra-kosztorys-pdf",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook-1",
+      "name": "Webhook: Kosztorys Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract event data from Terra-OS webhook\nconst body = $input.first().json.body;\nconst event = body.event;\nconst entity = body.entity_data;\n\nif (event !== 'kosztorys.send_pdf' && event !== 'kosztorys.ready') {\n  return []; // skip non-PDF events\n}\n\nreturn [{\n  json: {\n    kosztorys_id: body.entity_id,\n    nazwa: entity.nazwa || 'Kosztorys',\n    inwestor: entity.inwestor || '',\n    suma_netto: entity.suma_netto || 0,\n    triggered_by: body.triggered_by,\n    event: event,\n  }\n}];"
+      },
+      "id": "code-1",
+      "name": "Parse Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:8100/api/v2/kosztorys/{{ $json.kosztorys_id }}/export-pdf",
+        "options": {
+          "response": { "response": { "responseFormat": "file" } }
+        },
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.TERRA_API_TOKEN }}" }
+          ]
+        }
+      },
+      "id": "http-1",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'terra@firma.pl' }}",
+        "toEmail": "={{ $('Parse Event').first().json.triggered_by }}",
+        "subject": "=Kosztorys: {{ $('Parse Event').first().json.nazwa }}",
+        "text": "=Cześć,\n\nW załączniku kosztorys \"{{ $('Parse Event').first().json.nazwa }}\".\n\nWartość netto: {{ Number($('Parse Event').first().json.suma_netto).toLocaleString('pl-PL') }} PLN\nInwestor: {{ $('Parse Event').first().json.inwestor }}\n\n---\nTerra-OS | Automatyczne powiadomienie",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "id": "email-1",
+      "name": "Send Email + PDF",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Kosztorys Event": { "main": [[{ "node": "Parse Event", "type": "main", "index": 0 }]] },
+    "Parse Event": { "main": [[{ "node": "Download PDF", "type": "main", "index": 0 }]] },
+    "Download PDF": { "main": [[{ "node": "Send Email + PDF", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Terra-OS Simply-Clever: kosztorys.send_pdf → download PDF → email do triggering user. Podepnij webhook URL w Terra-OS > Automatyzacje."
+  }
+}

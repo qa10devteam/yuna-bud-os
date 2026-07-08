@@ -127,6 +127,11 @@ try:
     _optional_routers.append(('kosztorys_v2', kosztorys_v2))
 except Exception as e:
     logging.getLogger(__name__).warning("kosztorys_v2 router import error: %s", e)
+try:
+    from .routers import automations
+    _optional_routers.append(('automations', automations))
+except Exception as e:
+    logging.getLogger(__name__).warning("automations router import error: %s", e)
 from .auth import router as auth_router
 
 # ─── Middleware helpers ────────────────────────────────────────────────────────

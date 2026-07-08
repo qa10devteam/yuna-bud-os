@@ -30,6 +30,7 @@ import {
   Target,
   Hammer,
   Wrench,
+  Zap,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -55,6 +56,7 @@ const moduleGroups: ModuleGroup[] = [
     GroupIcon: Hammer,
     items: [
       { id: 'kosztorys', icon: Calculator, name: 'Kosztorys', desc: 'Wycena i kosztorysy' },
+      { id: 'automations', icon: Zap, name: 'Automatyzacje', desc: 'n8n & webhooki' },
       { id: 'oferta',    icon: FileText,   name: 'Oferta',    desc: 'Kreator oferty PDF' },
       { id: 'logistyka', icon: Truck,      name: 'Logistyka', desc: 'Sprzęt i pracownicy' },
       { id: 'rfq',       icon: ShieldCheck,name: 'RFQ',       desc: 'Zapytania ofertowe' },

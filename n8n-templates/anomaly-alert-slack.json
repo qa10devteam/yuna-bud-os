@@ -1,0 +1,47 @@
+{
+  "name": "Terra-OS: Price Anomaly → Slack/Teams",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "terra-anomaly-alert",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-1",
+      "name": "Webhook: Anomaly",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nif (body.event !== 'kosztorys.anomaly_detected') return [];\n\nconst entity = body.entity_data;\nconst score = entity.anomaly_score ? (entity.anomaly_score * 100).toFixed(0) : '?';\n\nconst blocks = [\n  { type: 'header', text: { type: 'plain_text', text: '⚠️ Anomalia cenowa wykryta!' } },\n  { type: 'section', fields: [\n    { type: 'mrkdwn', text: `*Kosztorys:*\\n${entity.nazwa || '-'}` },\n    { type: 'mrkdwn', text: `*Anomaly Score:*\\n${score}%` },\n    { type: 'mrkdwn', text: `*Wartość netto:*\\n${entity.suma_netto ? Number(entity.suma_netto).toLocaleString('pl-PL') + ' PLN' : '-'}` },\n    { type: 'mrkdwn', text: `*Zgłosił:*\\n${body.triggered_by}` },\n  ]},\n  { type: 'actions', elements: [{\n    type: 'button', text: { type: 'plain_text', text: '🔍 Otwórz w Terra-OS' },\n    url: `${$env.TERRA_URL || 'http://localhost:3001'}/kosztorys/${body.entity_id}`\n  }]}\n];\n\nreturn [{ json: { blocks } }];"
+      },
+      "id": "code-1",
+      "name": "Build Slack Block",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_CHANNEL || '#alerts' }}",
+        "blocksUi": "={{ JSON.stringify($json.blocks) }}",
+        "otherOptions": {}
+      },
+      "id": "slack-1",
+      "name": "Send Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Anomaly": { "main": [[{ "node": "Build Slack Block", "type": "main", "index": 0 }]] },
+    "Build Slack Block": { "main": [[{ "node": "Send Slack", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Terra-OS Simply-Clever: anomalia cenowa → rich Slack notification z deeplinkiem do Terra-OS."
+  }
+}
