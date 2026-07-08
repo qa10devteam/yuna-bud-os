@@ -576,7 +576,75 @@ async def import_ath(kid: str, file: UploadFile = File(...), user: AuthUser = No
     }
 
 
-@router.get("/{kid}/export-ath")
+@router.get("/{kid}/export-pdf")
+def export_pdf(kid: str, user: AuthUser) -> Response:
+    """Eksportuj kosztorys do PDF (WeasyPrint)."""
+    tenant_id = _require_tenant(user)
+    engine = get_engine()
+
+    with engine.connect() as conn:
+        hdr = _get_kosztorys_or_404(conn, kid, tenant_id)
+        dzialy_rows = conn.execute(sa.text("""
+            SELECT id::text, lp, nazwa FROM kosztorys_dzial
+            WHERE kosztorys_id=:k AND tenant_id=:t ORDER BY lp
+        """), {"k": kid, "t": tenant_id}).fetchall()
+        poz_rows = conn.execute(sa.text("""
+            SELECT lp, kst_code, opis, jednostka,
+                   ilosc::float, r_jcena::float, m_jcena::float, s_jcena::float,
+                   r_total::float, m_total::float, s_total::float,
+                   ko_total::float, z_total::float, kz_total::float,
+                   jcena_netto::float, wartosc_netto::float,
+                   is_anomaly, dzial_id::text
+            FROM kosztorys_pozycja
+            WHERE kosztorys_id=:k AND tenant_id=:t ORDER BY lp
+        """), {"k": kid, "t": tenant_id}).fetchall()
+
+    header_dict = {
+        "nazwa": hdr.nazwa, "inwestor": hdr.inwestor, "obiekt": hdr.obiekt,
+        "lokalizacja": hdr.lokalizacja, "typ": hdr.typ, "status": hdr.status,
+        "kwartalnr": hdr.kwartalnr, "kwartalrok": hdr.kwartalrok,
+        "ko_r_pct": float(hdr.ko_r_pct), "ko_s_pct": float(hdr.ko_s_pct),
+        "z_pct": float(hdr.z_pct), "kz_pct": float(hdr.kz_pct),
+        "vat_pct": float(hdr.vat_pct),
+        "tender_id": str(hdr.tender_id) if hdr.tender_id else None,
+        "data_opracowania": str(hdr.data_opracowania) if hdr.data_opracowania else None,
+    }
+    pozycje_dicts = [dict(r._mapping) for r in poz_rows]
+    dzialy_dicts  = [dict(r._mapping) for r in dzialy_rows]
+
+    sums_dict = {
+        "r": float(hdr.suma_r or 0), "m": float(hdr.suma_m or 0),
+        "s": float(hdr.suma_s or 0), "ko": float(hdr.suma_ko or 0),
+        "kz": float(hdr.suma_kz or 0), "z": float(hdr.suma_z or 0),
+        "netto": float(hdr.suma_netto or 0), "vat": float(hdr.suma_vat or 0),
+        "brutto": float(hdr.suma_brutto or 0),
+    }
+    intel_dict = {
+        "benchmark_percentile": float(hdr.benchmark_percentile) if hdr.benchmark_percentile else None,
+        "win_probability": float(hdr.win_probability) if hdr.win_probability else None,
+        "anomaly_score": float(hdr.anomaly_score) if hdr.anomaly_score else None,
+    }
+
+    try:
+        from ..intelligence.pdf_generator import generate_pdf
+        pdf = generate_pdf(
+            header=header_dict,
+            pozycje=pozycje_dicts,
+            dzialy=dzialy_dicts or None,
+            sums=sums_dict,
+            intel=intel_dict,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Błąd generowania PDF: {e}")
+
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="kosztorys_{kid[:8]}.pdf"'},
+    )
+
+
+
 def export_ath(kid: str, user: AuthUser) -> Response:
     """Eksportuj kosztorys do formatu ATH XML (Norma PRO)."""
     tenant_id = _require_tenant(user)

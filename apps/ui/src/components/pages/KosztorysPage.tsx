@@ -4,12 +4,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
+  LineChart, Line, CartesianGrid, Legend,
 } from 'recharts';
 import {
   Calculator, Search, Plus, Trash2, Download, FileSpreadsheet, FileText,
   ChevronRight, X, Loader2, Zap, TrendingUp, AlertCircle, Edit2, Save,
   RotateCcw, SlidersHorizontal, Info, PanelRightOpen, PanelRightClose,
-  BookOpen, CheckCircle2, Package, Database, Columns2,
+  BookOpen, CheckCircle2, Package, Database, Columns2, FileDown,
+  BarChart2, Target, Shield, RefreshCw, Wrench, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useAuthFetch } from '@/lib/api-v2';
@@ -26,37 +28,92 @@ interface TenderItem {
   value_pln: number | string | null;
 }
 
-interface KosztorysItem {
-  id: string;
-  description: string;
-  unit: string;
-  quantity: number;
-  unit_price: number;
-}
-
-interface PredictResult {
-  benchmark: number;
-  ai_estimate: number;
-  confidence_interval: { low95: number; high95: number };
-  method: string;
-  similar_projects: Array<{ title?: string; value?: number }>;
-}
-
-interface SekoItem {
-  id: string;
-  symbol: string;
+/** Pozycja kosztorysu — pełny model R/M/S */
+interface KPozycja {
+  id?: string;
+  lp: number;
+  kst_code: string;
   opis: string;
-  jm: string;
-  cena: number;
-  chapter_name?: string;
-  katalog_code?: string;
-  release_nr?: string;
+  jednostka: string;
+  ilosc: number;
+  r_jcena: number;
+  m_jcena: number;
+  s_jcena: number;
+  jcena_netto: number;
+  wartosc_netto: number;
+  r_total?: number;
+  m_total?: number;
+  s_total?: number;
+  ko_total?: number;
+  z_total?: number;
+  kz_total?: number;
+  is_anomaly?: boolean;
+  icb_r_id?: number | null;
+  icb_m_id?: number | null;
+  icb_s_id?: number | null;
 }
 
-interface EditState {
-  itemId: string;
-  field: 'description' | 'unit' | 'quantity' | 'unit_price';
-  value: string;
+/** Narzuty kosztorysu */
+interface Narzuty {
+  ko_r_pct: number;
+  ko_s_pct: number;
+  z_pct: number;
+  kz_pct: number;
+  vat_pct: number;
+}
+
+interface KosztorysHeader {
+  id: string;
+  nazwa: string;
+  inwestor?: string;
+  obiekt?: string;
+  typ: string;
+  status: string;
+  suma_netto: number;
+  suma_brutto: number;
+  suma_r: number;
+  suma_m: number;
+  suma_s: number;
+  benchmark_percentile?: number;
+  win_probability?: number;
+  anomaly_score?: number;
+  narzuty?: Narzuty;
+}
+
+interface IcbItem {
+  id: number;
+  symbol?: string;
+  nazwa: string;
+  jednostka: string;
+  cena_netto: number;
+  typ_rms: 'R' | 'M' | 'S';
+  category?: string;
+}
+
+interface BenchmarkData {
+  n_tenders: number;
+  avg_value: number;
+  median_value: number;
+  p25_value: number;
+  p75_value: number;
+  our_percentile?: number;
+}
+
+interface IntelligenceResult {
+  benchmark_percentile?: number;
+  win_probability?: number;
+  sweet_spot?: number;
+  anomaly_score?: number;
+  anomalies?: number;
+  total_checked?: number;
+  material_risk?: Array<{ category: string; risk_score: number; change_yoy_pct: number }>;
+}
+
+interface PriceIndex {
+  quarter: string;
+  R: number;
+  M: number;
+  S: number;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -66,101 +123,101 @@ function fmtPLN(n: number | null | undefined): string {
   return Number(n).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 }
 
-function fmtNum(n: number): string {
-  return n.toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+function fmtNum(n: number, dec = 2): string {
+  return n.toLocaleString('pl-PL', { maximumFractionDigits: dec });
 }
 
-const OVERHEAD_PCT = 0.23;
+function pct(a: number, total: number): string {
+  if (!total) return '0%';
+  return ((a / total) * 100).toFixed(1) + '%';
+}
 
-// ── Method badge colors ────────────────────────────────────────────────────────
-function MethodBadge({ method }: { method: string }) {
-  const colors: Record<string, string> = {
-    benchmark: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    ai: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-    ml: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-    default: 'bg-earth-700/50 text-earth-400 border-earth-600/40',
-  };
-  const cls = colors[method?.toLowerCase()] ?? colors.default;
+const DEFAULT_NARZUTY: Narzuty = { ko_r_pct: 70, ko_s_pct: 30, z_pct: 12.5, kz_pct: 7.1, vat_pct: 23 };
+
+// ── Badge helpers ──────────────────────────────────────────────────────────────
+
+function WinBadge({ p }: { p: number }) {
+  const cls = p > 0.6 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : p > 0.35 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+    : 'bg-red-500/15 text-red-400 border-red-500/30';
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
-      <Zap className="w-3 h-3" />
-      {method ?? 'unknown'}
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+      <Target className="w-3 h-3" />
+      P(wygrania) {(p * 100).toFixed(1)}%
     </span>
   );
 }
 
-// ── Skeleton loaders ───────────────────────────────────────────────────────────
-function SkeletonRow() {
+function PercentileBadge({ p }: { p: number }) {
+  const cls = p < 50 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : p < 75 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+    : 'bg-red-500/15 text-red-400 border-red-500/30';
   return (
-    <tr className="animate-pulse border-b border-earth-800/40">
-      {[40, 180, 50, 70, 80, 80, 32].map((w, i) => (
-        <td key={i} className="px-3 py-2.5">
-          <div className="h-3 bg-earth-800 rounded" style={{ width: w }} />
-        </td>
-      ))}
-    </tr>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+      <BarChart2 className="w-3 h-3" />
+      Percentyl {p.toFixed(0)}%
+    </span>
   );
 }
 
-// ── Custom Recharts Tooltip ───────────────────────────────────────────────────
-function PredictTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0];
+function AnomalyBadge({ score }: { score: number }) {
+  const cls = score < 0.1 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : score < 0.25 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+    : 'bg-red-500/15 text-red-400 border-red-500/30';
   return (
-    <div className="bg-earth-900 border border-earth-700/60 rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-earth-400 text-xs mb-0.5">{d.payload?.label}</p>
-      <p className="text-earth-100 text-sm font-bold font-mono">{fmtPLN(d.value)}</p>
-    </div>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+      <Shield className="w-3 h-3" />
+      Anomalie {(score * 100).toFixed(0)}%
+    </span>
   );
 }
 
-// ── Sekocenbud Sidebar ─────────────────────────────────────────────────────────
-function SekocenbudSidebar({
-  onPrefill,
+// ── ICB Search Sidebar ─────────────────────────────────────────────────────────
+
+function IcbSidebar({
+  onSelect,
   onClose,
 }: {
-  onPrefill: (item: SekoItem) => void;
+  onSelect: (item: IcbItem, field: 'R' | 'M' | 'S') => void;
   onClose: () => void;
 }) {
   const authFetch = useAuthFetch();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SekoItem[]>([]);
+  const [results, setResults] = useState<IcbItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [selectedType, setSelectedType] = useState<'all' | 'R' | 'M' | 'S'>('all');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const doSearch = useCallback(
-    async (q: string) => {
-      if (q.length < 2) { setResults([]); setNotFound(false); return; }
-      setLoading(true);
-      setNotFound(false);
-      try {
-        // Try v2 first, fall back to v1
-        let data: SekoItem[] = [];
-        try {
-          const res = await authFetch(`/api/v2/intelligence/sekocenbud?q=${encodeURIComponent(q)}&limit=20`);
-          data = res?.items ?? res?.data ?? res ?? [];
-        } catch {
-          const res = await authFetch(`/api/v1/sekocenbud/search?q=${encodeURIComponent(q)}&limit=20`);
-          data = res?.items ?? res?.data ?? res ?? [];
-        }
-        setResults(data);
-        setNotFound(data.length === 0);
-      } catch {
-        setNotFound(true);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [authFetch],
-  );
+  const doSearch = useCallback(async (q: string) => {
+    if (q.length < 2) { setResults([]); setNotFound(false); return; }
+    setLoading(true);
+    setNotFound(false);
+    try {
+      const typ = selectedType === 'all' ? '' : `&typ_rms=${selectedType}`;
+      const data = await authFetch(`/api/v2/intelligence/prices/icb?q=${encodeURIComponent(q)}${typ}&limit=30`);
+      const items: IcbItem[] = (data as { items?: IcbItem[] })?.items ?? [];
+      setResults(items);
+      setNotFound(items.length === 0);
+    } catch {
+      setNotFound(true);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [authFetch, selectedType]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(query), 380);
+    debounceRef.current = setTimeout(() => doSearch(query), 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, doSearch]);
+
+  const RMS_COLORS: Record<string, string> = {
+    R: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    M: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    S: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  };
 
   return (
     <motion.div
@@ -168,82 +225,98 @@ function SekocenbudSidebar({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 24 }}
       transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-      className="w-72 shrink-0 flex flex-col gap-0 bg-earth-900/70 border border-earth-800/60 rounded-2xl overflow-hidden"
+      className="w-80 shrink-0 flex flex-col gap-0 bg-earth-900/70 border border-earth-800/60 rounded-2xl overflow-hidden"
     >
-      {/* Sidebar header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-earth-800/60 bg-earth-900/80">
         <div className="flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-emerald-400" />
-          <span className="text-earth-200 text-sm font-semibold">Sekocenbud</span>
+          <Database className="w-4 h-4 text-blue-400" />
+          <span className="text-earth-200 text-sm font-semibold">ICB — Baza Cen</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-earth-800 text-earth-500 text-[10px]">784k pozycji</span>
         </div>
-        <button
-          onClick={onClose}
-          className="w-6 h-6 rounded flex items-center justify-center text-earth-500 hover:text-earth-300 transition-colors"
-        >
+        <button onClick={onClose} className="w-6 h-6 rounded flex items-center justify-center text-earth-500 hover:text-earth-300 transition-colors">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Search */}
-      <div className="px-3 py-3 border-b border-earth-800/40">
-        <div className="relative">
+      {/* Filtr R/M/S */}
+      <div className="px-3 pt-2.5 pb-0 border-b border-earth-800/40">
+        <div className="flex gap-1.5 mb-2">
+          {(['all', 'R', 'M', 'S'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setSelectedType(t)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors border ${
+                selectedType === t
+                  ? t === 'all' ? 'bg-earth-700 border-earth-600 text-earth-200'
+                    : RMS_COLORS[t]
+                  : 'bg-transparent border-earth-800 text-earth-600 hover:border-earth-700'
+              }`}
+            >
+              {t === 'all' ? 'Wszystkie' : t === 'R' ? 'Robocizna' : t === 'M' ? 'Materiały' : 'Sprzęt'}
+            </button>
+          ))}
+        </div>
+        <div className="relative mb-2.5">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-earth-500 pointer-events-none" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Szukaj robót, materiałów…"
-            className="w-full pl-8 pr-3 py-2 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-200 placeholder-earth-600 text-xs focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-colors"
+            placeholder="Szukaj w bazie ICB…"
+            className="w-full pl-8 pr-3 py-2 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-200 placeholder-earth-600 text-xs focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors"
           />
         </div>
-        <p className="text-earth-600 text-xs mt-1.5 leading-tight">
-          Baza SEKOCENBUD · 23&nbsp;725 pozycji
-        </p>
       </div>
 
-      {/* Results list */}
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+            <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
           </div>
         )}
-
         {!loading && query.length < 2 && (
           <div className="px-4 py-6 text-center">
             <Database className="w-8 h-8 text-earth-700 mx-auto mb-2" />
-            <p className="text-earth-600 text-xs">Wpisz min. 2 znaki</p>
+            <p className="text-earth-600 text-xs">ICB · GUS · Sekocenbud</p>
+            <p className="text-earth-700 text-xs mt-1">Q1 2008 → Q2 2026</p>
           </div>
         )}
-
         {!loading && notFound && (
           <div className="px-4 py-6 text-center">
             <p className="text-earth-500 text-xs">Brak wyników dla &ldquo;{query}&rdquo;</p>
           </div>
         )}
-
         {!loading && results.length > 0 && (
           <ul className="divide-y divide-earth-800/40">
             {results.map(item => (
-              <li key={item.id} className="px-3 py-2.5 hover:bg-earth-800/30 transition-colors group">
+              <li key={`${item.id}-${item.typ_rms}`} className="px-3 py-2.5 hover:bg-earth-800/30 transition-colors group">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-earth-300 text-xs leading-tight line-clamp-2">{item.opis}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-earth-600 text-xs font-mono">{item.symbol}</span>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${RMS_COLORS[item.typ_rms]}`}>
+                        {item.typ_rms}
+                      </span>
+                      <span className="text-earth-600 text-xs font-mono truncate max-w-[80px]">{item.symbol}</span>
+                    </div>
+                    <p className="text-earth-300 text-xs leading-tight line-clamp-2">{item.nazwa}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-earth-500 text-xs">{item.jednostka}</span>
                       <span className="text-earth-700">·</span>
-                      <span className="text-earth-500 text-xs">{item.jm}</span>
-                      <span className="text-earth-700">·</span>
-                      <span className="text-emerald-400 text-xs font-bold font-mono">
-                        {fmtNum(item.cena)} zł
+                      <span className="text-blue-400 text-xs font-bold font-mono">
+                        {fmtNum(item.cena_netto)} zł
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => onPrefill(item)}
-                    className="shrink-0 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                  >
-                    Dodaj
-                  </button>
+                  <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    {(['R', 'M', 'S'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => onSelect(item, f)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${RMS_COLORS[f]}`}
+                      >
+                        → {f}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </li>
             ))}
@@ -254,275 +327,373 @@ function SekocenbudSidebar({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Compare Modal — warianty A/B/C side-by-side
-// ═══════════════════════════════════════════════════════════════════════════════
+// ── Narzuty Editor ─────────────────────────────────────────────────────────────
 
-interface CompareVariant {
-  tenderId: string;
-  label: string;
-  items: KosztorysItem[];
-  loading: boolean;
-  error: string | null;
-}
-
-const VARIANT_LABELS = ['Wariant A', 'Wariant B', 'Wariant C'];
-const VARIANT_COLORS = ['text-emerald-400', 'text-blue-400', 'text-amber-400'];
-const VARIANT_BG     = ['bg-emerald-500/10 border-emerald-500/20', 'bg-blue-500/10 border-blue-500/20', 'bg-amber-500/10 border-amber-500/20'];
-
-function CompareModal({
-  tenders,
-  compareIds,
+function NarzutyEditor({
+  narzuty,
+  onChange,
   onClose,
-  authFetch,
 }: {
-  tenders: TenderItem[];
-  compareIds: string[];
+  narzuty: Narzuty;
+  onChange: (n: Narzuty) => void;
   onClose: () => void;
-  authFetch: (url: string, opts?: RequestInit) => Promise<unknown>;
 }) {
-  const [variants, setVariants] = useState<CompareVariant[]>(() =>
-    compareIds.slice(0, 3).map((id, i) => ({
-      tenderId: id,
-      label: VARIANT_LABELS[i] ?? ('Wariant ' + (i + 1)),
-      items: [],
-      loading: true,
-      error: null,
-    }))
-  );
+  const [local, setLocal] = useState<Narzuty>({ ...narzuty });
 
-  useEffect(() => {
-    compareIds.slice(0, 3).forEach((id, i) => {
-      authFetch('/api/v1/kosztorys/' + id)
-        .then((d: unknown) => {
-          const data = d as { items?: KosztorysItem[] };
-          setVariants(prev => {
-            const next = [...prev];
-            next[i] = { ...next[i], items: data?.items ?? [], loading: false };
-            return next;
-          });
-        })
-        .catch((e: unknown) => {
-          setVariants(prev => {
-            const next = [...prev];
-            next[i] = { ...next[i], loading: false, error: (e as Error).message };
-            return next;
-          });
-        });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function variantTotal(v: CompareVariant): number {
-    return v.items.reduce((s, item) => s + item.quantity * item.unit_price, 0);
+  function field(key: keyof Narzuty, label: string, desc: string) {
+    return (
+      <div>
+        <label className="text-earth-500 text-xs font-semibold uppercase tracking-wide">{label}</label>
+        <p className="text-earth-700 text-[10px] mb-1">{desc}</p>
+        <div className="relative">
+          <input
+            type="number" min={0} max={200} step={0.1}
+            value={local[key]}
+            onChange={e => setLocal(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+            className="w-full px-3 py-1.5 pr-8 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-200 text-xs focus:outline-none focus:border-blue-500/50 tabular-nums"
+          />
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-earth-600 text-xs">%</span>
+        </div>
+      </div>
+    );
   }
-
-  const totals = variants.map(variantTotal);
-  const baseTotal = totals[0] ?? 0;
-
-  function diffPct(t: number): string {
-    if (baseTotal === 0) return '—';
-    const pct = ((t - baseTotal) / baseTotal) * 100;
-    return (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
-  }
-
-  // All unique descriptions across all variants (for aligned rows)
-  const allDescs = Array.from(
-    new Set(variants.flatMap(v => v.items.map(i => i.description)))
-  );
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <motion.div
-        initial={{ scale: 0.96, y: 12, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.96, y: 12, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="bg-earth-950 border border-earth-800/60 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-earth-800/60 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <Columns2 className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-earth-100">Porównanie wariantów kosztorysu</h3>
-            <span className="px-2 py-0.5 rounded-full bg-earth-800 text-earth-500 text-xs">
-              {variants.length} warianty
-            </span>
+      <div className="bg-earth-950 border border-earth-800/60 rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-blue-400" />
+            <h3 className="text-earth-100 text-sm font-bold">Narzuty kosztorysu</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-earth-500 hover:text-earth-200 hover:bg-earth-800 transition-colors"
-          >
+          <button onClick={onClose} className="text-earth-500 hover:text-earth-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Variant headers */}
-        <div className="grid shrink-0" style={{ gridTemplateColumns: '200px ' + variants.map(() => '1fr').join(' ') }}>
-          <div className="px-4 py-3 border-b border-r border-earth-800/40 bg-earth-900/30" />
-          {variants.map((v, i) => {
-            const tender = tenders.find(t => t.id === v.tenderId);
-            return (
-              <div
-                key={v.tenderId}
-                className="px-4 py-3 border-b border-r border-earth-800/40 bg-earth-900/30 last:border-r-0"
-              >
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className={`text-xs font-bold uppercase tracking-wide ${VARIANT_COLORS[i]}`}>
-                    {v.label}
-                  </span>
-                  {i === 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-earth-800 text-earth-500 text-[10px]">bazowy</span>
-                  )}
-                </div>
-                {tender && (
-                  <p className="text-xs text-earth-400 line-clamp-2 leading-snug">{tender.title}</p>
-                )}
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-4 mb-5">
+          {field('ko_r_pct', 'Ko/R', 'Koszty pośrednie od robocizny')}
+          {field('ko_s_pct', 'Ko/S', 'Koszty pośrednie od sprzętu')}
+          {field('z_pct', 'Zysk (Z)', 'Zysk od całości kosztów')}
+          {field('kz_pct', 'Kz', 'Koszty zakupu materiałów')}
+          {field('vat_pct', 'VAT', 'Stawka podatku')}
         </div>
 
-        {/* Table body */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Loading state */}
-          {variants.some(v => v.loading) && (
-            <div className="flex items-center justify-center py-12 gap-2 text-earth-500 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Ładowanie danych wariantów…
-            </div>
-          )}
-
-          {/* Rows */}
-          {!variants.some(v => v.loading) && allDescs.length === 0 && (
-            <div className="py-12 text-center">
-              <Package className="w-8 h-8 text-earth-700 mx-auto mb-2" />
-              <p className="text-earth-500 text-sm">Brak pozycji kosztorysowych w wybranych wariantach</p>
-            </div>
-          )}
-
-          {!variants.some(v => v.loading) && allDescs.length > 0 && (
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 z-10">
-                <tr className="bg-earth-900/80 backdrop-blur-sm">
-                  <th className="text-left px-4 py-2.5 text-earth-500 font-medium border-b border-r border-earth-800/40 w-[200px]">
-                    Pozycja
-                  </th>
-                  {variants.map((v, i) => (
-                    <th
-                      key={v.tenderId}
-                      className="text-right px-4 py-2.5 border-b border-r border-earth-800/40 last:border-r-0"
-                      colSpan={3}
-                    >
-                      <span className={`font-semibold ${VARIANT_COLORS[i]}`}>{v.label}</span>
-                    </th>
-                  ))}
-                </tr>
-                <tr className="bg-earth-900/60">
-                  <th className="px-4 py-1.5 border-b border-r border-earth-800/40" />
-                  {variants.map(v => (
-                    <th key={v.tenderId + 'sub'} className="border-b border-r border-earth-800/40 last:border-r-0" colSpan={3}>
-                      <div className="grid grid-cols-3 text-right">
-                        <span className="px-2 py-1 text-earth-600 font-normal">Ilość</span>
-                        <span className="px-2 py-1 text-earth-600 font-normal">Cena jdn.</span>
-                        <span className="px-2 py-1 text-earth-600 font-normal">Wartość</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {allDescs.map((desc, rowIdx) => (
-                  <tr
-                    key={desc}
-                    className={rowIdx % 2 === 0 ? 'bg-earth-950' : 'bg-earth-900/30'}
-                  >
-                    <td className="px-4 py-2 border-r border-earth-800/30 text-earth-300 max-w-[200px]">
-                      <span className="line-clamp-2 leading-snug">{desc}</span>
-                    </td>
-                    {variants.map(v => {
-                      const item = v.items.find(it => it.description === desc);
-                      return (
-                        <td key={v.tenderId + desc} className="border-r border-earth-800/30 last:border-r-0" colSpan={3}>
-                          {item ? (
-                            <div className="grid grid-cols-3 text-right">
-                              <span className="px-2 py-2 text-earth-400 tabular-nums">
-                                {fmtNum(item.quantity)}{' '}{item.unit}
-                              </span>
-                              <span className="px-2 py-2 text-earth-400 tabular-nums">
-                                {fmtPLN(item.unit_price)}
-                              </span>
-                              <span className="px-2 py-2 text-earth-200 font-medium tabular-nums">
-                                {fmtPLN(item.quantity * item.unit_price)}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-3 text-right">
-                              {[0, 1, 2].map(k => (
-                                <span key={k} className="px-2 py-2 text-earth-700">—</span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className="bg-earth-900/60 rounded-lg px-3 py-2.5 mb-5 text-xs text-earth-500">
+          <span className="font-mono text-earth-400">CJ = R + M + S + Ko·(R·ko_r + S·ko_s) + Kz·M + Z·(R+M+S+Ko+Kz)</span>
         </div>
 
-        {/* Footer — sumy i różnica % */}
-        {!variants.some(v => v.loading) && (
-          <div className="shrink-0 border-t border-earth-800/60 px-4 py-4 bg-earth-900/40">
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(' + variants.length + ', 1fr)' }}>
-              {variants.map((v, i) => {
-                const total = totals[i] ?? 0;
-                const diff = diffPct(total);
-                const isBase = i === 0;
-                return (
-                  <div
-                    key={v.tenderId}
-                    className={'rounded-xl border px-4 py-3 ' + VARIANT_BG[i]}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-bold uppercase tracking-wide ${VARIANT_COLORS[i]}`}>
-                        {v.label}
-                      </span>
-                      {!isBase && (
-                        <span className={
-                          'text-xs font-semibold tabular-nums ' +
-                          (total > baseTotal ? 'text-red-400' : total < baseTotal ? 'text-emerald-400' : 'text-earth-500')
-                        }>
-                          {diff}
-                        </span>
-                      )}
-                      {isBase && (
-                        <span className="text-[10px] text-earth-600">baza</span>
-                      )}
-                    </div>
-                    <p className="text-lg font-black text-earth-100 tabular-nums">
-                      {fmtPLN(total)}
-                    </p>
-                    <p className="text-[10px] text-earth-600 mt-0.5">
-                      {v.items.length} {v.items.length === 1 ? 'pozycja' : v.items.length < 5 ? 'pozycje' : 'pozycji'}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </motion.div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setLocal({ ...DEFAULT_NARZUTY })}
+            className="px-4 py-2 rounded-lg border border-earth-700 text-earth-400 text-xs hover:border-earth-600 transition-colors"
+          >
+            Domyślne
+          </button>
+          <button
+            onClick={() => { onChange(local); onClose(); }}
+            className="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 transition-colors"
+          >
+            Zastosuj
+          </button>
+        </div>
+      </div>
     </motion.div>
+  );
+}
+
+// ── Intelligence Panel ─────────────────────────────────────────────────────────
+
+function IntelligencePanel({
+  kosztorysId,
+  tender,
+  sumaNet,
+  authFetch,
+}: {
+  kosztorysId?: string;
+  tender?: TenderItem | null;
+  sumaNet: number;
+  authFetch: ReturnType<typeof useAuthFetch>;
+}) {
+  const [intel, setIntel] = useState<IntelligenceResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [priceIndex, setPriceIndex] = useState<PriceIndex[]>([]);
+  const [benchmark, setBenchmark] = useState<BenchmarkData | null>(null);
+  const [expanded, setExpanded] = useState(true);
+
+  const runIntelligence = useCallback(async () => {
+    if (!sumaNet && !kosztorysId) return;
+    setLoading(true);
+    try {
+      // Benchmark per CPV
+      const cpv = tender?.cpv?.[0];
+      if (cpv) {
+        const cpv5 = cpv.replace(/[^0-9]/g, '').slice(0, 5);
+        try {
+          const bm = await authFetch(`/api/v2/intelligence/benchmark?cpv5=${cpv5}&nuts2_code=PL`);
+          setBenchmark(bm as BenchmarkData);
+        } catch { /* ok */ }
+      }
+
+      // Price index trend
+      try {
+        const idx = await authFetch('/api/v2/intelligence/prices/index?years=3');
+        setPriceIndex((idx as { data?: PriceIndex[] })?.data ?? []);
+      } catch { /* ok */ }
+
+      // Intelligence per kosztorys
+      if (kosztorysId) {
+        try {
+          const res = await authFetch(`/api/v2/kosztorys/${kosztorysId}/intelligence`);
+          setIntel(res as IntelligenceResult);
+        } catch { /* ok */ }
+      } else if (sumaNet && cpv) {
+        // Quick win probability estimate
+        try {
+          const wp = await authFetch('/api/v2/intelligence/win-probability', {
+            method: 'POST',
+            body: JSON.stringify({ our_price: sumaNet, cpv5: tender?.cpv?.[0]?.replace(/[^0-9]/g, '').slice(0, 5) }),
+          });
+          setIntel({ win_probability: (wp as { win_probability?: number })?.win_probability });
+        } catch { /* ok */ }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [authFetch, kosztorysId, tender, sumaNet]);
+
+  useEffect(() => {
+    if (sumaNet > 0) runIntelligence();
+  }, [sumaNet, runIntelligence]);
+
+  return (
+    <GlassCard className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-purple-400" />
+          <span className="text-earth-200 text-sm font-semibold">Intelligence</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {loading && <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />}
+          <button onClick={() => setExpanded(e => !e)} className="text-earth-600 hover:text-earth-400 transition-colors">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            {/* Badges */}
+            {intel && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {intel.win_probability !== undefined && <WinBadge p={intel.win_probability} />}
+                {intel.benchmark_percentile !== undefined && <PercentileBadge p={intel.benchmark_percentile} />}
+                {intel.anomaly_score !== undefined && <AnomalyBadge score={intel.anomaly_score} />}
+              </div>
+            )}
+
+            {/* Benchmark bar */}
+            {benchmark && sumaNet > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs text-earth-500 mb-1">
+                  <span>Pozycja na rynku (CPV {tender?.cpv?.[0]})</span>
+                  <span className="text-earth-400 tabular-nums">{fmtPLN(sumaNet)}</span>
+                </div>
+                <div className="relative h-5 bg-earth-800/60 rounded-full overflow-hidden">
+                  {/* P25–P75 range */}
+                  <div
+                    className="absolute top-0 h-full bg-blue-500/20"
+                    style={{
+                      left: `${Math.min(100, (benchmark.p25_value / benchmark.max_value) * 100)}%`,
+                      width: `${Math.min(100, ((benchmark.p75_value - benchmark.p25_value) / benchmark.max_value) * 100)}%`,
+                    }}
+                  />
+                  {/* Median line */}
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5 bg-blue-400/60"
+                    style={{ left: `${Math.min(100, (benchmark.median_value / benchmark.max_value) * 100)}%` }}
+                  />
+                  {/* Our price needle */}
+                  <div
+                    className="absolute top-0 bottom-0 w-1 bg-emerald-400 rounded-full"
+                    style={{ left: `${Math.min(98, (sumaNet / benchmark.max_value) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-earth-700 mt-0.5">
+                  <span>min {fmtPLN(benchmark.p25_value)}</span>
+                  <span>med {fmtPLN(benchmark.median_value)}</span>
+                  <span>max {fmtPLN(benchmark.p75_value)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Price index chart */}
+            {priceIndex.length > 0 && (
+              <div>
+                <p className="text-earth-600 text-xs mb-1.5">Indeks cen ICB (R/M/S) — trend</p>
+                <ResponsiveContainer width="100%" height={80}>
+                  <LineChart data={priceIndex.slice(-8)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+                    <XAxis dataKey="quarter" tick={{ fill: '#555', fontSize: 9 }} tickLine={false} />
+                    <YAxis tick={{ fill: '#555', fontSize: 9 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                    <Tooltip
+                      contentStyle={{ background: '#111', border: '1px solid #333', borderRadius: 8, fontSize: 10 }}
+                      labelStyle={{ color: '#888' }}
+                    />
+                    <Line type="monotone" dataKey="R" stroke="#60a5fa" dot={false} strokeWidth={1.5} name="Robocizna" />
+                    <Line type="monotone" dataKey="M" stroke="#34d399" dot={false} strokeWidth={1.5} name="Materiały" />
+                    <Line type="monotone" dataKey="S" stroke="#fbbf24" dot={false} strokeWidth={1.5} name="Sprzęt" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Material risk */}
+            {intel?.material_risk && intel.material_risk.length > 0 && (
+              <div className="mt-3">
+                <p className="text-earth-600 text-xs mb-1.5">Ryzyko cen materiałów</p>
+                <div className="space-y-1">
+                  {intel.material_risk.slice(0, 3).map(r => (
+                    <div key={r.category} className="flex items-center justify-between">
+                      <span className="text-earth-500 text-xs truncate max-w-[140px]">{r.category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs tabular-nums ${r.change_yoy_pct > 5 ? 'text-red-400' : r.change_yoy_pct < -2 ? 'text-emerald-400' : 'text-earth-400'}`}>
+                          {r.change_yoy_pct > 0 ? '+' : ''}{r.change_yoy_pct.toFixed(1)}%
+                        </span>
+                        <div className="w-12 h-1.5 bg-earth-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${r.risk_score > 0.6 ? 'bg-red-400' : r.risk_score > 0.3 ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                            style={{ width: `${r.risk_score * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!intel && !loading && !benchmark && (
+              <p className="text-earth-700 text-xs text-center py-2">
+                Dodaj pozycje i wybierz przetarg aby aktywować intelligence
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </GlassCard>
+  );
+}
+
+// ── Pozycja Row ────────────────────────────────────────────────────────────────
+
+function PozycjaRow({
+  poz,
+  onDelete,
+  onEdit,
+}: {
+  poz: KPozycja;
+  onDelete: () => void;
+  onEdit: (field: keyof KPozycja, value: number | string) => void;
+}) {
+  const [editField, setEditField] = useState<keyof KPozycja | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  function startEdit(field: keyof KPozycja, val: number | string) {
+    setEditField(field);
+    setEditValue(String(val));
+  }
+
+  function commitEdit() {
+    if (editField && editValue !== '') {
+      const numeric = ['ilosc', 'r_jcena', 'm_jcena', 's_jcena'];
+      const val = numeric.includes(editField as string) ? parseFloat(editValue) || 0 : editValue;
+      onEdit(editField, val);
+    }
+    setEditField(null);
+  }
+
+  function cell(field: keyof KPozycja, display: string, numeric = true) {
+    if (editField === field) {
+      return (
+        <td className="px-2 py-1.5">
+          <input
+            autoFocus
+            type={numeric ? 'number' : 'text'}
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditField(null); }}
+            className="w-full px-2 py-0.5 rounded bg-earth-800 border border-blue-500/40 text-earth-200 text-xs focus:outline-none tabular-nums"
+            style={{ minWidth: 60 }}
+          />
+        </td>
+      );
+    }
+    return (
+      <td
+        className="px-2 py-1.5 text-right text-earth-400 text-xs tabular-nums cursor-pointer hover:text-earth-200 hover:bg-earth-800/30 rounded transition-colors"
+        onClick={() => startEdit(field, poz[field] as number | string)}
+      >
+        {display}
+      </td>
+    );
+  }
+
+  return (
+    <tr className={`border-b border-earth-800/30 hover:bg-earth-900/40 transition-colors group ${poz.is_anomaly ? 'bg-red-950/20' : ''}`}>
+      <td className="px-2 py-1.5 text-earth-700 text-xs w-8">{poz.lp}</td>
+      <td className="px-2 py-1.5 text-earth-600 text-xs font-mono w-28 truncate">{poz.kst_code || '—'}</td>
+      <td
+        className="px-2 py-1.5 text-earth-300 text-xs cursor-pointer hover:text-earth-100 transition-colors"
+        onClick={() => startEdit('opis', poz.opis)}
+      >
+        {editField === 'opis' ? (
+          <input
+            autoFocus
+            type="text"
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditField(null); }}
+            className="w-full px-2 py-0.5 rounded bg-earth-800 border border-blue-500/40 text-earth-200 text-xs focus:outline-none"
+          />
+        ) : (
+          <span className={poz.is_anomaly ? 'text-red-300' : ''}>{poz.opis}</span>
+        )}
+      </td>
+      <td className="px-2 py-1.5 text-earth-600 text-xs w-12 text-center">{poz.jednostka}</td>
+      {cell('ilosc', fmtNum(poz.ilosc, 2))}
+      {cell('r_jcena', fmtNum(poz.r_jcena, 2))}
+      {cell('m_jcena', fmtNum(poz.m_jcena, 2))}
+      {cell('s_jcena', fmtNum(poz.s_jcena, 2))}
+      <td className="px-2 py-1.5 text-right text-earth-300 text-xs tabular-nums font-semibold w-24">
+        {fmtNum(poz.jcena_netto, 4)}
+      </td>
+      <td className={`px-2 py-1.5 text-right text-xs tabular-nums font-bold w-28 ${poz.is_anomaly ? 'text-red-400' : 'text-blue-300'}`}>
+        {fmtPLN(poz.wartosc_netto)}
+      </td>
+      <td className="px-2 py-1.5 w-8">
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center text-earth-700 hover:text-red-400 transition-all"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -534,11 +705,8 @@ export function KosztorysPage() {
   const { accessToken } = useStore();
   const authFetch = useAuthFetch();
 
-  // ── Tender selector state ──────────────────────────────────────────────────
-  const [tenderId, setTenderId] = useState<string | null>(null);
-  const [tenderLabel, setTenderLabel] = useState<string>('');
-  const [tenderCpv, setTenderCpv] = useState<string>('');
-  const [tenderValuePln, setTenderValuePln] = useState<number>(0);
+  // ── Tender selector ────────────────────────────────────────────────────────
+  const [tender, setTender] = useState<TenderItem | null>(null);
   const [tenders, setTenders] = useState<TenderItem[]>([]);
   const [tenderSearch, setTenderSearch] = useState('');
   const [tenderDropdown, setTenderDropdown] = useState(false);
@@ -546,979 +714,624 @@ export function KosztorysPage() {
   const tenderInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ── Kosztorys state ────────────────────────────────────────────────────────
-  const [items, setItems] = useState<KosztorysItem[]>([]);
+  // ── Kosztorys v2 state ─────────────────────────────────────────────────────
+  const [kosztorysId, setKosztorysId] = useState<string | null>(null);
+  const [pozycje, setPozycje] = useState<KPozycja[]>([]);
   const [kosztLoading, setKosztLoading] = useState(false);
-
-  // ── Inline edit ────────────────────────────────────────────────────────────
-  const [editing, setEditing] = useState<EditState | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [narzuty, setNarzuty] = useState<Narzuty>({ ...DEFAULT_NARZUTY });
+  const [showNarzuty, setShowNarzuty] = useState(false);
 
   // ── Add row form ───────────────────────────────────────────────────────────
-  const [addDesc, setAddDesc] = useState('');
-  const [addUnit, setAddUnit] = useState('');
-  const [addQty, setAddQty] = useState('');
-  const [addPrice, setAddPrice] = useState('');
+  const [addKst, setAddKst] = useState('');
+  const [addOpis, setAddOpis] = useState('');
+  const [addJm, setAddJm] = useState('m2');
+  const [addIlosc, setAddIlosc] = useState('');
+  const [addR, setAddR] = useState('');
+  const [addM, setAddM] = useState('');
+  const [addS, setAddS] = useState('');
   const [addLoading, setAddLoading] = useState(false);
 
-  // ── AI Predict state ───────────────────────────────────────────────────────
-  const [showPredict, setShowPredict] = useState(false);
-  const [cpvInput, setCpvInput] = useState('');
-  const [valueInput, setValueInput] = useState('');
-  const [predictLoading, setPredictLoading] = useState(false);
-  const [predictResult, setPredictResult] = useState<PredictResult | null>(null);
+  // ── Sidebar ────────────────────────────────────────────────────────────────
+  const [showIcb, setShowIcb] = useState(false);
 
-  // ── Sekocenbud sidebar ─────────────────────────────────────────────────────
-  const [showSeko, setShowSeko] = useState(false);
-
-  // ── Export state ───────────────────────────────────────────────────────────
+  // ── Export ─────────────────────────────────────────────────────────────────
   const [exportLoading, setExportLoading] = useState<string | null>(null);
 
-  // ── Compare variants state ──────────────────────────────────────────────────
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [compareIds, setCompareIds] = useState<string[]>([]);
-  // In-memory ring buffer: ostatnie 3 otwarte tender IDs (do porównania A/B/C)
-  const recentTenderIdsRef = useRef<string[]>([]);
+  // ── Recalc ─────────────────────────────────────────────────────────────────
+  const [recalcLoading, setRecalcLoading] = useState(false);
 
-  // ── Computed totals ────────────────────────────────────────────────────────
-  const totalNet = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const totalGross = totalNet * (1 + OVERHEAD_PCT);
+  // ── Computed sums ──────────────────────────────────────────────────────────
+  const sumaR     = pozycje.reduce((s, p) => s + (p.r_total ?? 0), 0);
+  const sumaM     = pozycje.reduce((s, p) => s + (p.m_total ?? 0), 0);
+  const sumaS     = pozycje.reduce((s, p) => s + (p.s_total ?? 0), 0);
+  const sumaKo    = pozycje.reduce((s, p) => s + (p.ko_total ?? 0), 0);
+  const sumaZ     = pozycje.reduce((s, p) => s + (p.z_total ?? 0), 0);
+  const sumaKz    = pozycje.reduce((s, p) => s + (p.kz_total ?? 0), 0);
+  const sumaNetto = pozycje.reduce((s, p) => s + p.wartosc_netto, 0);
+  const sumaVat   = sumaNetto * narzuty.vat_pct / 100;
+  const sumaBrutto = sumaNetto + sumaVat;
 
   // ── Load tenders ───────────────────────────────────────────────────────────
   useEffect(() => {
     setTendersLoading(true);
-    authFetch('/api/v1/tenders?limit=50')
-      .then((d: { items: TenderItem[] }) => setTenders(d.items ?? []))
+    authFetch('/api/v1/tenders?limit=100')
+      .then((d: unknown) => setTenders((d as { items: TenderItem[] }).items ?? []))
       .catch(() => {})
       .finally(() => setTendersLoading(false));
   }, [authFetch]);
 
-  // ── Load kosztorys items when tender changes ───────────────────────────────
+  // ── Load / create kosztorys when tender changes ────────────────────────────
   useEffect(() => {
-    if (!tenderId) { setItems([]); return; }
+    if (!tender) { setPozycje([]); setKosztorysId(null); return; }
     setKosztLoading(true);
-    authFetch(`/api/v1/kosztorys/${tenderId}`)
-      .then((d: { items: KosztorysItem[]; total?: number }) => setItems(d.items ?? []))
-      .catch(e => showToast('error', `Błąd ładowania kosztorysu: ${e.message}`))
+    // Spróbuj v2 najpierw
+    authFetch(`/api/v2/kosztorys?tender_id=${tender.id}&limit=5`)
+      .then((d: unknown) => {
+        const list = (d as { items?: KosztorysHeader[] }).items ?? [];
+        if (list.length > 0) {
+          const k = list[0];
+          setKosztorysId(k.id);
+          if (k.narzuty) setNarzuty(k.narzuty as Narzuty);
+          return loadPozycje(k.id);
+        } else {
+          // Utwórz nowy kosztorys v2
+          return authFetch('/api/v2/kosztorys', {
+            method: 'POST',
+            body: JSON.stringify({
+              nazwa: tender.title.slice(0, 120),
+              tender_id: tender.id,
+              ...narzuty,
+            }),
+          }).then((k: unknown) => {
+            const kid = (k as KosztorysHeader).id;
+            setKosztorysId(kid);
+            setPozycje([]);
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback to v1
+        authFetch(`/api/v1/kosztorys/${tender.id}`)
+          .then((d: unknown) => {
+            const items = (d as { items?: { id: string; description: string; unit: string; quantity: number; unit_price: number }[] }).items ?? [];
+            // Convert v1 items to KPozycja (uproszczone)
+            const poz: KPozycja[] = items.map((it, idx) => ({
+              id: it.id,
+              lp: idx + 1,
+              kst_code: '',
+              opis: it.description,
+              jednostka: it.unit,
+              ilosc: it.quantity,
+              r_jcena: 0,
+              m_jcena: it.unit_price,
+              s_jcena: 0,
+              jcena_netto: it.unit_price,
+              wartosc_netto: it.quantity * it.unit_price,
+            }));
+            setPozycje(poz);
+          })
+          .catch(() => {});
+      })
       .finally(() => setKosztLoading(false));
-  }, [tenderId, authFetch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tender?.id]);
 
-  // ── Click-outside handler for tender dropdown ──────────────────────────────
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
-        tenderInputRef.current &&
-        !tenderInputRef.current.contains(e.target as Node)
-      ) {
-        setTenderDropdown(false);
-      }
-    }
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, []);
-
-  // ── Select tender ──────────────────────────────────────────────────────────
-  const selectTender = useCallback((t: TenderItem) => {
-    setTenderId(t.id);
-    setTenderLabel(t.title);
-    setTenderCpv(t.cpv?.[0]?.slice(0, 8) ?? '');
-    setTenderValuePln(typeof t.value_pln === 'number' ? t.value_pln : parseFloat(String(t.value_pln ?? 0)) || 0);
-    setTenderSearch('');
-    setTenderDropdown(false);
-    // Pre-fill predict with tender's CPV+value
-    if (t.cpv?.[0]) setCpvInput(t.cpv[0].slice(0, 8));
-    if (t.value_pln) setValueInput(String(typeof t.value_pln === 'number' ? Math.round(t.value_pln) : parseFloat(String(t.value_pln)) || 0));
-    setPredictResult(null);
-    // Track in recent ring buffer (max 3, no duplicates)
-    recentTenderIdsRef.current = [
-      t.id,
-      ...recentTenderIdsRef.current.filter(id => id !== t.id),
-    ].slice(0, 3);
-  }, []);
-
-  const clearTender = useCallback(() => {
-    setTenderId(null);
-    setTenderLabel('');
-    setTenderCpv('');
-    setTenderValuePln(0);
-    setItems([]);
-    setPredictResult(null);
-  }, []);
-
-  // ── Filter tenders by search ───────────────────────────────────────────────
-  const filteredTenders = tenders.filter(t =>
-    !tenderSearch || t.title.toLowerCase().includes(tenderSearch.toLowerCase()) ||
-    t.buyer?.toLowerCase().includes(tenderSearch.toLowerCase()),
-  );
-
-  // ── Run AI prediction ──────────────────────────────────────────────────────
-  const runPredict = useCallback(async () => {
-    if (!cpvInput || !valueInput) {
-      showToast('warning', 'Podaj kod CPV i wartość');
-      return;
-    }
-    setPredictLoading(true);
-    try {
-      const res = await authFetch(
-        `/api/v2/estimates/predict?cpv=${encodeURIComponent(cpvInput)}&value=${encodeURIComponent(valueInput)}`,
-      );
-      setPredictResult(res as PredictResult);
-    } catch (e: any) {
-      showToast('error', `Błąd predykcji: ${e.message}`);
-    } finally {
-      setPredictLoading(false);
-    }
-  }, [cpvInput, valueInput, authFetch]);
-
-  // ── Add kosztorys item ─────────────────────────────────────────────────────
-  const addItem = useCallback(async () => {
-    if (!tenderId) { showToast('warning', 'Wybierz przetarg'); return; }
-    if (!addDesc || !addUnit || !addQty || !addPrice) {
-      showToast('warning', 'Wypełnij wszystkie pola');
-      return;
-    }
-    const qty = parseFloat(addQty);
-    const price = parseFloat(addPrice);
-    if (isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
-      showToast('warning', 'Nieprawidłowe wartości liczbowe');
-      return;
-    }
-    setAddLoading(true);
-    try {
-      const newItem = await authFetch(`/api/v1/kosztorys/${tenderId}`, {
-        method: 'POST',
-        body: JSON.stringify({ description: addDesc, unit: addUnit, quantity: qty, unit_price: price }),
-      });
-      setItems(prev => [...prev, newItem as KosztorysItem]);
-      setAddDesc(''); setAddUnit(''); setAddQty(''); setAddPrice('');
-      showToast('success', 'Pozycja dodana');
-    } catch (e: any) {
-      showToast('error', `Błąd dodawania: ${e.message}`);
-    } finally {
-      setAddLoading(false);
-    }
-  }, [tenderId, addDesc, addUnit, addQty, addPrice, authFetch]);
-
-  // ── Prefill from Sekocenbud ────────────────────────────────────────────────
-  const prefillFromSeko = useCallback((item: SekoItem) => {
-    setAddDesc(item.opis);
-    setAddUnit(item.jm);
-    setAddPrice(String(item.cena));
-    showToast('info', `Wczytano: ${item.symbol}`);
-  }, []);
-
-  // ── Inline edit ────────────────────────────────────────────────────────────
-  const startEdit = useCallback((itemId: string, field: EditState['field'], current: string) => {
-    setEditing({ itemId, field, value: current });
-  }, []);
-
-  const commitEdit = useCallback(async () => {
-    if (!editing || !tenderId) { setEditing(null); return; }
-    const { itemId, field, value } = editing;
-    const target = items.find(i => i.id === itemId);
-    if (!target) { setEditing(null); return; }
-
-    // Build update payload
-    const update: Partial<KosztorysItem> = { ...target };
-    if (field === 'description') update.description = value;
-    else if (field === 'unit') update.unit = value;
-    else if (field === 'quantity') update.quantity = parseFloat(value) || target.quantity;
-    else if (field === 'unit_price') update.unit_price = parseFloat(value) || target.unit_price;
-
-    setEditing(null);
-    setSavingId(itemId);
-    try {
-      const updated = await authFetch(`/api/v1/kosztorys/${tenderId}/${itemId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(update),
-      });
-      setItems(prev => prev.map(i => i.id === itemId ? (updated as KosztorysItem) : i));
-    } catch (e: any) {
-      showToast('error', `Błąd zapisu: ${e.message}`);
-      // Revert
-      setItems(prev => [...prev]);
-    } finally {
-      setSavingId(null);
-    }
-  }, [editing, tenderId, items, authFetch]);
-
-  // ── Delete item ────────────────────────────────────────────────────────────
-  const deleteItem = useCallback(async (itemId: string) => {
-    if (!tenderId) return;
-    setSavingId(itemId);
-    try {
-      await authFetch(`/api/v1/kosztorys/${tenderId}/${itemId}`, { method: 'DELETE' });
-      setItems(prev => prev.filter(i => i.id !== itemId));
-      showToast('success', 'Pozycja usunięta');
-    } catch (e: any) {
-      showToast('error', `Błąd usuwania: ${e.message}`);
-    } finally {
-      setSavingId(null);
-    }
-  }, [tenderId, authFetch]);
-
-  // ── Export handlers ────────────────────────────────────────────────────────
-  const exportATH = useCallback(async () => {
-    if (!tenderId) return;
-    setExportLoading('ath');
-    try {
-      const res = await fetch(`/api/v1/kosztorys/${tenderId}/export/ath`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `kosztorys_${tenderId}.ath`; a.click();
-      URL.revokeObjectURL(url);
-      showToast('success', 'Eksport ATH gotowy');
-    } catch (e: any) {
-      showToast('error', `Błąd eksportu ATH: ${e.message}`);
-    } finally {
-      setExportLoading(null);
-    }
-  }, [tenderId, accessToken]);
-
-  const exportFile = useCallback(async (format: 'xlsx' | 'docx') => {
-    if (!tenderId) return;
-    setExportLoading(format);
-    try {
-      const res = await fetch(`/api/v1/estimates/${tenderId}/export/${format}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kosztorys_${tenderId}.${format}`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('success', `Eksport ${format.toUpperCase()} gotowy`);
-    } catch (e: any) {
-      showToast('error', `Błąd eksportu ${format.toUpperCase()}: ${e.message}`);
-    } finally {
-      setExportLoading(null);
-    }
-  }, [tenderId, accessToken]);
-
-  // ── Build predict chart data ───────────────────────────────────────────────
-  const predictChartData = predictResult
-    ? [
-        { label: 'CI dolny 95%', value: predictResult.confidence_interval.low95, color: '#6b7280' },
-        { label: 'Benchmark', value: predictResult.benchmark, color: '#10b981' },
-        { label: 'AI Estymacja', value: predictResult.ai_estimate, color: '#34d399' },
-        { label: 'CI górny 95%', value: predictResult.confidence_interval.high95, color: '#6b7280' },
-      ]
-    : [];
-
-  // ── Handle compare: zbierz ostatnie 3 IDs + bieżący ──────────────────────
-  function handleOpenCompare() {
-    // Bieżący na pierwszym miejscu, potem ostatnio oglądane
-    const ids = tenderId
-      ? [tenderId, ...recentTenderIdsRef.current.filter(id => id !== tenderId)]
-      : [...recentTenderIdsRef.current];
-    // Fallback: pierwsze 3 z listy tenders
-    const fallback = tenders.slice(0, 3).map(t => t.id);
-    const merged = Array.from(new Set([...ids, ...fallback])).slice(0, 3);
-    if (merged.length < 2) {
-      showToast('warning', 'Otwórz co najmniej 2 kosztorysy aby porównać warianty');
-      return;
-    }
-    setCompareIds(merged);
-    setCompareOpen(true);
+  async function loadPozycje(kid: string) {
+    const d = await authFetch(`/api/v2/kosztorys/${kid}/pozycje?limit=200`);
+    const items = (d as { items?: KPozycja[] }).items ?? [];
+    setPozycje(items);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Render
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ── Add pozycja ────────────────────────────────────────────────────────────
+  async function addPozycja() {
+    if (!addOpis.trim()) { showToast('error', 'Podaj opis pozycji'); return; }
+    const r_jcena = parseFloat(addR) || 0;
+    const m_jcena = parseFloat(addM) || 0;
+    const s_jcena = parseFloat(addS) || 0;
+    const ilosc   = parseFloat(addIlosc) || 1;
 
+    if (kosztorysId) {
+      setAddLoading(true);
+      try {
+        await authFetch(`/api/v2/kosztorys/${kosztorysId}/pozycje`, {
+          method: 'POST',
+          body: JSON.stringify({
+            kst_code: addKst,
+            opis: addOpis,
+            jednostka: addJm,
+            ilosc,
+            r_jcena,
+            m_jcena,
+            s_jcena,
+            lp: (pozycje.at(-1)?.lp ?? 0) + 1,
+          }),
+        });
+        await loadPozycje(kosztorysId);
+      } catch (e) {
+        showToast('error', (e as Error).message);
+      } finally {
+        setAddLoading(false);
+      }
+    } else {
+      // Lokalne dodanie (bez API)
+      const ko = r_jcena * narzuty.ko_r_pct / 100 + s_jcena * narzuty.ko_s_pct / 100;
+      const kz = m_jcena * narzuty.kz_pct / 100;
+      const z  = (r_jcena + m_jcena + s_jcena + ko + kz) * narzuty.z_pct / 100;
+      const cj = r_jcena + m_jcena + s_jcena + ko + kz + z;
+      const newPoz: KPozycja = {
+        id: `local-${Date.now()}`,
+        lp: (pozycje.at(-1)?.lp ?? 0) + 1,
+        kst_code: addKst,
+        opis: addOpis,
+        jednostka: addJm,
+        ilosc,
+        r_jcena, m_jcena, s_jcena,
+        jcena_netto: Math.round(cj * 10000) / 10000,
+        wartosc_netto: Math.round(cj * ilosc * 100) / 100,
+        r_total: r_jcena * ilosc,
+        m_total: m_jcena * ilosc,
+        s_total: s_jcena * ilosc,
+        ko_total: ko * ilosc,
+        z_total: z * ilosc,
+        kz_total: kz * ilosc,
+      };
+      setPozycje(prev => [...prev, newPoz]);
+    }
+
+    setAddKst(''); setAddOpis(''); setAddJm('m2'); setAddIlosc(''); setAddR(''); setAddM(''); setAddS('');
+  }
+
+  // ── Delete pozycja ─────────────────────────────────────────────────────────
+  async function deletePozycja(poz: KPozycja) {
+    if (kosztorysId && poz.id && !poz.id.startsWith('local-')) {
+      try {
+        await authFetch(`/api/v2/kosztorys/${kosztorysId}/pozycje/${poz.id}`, { method: 'DELETE' });
+      } catch { /* ok */ }
+    }
+    setPozycje(prev => prev.filter(p => p.id !== poz.id).map((p, i) => ({ ...p, lp: i + 1 })));
+  }
+
+  // ── Edit pozycja (local) ───────────────────────────────────────────────────
+  function editPozycja(poz: KPozycja, field: keyof KPozycja, value: number | string) {
+    setPozycje(prev => prev.map(p => {
+      if (p.id !== poz.id) return p;
+      const updated = { ...p, [field]: value };
+      // Przelicz CJ
+      const { r_jcena, m_jcena, s_jcena, ilosc } = updated;
+      const ko = r_jcena * narzuty.ko_r_pct / 100 + s_jcena * narzuty.ko_s_pct / 100;
+      const kz = m_jcena * narzuty.kz_pct / 100;
+      const z  = (r_jcena + m_jcena + s_jcena + ko + kz) * narzuty.z_pct / 100;
+      const cj = r_jcena + m_jcena + s_jcena + ko + kz + z;
+      return {
+        ...updated,
+        jcena_netto: Math.round(cj * 10000) / 10000,
+        wartosc_netto: Math.round(cj * ilosc * 100) / 100,
+        r_total: r_jcena * ilosc,
+        m_total: m_jcena * ilosc,
+        s_total: s_jcena * ilosc,
+        ko_total: ko * ilosc,
+        z_total: z * ilosc,
+        kz_total: kz * ilosc,
+      };
+    }));
+  }
+
+  // ── ICB prefill ────────────────────────────────────────────────────────────
+  function icbSelect(item: IcbItem, field: 'R' | 'M' | 'S') {
+    if (field === 'R') { setAddR(String(item.cena_netto)); if (!addOpis) setAddOpis(item.nazwa); }
+    if (field === 'M') { setAddM(String(item.cena_netto)); if (!addOpis) setAddOpis(item.nazwa); }
+    if (field === 'S') { setAddS(String(item.cena_netto)); if (!addOpis) setAddOpis(item.nazwa); }
+    if (!addJm) setAddJm(item.jednostka);
+    showToast('success', `ICB ${field}: ${item.nazwa.slice(0, 40)} → ${fmtNum(item.cena_netto)} zł/${item.jednostka}`);
+  }
+
+  // ── Recalc from API ────────────────────────────────────────────────────────
+  async function recalc() {
+    if (!kosztorysId) {
+      // Przelicz lokalnie z narzutami
+      setPozycje(prev => prev.map(p => {
+        const ko = p.r_jcena * narzuty.ko_r_pct / 100 + p.s_jcena * narzuty.ko_s_pct / 100;
+        const kz = p.m_jcena * narzuty.kz_pct / 100;
+        const z  = (p.r_jcena + p.m_jcena + p.s_jcena + ko + kz) * narzuty.z_pct / 100;
+        const cj = p.r_jcena + p.m_jcena + p.s_jcena + ko + kz + z;
+        return {
+          ...p,
+          jcena_netto: Math.round(cj * 10000) / 10000,
+          wartosc_netto: Math.round(cj * p.ilosc * 100) / 100,
+          ko_total: ko * p.ilosc,
+          kz_total: kz * p.ilosc,
+          z_total: z * p.ilosc,
+        };
+      }));
+      showToast('success', 'Przeliczono lokalnie');
+      return;
+    }
+    setRecalcLoading(true);
+    try {
+      await authFetch(`/api/v2/kosztorys/${kosztorysId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(narzuty),
+      });
+      await authFetch(`/api/v2/kosztorys/${kosztorysId}/recalc`, { method: 'POST' });
+      await loadPozycje(kosztorysId);
+      showToast('success', 'Przeliczono kosztorys');
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setRecalcLoading(false);
+    }
+  }
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+  async function exportFile(format: 'pdf' | 'ath' | 'xlsx') {
+    if (!kosztorysId && format !== 'xlsx') {
+      showToast('error', 'Zapisz kosztorys przed eksportem');
+      return;
+    }
+    setExportLoading(format);
+    try {
+      if (format === 'pdf' && kosztorysId) {
+        const blob = await fetch(`/api/v2/kosztorys/${kosztorysId}/export-pdf`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }).then(r => r.blob());
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `kosztorys_${kosztorysId.slice(0, 8)}.pdf`;
+        a.click(); URL.revokeObjectURL(url);
+      } else if (format === 'ath' && kosztorysId) {
+        const blob = await fetch(`/api/v2/kosztorys/${kosztorysId}/export-ath`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }).then(r => r.blob());
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `kosztorys_${kosztorysId.slice(0, 8)}.ath`;
+        a.click(); URL.revokeObjectURL(url);
+      } else if (format === 'xlsx') {
+        // Export local as CSV (xlsx fallback)
+        const csv = ['Lp,Kod,Opis,Jm,Ilość,R jcena,M jcena,S jcena,CJ netto,Wartość netto',
+          ...pozycje.map(p =>
+            `${p.lp},"${p.kst_code}","${p.opis}",${p.jednostka},${p.ilosc},${p.r_jcena},${p.m_jcena},${p.s_jcena},${p.jcena_netto.toFixed(4)},${p.wartosc_netto.toFixed(2)}`
+          ),
+          `,,,,,,,,Netto,${sumaNetto.toFixed(2)}`,
+          `,,,,,,,,VAT ${narzuty.vat_pct}%,${sumaVat.toFixed(2)}`,
+          `,,,,,,,,Brutto,${sumaBrutto.toFixed(2)}`,
+        ].join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'kosztorys.csv';
+        a.click(); URL.revokeObjectURL(url);
+      }
+      showToast('success', `Eksport ${format.toUpperCase()} gotowy`);
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setExportLoading(null);
+    }
+  }
+
+  // ── Filtered tenders ───────────────────────────────────────────────────────
+  const filteredTenders = tenders.filter(t =>
+    !tenderSearch || t.title.toLowerCase().includes(tenderSearch.toLowerCase()) || t.buyer.toLowerCase().includes(tenderSearch.toLowerCase())
+  );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-earth-950">
-      {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="px-6 pt-5 pb-4 border-b border-earth-800/60 shrink-0">
-        <div className="flex items-center gap-1.5 text-xs text-earth-600 mb-1">
-          <span className="text-earth-500 font-medium">Terra.OS</span>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-earth-300 font-semibold">Smart Estimator</span>
+    <div className="flex flex-col gap-4 h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-lg font-bold text-earth-100">Kosztorys</h1>
+          <p className="text-earth-600 text-xs">Engine KNB · ICB 784k · Intelligence</p>
         </div>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-earth-100 flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-emerald-400 shrink-0" />
-              Kosztorys / Smart Estimator
-            </h1>
-            <p className="text-earth-500 text-xs mt-0.5">
-              Wycena przetargu · Baza Sekocenbud · AI Predict
-            </p>
-          </div>
-          {/* Header action buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Porównaj warianty A/B/C */}
-            <button
-              onClick={handleOpenCompare}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border bg-earth-800/50 border-earth-700/50 text-earth-400 hover:text-earth-200 hover:border-earth-600 transition-colors text-xs font-medium"
-              title="Porównaj warianty A/B/C"
-            >
-              <Columns2 className="w-3.5 h-3.5" />
-              Porównaj
-            </button>
-            {/* Toggle Seko sidebar */}
-            <button
-              onClick={() => setShowSeko(v => !v)}
-              className={'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors ' + (
-                showSeko
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                  : 'bg-earth-800/50 border-earth-700/50 text-earth-400 hover:text-earth-200'
-              )}
-            >
-              {showSeko ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-              Sekocenbud
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowIcb(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+              showIcb ? 'bg-blue-600/15 border-blue-600/30 text-blue-400' : 'bg-earth-800/40 border-earth-700/50 text-earth-400 hover:border-earth-600'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            ICB
+          </button>
+          <button
+            onClick={() => setShowNarzuty(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-earth-800/40 border border-earth-700/50 text-earth-400 text-xs font-medium hover:border-earth-600 transition-colors"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Narzuty
+          </button>
         </div>
       </div>
 
-      {/* ── Body ──────────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden flex gap-0">
-
-        {/* ── Main column ─────────────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-
-          {/* ── 1. Tender selector ────────────────────────────────────────── */}
-          <GlassCard className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Search className="w-4 h-4 text-emerald-400" />
-              <span className="text-earth-200 text-sm font-semibold">Wybierz przetarg</span>
-              {tenderId && (
-                <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Wybrany
-                </span>
+      <div className="flex gap-4 flex-1 min-h-0">
+        {/* Main content */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          {/* Tender selector */}
+          <GlassCard className="p-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <Search className="w-4 h-4 text-earth-500 shrink-0" />
+              <div className="relative flex-1" ref={dropdownRef}>
+                <input
+                  ref={tenderInputRef}
+                  value={tenderSearch || tender?.title || ''}
+                  onChange={e => { setTenderSearch(e.target.value); setTenderDropdown(true); }}
+                  onFocus={() => setTenderDropdown(true)}
+                  onBlur={() => setTimeout(() => setTenderDropdown(false), 150)}
+                  placeholder="Wybierz przetarg lub wpisz nazwę…"
+                  className="w-full px-3 py-2 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-200 placeholder-earth-600 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors"
+                />
+                {tendersLoading && (
+                  <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-600 animate-spin" />
+                )}
+                {tenderDropdown && filteredTenders.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-40 mt-1 bg-earth-900 border border-earth-700/60 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                    {filteredTenders.slice(0, 20).map(t => (
+                      <button
+                        key={t.id}
+                        className="w-full px-3 py-2.5 text-left hover:bg-earth-800/60 transition-colors border-b border-earth-800/30 last:border-0"
+                        onClick={() => {
+                          setTender(t);
+                          setTenderSearch('');
+                          setTenderDropdown(false);
+                        }}
+                      >
+                        <p className="text-earth-200 text-xs font-medium line-clamp-1">{t.title}</p>
+                        <p className="text-earth-600 text-xs mt-0.5">{t.buyer} · {fmtPLN(Number(t.value_pln))}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {tender && (
+                <button
+                  onClick={() => { setTender(null); setTenderSearch(''); setPozycje([]); setKosztorysId(null); }}
+                  className="shrink-0 text-earth-600 hover:text-earth-400 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               )}
             </div>
-
-            {tenderId ? (
-              /* Selected tender chip */
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-earth-800/50 border border-earth-700/40">
-                <div className="min-w-0 flex-1">
-                  <p className="text-earth-200 text-sm font-medium line-clamp-1">{tenderLabel}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {tenderCpv && (
-                      <span className="text-emerald-400 text-xs font-mono">CPV {tenderCpv}</span>
-                    )}
-                    {tenderValuePln > 0 && (
-                      <>
-                        <span className="text-earth-700">·</span>
-                        <span className="text-earth-400 text-xs font-mono">{fmtPLN(tenderValuePln)}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={clearTender}
-                  className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-earth-500 hover:text-earth-300 hover:bg-earth-700/50 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              /* Tender search dropdown */
-              <div className="relative">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-500 pointer-events-none" />
-                  <input
-                    ref={tenderInputRef}
-                    value={tenderSearch}
-                    onChange={e => { setTenderSearch(e.target.value); setTenderDropdown(true); }}
-                    onFocus={() => setTenderDropdown(true)}
-                    placeholder="Szukaj przetargu po tytule lub zamawiającym…"
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-earth-800/60 border border-earth-700/50 text-earth-200 placeholder-earth-600 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-colors"
-                  />
-                  {tendersLoading && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-500 animate-spin" />
-                  )}
-                </div>
-
-                <AnimatePresence>
-                  {tenderDropdown && (
-                    <motion.div
-                      ref={dropdownRef}
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute z-30 left-0 right-0 top-full mt-1.5 bg-earth-900 border border-earth-700/60 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto"
-                    >
-                      {filteredTenders.length === 0 ? (
-                        <div className="px-4 py-4 text-center text-earth-500 text-sm">
-                          Brak wyników
-                        </div>
-                      ) : (
-                        <ul className="divide-y divide-earth-800/50">
-                          {filteredTenders.slice(0, 30).map(t => (
-                            <li key={t.id}>
-                              <button
-                                onClick={() => selectTender(t)}
-                                className="w-full text-left px-4 py-3 hover:bg-earth-800/50 transition-colors"
-                              >
-                                <p className="text-earth-200 text-sm line-clamp-1">{t.title}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-earth-500 text-xs truncate max-w-[200px]">{t.buyer}</span>
-                                  {t.cpv?.[0] && (
-                                    <>
-                                      <span className="text-earth-700">·</span>
-                                      <span className="text-emerald-500 text-xs font-mono">{t.cpv[0].slice(0, 8)}</span>
-                                    </>
-                                  )}
-                                  {t.value_pln ? (
-                                    <>
-                                      <span className="text-earth-700">·</span>
-                                      <span className="text-earth-400 text-xs font-mono">
-                                        {fmtPLN(typeof t.value_pln === 'number' ? t.value_pln : parseFloat(String(t.value_pln)))}
-                                      </span>
-                                    </>
-                                  ) : null}
-                                </div>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {tender && (
+              <div className="flex items-center gap-4 mt-2 px-7">
+                <span className="text-earth-600 text-xs">{tender.buyer}</span>
+                {tender.cpv?.[0] && <span className="text-earth-700 text-xs font-mono">CPV {tender.cpv[0]}</span>}
+                {tender.value_pln && <span className="text-earth-500 text-xs tabular-nums">{fmtPLN(Number(tender.value_pln))}</span>}
+                {kosztorysId && <span className="text-blue-700 text-xs font-mono">v2:{kosztorysId.slice(0, 8)}</span>}
               </div>
             )}
           </GlassCard>
 
-          {/* ── 2. AI Predict panel ────────────────────────────────────────── */}
-          <GlassCard className="overflow-hidden">
-            {/* Header / toggle */}
-            <button
-              onClick={() => setShowPredict(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-earth-800/20 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-purple-400" />
-                <span className="text-earth-200 text-sm font-semibold">AI Predykcja wartości</span>
-                {predictResult && (
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/25 text-purple-400 text-xs font-medium">
-                    Wynik gotowy
-                  </span>
-                )}
-              </div>
-              <motion.div
-                animate={{ rotate: showPredict ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
+          {/* Add row form */}
+          <GlassCard className="p-3 shrink-0">
+            <div className="flex items-center gap-2 mb-2">
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-earth-300 text-xs font-semibold uppercase tracking-wide">Nowa pozycja</span>
+            </div>
+            <div className="grid grid-cols-12 gap-2">
+              <input value={addKst} onChange={e => setAddKst(e.target.value)} placeholder="KNR/kod" className="col-span-2 input-xs" />
+              <input value={addOpis} onChange={e => setAddOpis(e.target.value)} placeholder="Opis pozycji *" className="col-span-4 input-xs" />
+              <input value={addJm} onChange={e => setAddJm(e.target.value)} placeholder="Jm" className="col-span-1 input-xs" />
+              <input value={addIlosc} onChange={e => setAddIlosc(e.target.value)} type="number" placeholder="Ilość" className="col-span-1 input-xs" />
+              <input value={addR} onChange={e => setAddR(e.target.value)} type="number" placeholder="R zł" className="col-span-1 input-xs" />
+              <input value={addM} onChange={e => setAddM(e.target.value)} type="number" placeholder="M zł" className="col-span-1 input-xs" />
+              <input value={addS} onChange={e => setAddS(e.target.value)} type="number" placeholder="S zł" className="col-span-1 input-xs" />
+              <button
+                onClick={addPozycja}
+                disabled={addLoading || !addOpis.trim()}
+                className="col-span-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 disabled:opacity-50 transition-colors"
               >
-                <SlidersHorizontal className="w-4 h-4 text-earth-500" />
-              </motion.div>
-            </button>
-
-            <AnimatePresence>
-              {showPredict && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-4 pb-4 border-t border-earth-800/40">
-                    {/* Inputs */}
-                    <div className="flex gap-3 mt-4 flex-wrap">
-                      <div className="flex-1 min-w-[140px]">
-                        <label className="block text-earth-500 text-xs mb-1.5">Kod CPV</label>
-                        <input
-                          value={cpvInput}
-                          onChange={e => setCpvInput(e.target.value)}
-                          placeholder="np. 45000000"
-                          className="w-full px-3 py-2 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-200 placeholder-earth-600 text-sm font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-colors"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-[140px]">
-                        <label className="block text-earth-500 text-xs mb-1.5">Wartość (PLN)</label>
-                        <input
-                          value={valueInput}
-                          onChange={e => setValueInput(e.target.value)}
-                          placeholder="np. 1000000"
-                          type="number"
-                          className="w-full px-3 py-2 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-200 placeholder-earth-600 text-sm font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-colors"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <button
-                          onClick={runPredict}
-                          disabled={predictLoading}
-                          className="px-4 py-2 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400 text-sm font-medium hover:bg-purple-500/25 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {predictLoading
-                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                            : <Zap className="w-4 h-4" />}
-                          Prognozuj
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Results */}
-                    <AnimatePresence>
-                      {predictResult && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.2 }}
-                          className="mt-4"
-                        >
-                          {/* KPI cards */}
-                          <div className="grid grid-cols-3 gap-3 mb-4">
-                            <div className="p-3 rounded-xl bg-earth-800/40 border border-earth-700/40">
-                              <p className="text-earth-500 text-xs mb-1">Benchmark</p>
-                              <p className="text-earth-100 text-lg font-bold font-mono tabular-nums">
-                                {fmtPLN(predictResult.benchmark)}
-                              </p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-purple-500/8 border border-purple-500/20">
-                              <p className="text-purple-400 text-xs mb-1 flex items-center gap-1">
-                                <Zap className="w-3 h-3" /> AI Estymacja
-                              </p>
-                              <p className="text-purple-300 text-lg font-bold font-mono tabular-nums">
-                                {fmtPLN(predictResult.ai_estimate)}
-                              </p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-earth-800/40 border border-earth-700/40">
-                              <p className="text-earth-500 text-xs mb-1 flex items-center gap-1">
-                                <Info className="w-3 h-3" /> Metoda
-                              </p>
-                              <MethodBadge method={predictResult.method} />
-                            </div>
-                          </div>
-
-                          {/* Confidence interval row */}
-                          <div className="flex items-center gap-3 p-3 rounded-xl bg-earth-800/30 border border-earth-700/30 mb-4 text-xs">
-                            <TrendingUp className="w-3.5 h-3.5 text-earth-500 shrink-0" />
-                            <span className="text-earth-500">Przedział ufności 95%:</span>
-                            <span className="font-mono text-earth-300">
-                              {fmtPLN(predictResult.confidence_interval.low95)}
-                            </span>
-                            <span className="text-earth-700">—</span>
-                            <span className="font-mono text-earth-300">
-                              {fmtPLN(predictResult.confidence_interval.high95)}
-                            </span>
-                          </div>
-
-                          {/* Bar chart */}
-                          <div className="h-40 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart
-                                data={predictChartData}
-                                margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
-                                barSize={32}
-                              >
-                                <XAxis
-                                  dataKey="label"
-                                  tick={{ fill: '#6b7280', fontSize: 10 }}
-                                  axisLine={false}
-                                  tickLine={false}
-                                />
-                                <YAxis
-                                  tick={{ fill: '#6b7280', fontSize: 10 }}
-                                  axisLine={false}
-                                  tickLine={false}
-                                  tickFormatter={v =>
-                                    v >= 1_000_000
-                                      ? `${(v / 1_000_000).toFixed(1)} mln`
-                                      : v >= 1_000
-                                      ? `${(v / 1_000).toFixed(0)} tys.`
-                                      : String(v)
-                                  }
-                                  width={64}
-                                />
-                                <Tooltip content={<PredictTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                                <ReferenceLine
-                                  y={predictResult.ai_estimate}
-                                  stroke="#a78bfa"
-                                  strokeDasharray="4 3"
-                                  strokeWidth={1}
-                                />
-                                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                  {predictChartData.map((entry, i) => (
-                                    <Cell key={i} fill={entry.color} />
-                                  ))}
-                                </Bar>
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                {addLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </GlassCard>
 
-          {/* ── 3. Kosztorys table ─────────────────────────────────────────── */}
-          <div className="bg-earth-900/60 border border-earth-800/60 rounded-2xl overflow-hidden">
-            {/* Table header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-earth-800/60">
+          {/* Pozycje table */}
+          <GlassCard className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-earth-800/40 shrink-0">
               <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-emerald-400" />
-                <span className="text-earth-200 text-sm font-semibold">Pozycje kosztorysu</span>
-                {items.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-earth-700/60 text-earth-400 text-xs font-mono">
-                    {items.length}
-                  </span>
-                )}
+                <Calculator className="w-4 h-4 text-earth-500" />
+                <span className="text-earth-300 text-sm font-semibold">Pozycje kosztorysowe</span>
+                <span className="px-2 py-0.5 rounded-full bg-earth-800 text-earth-500 text-xs">{pozycje.length}</span>
               </div>
-              {!tenderId && (
-                <span className="flex items-center gap-1.5 text-earth-600 text-xs">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  Wybierz przetarg
-                </span>
-              )}
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-earth-800/50 bg-earth-900/40">
-                    <th className="px-3 py-2.5 text-left text-earth-600 text-xs font-semibold w-10">Lp.</th>
-                    <th className="px-3 py-2.5 text-left text-earth-600 text-xs font-semibold">Opis / Robota</th>
-                    <th className="px-3 py-2.5 text-left text-earth-600 text-xs font-semibold w-16">J.m.</th>
-                    <th className="px-3 py-2.5 text-right text-earth-600 text-xs font-semibold w-20">Ilość</th>
-                    <th className="px-3 py-2.5 text-right text-earth-600 text-xs font-semibold w-24">Cena j.m.</th>
-                    <th className="px-3 py-2.5 text-right text-earth-600 text-xs font-semibold w-28">Wartość</th>
-                    <th className="px-3 py-2.5 w-8" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {kosztLoading && (
-                    <>
-                      <SkeletonRow /><SkeletonRow /><SkeletonRow />
-                    </>
-                  )}
-
-                  {!kosztLoading && items.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                          <Package className="w-8 h-8 text-earth-700" />
-                          <p className="text-earth-500 text-sm">
-                            {tenderId ? 'Dodaj pierwszą pozycję kosztorysu' : 'Wybierz przetarg, aby zarządzać kosztorysem'}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-
-                  {!kosztLoading && items.map((item, idx) => {
-                    const wartosc = item.quantity * item.unit_price;
-                    const isSaving = savingId === item.id;
-
-                    const EditCell = ({
-                      field,
-                      value,
-                      align = 'left',
-                      mono = false,
-                    }: {
-                      field: EditState['field'];
-                      value: string;
-                      align?: 'left' | 'right';
-                      mono?: boolean;
-                    }) => {
-                      const isEditing = editing?.itemId === item.id && editing.field === field;
-                      if (isEditing) {
-                        return (
-                          <td className={`px-1 py-1 ${align === 'right' ? 'text-right' : ''}`}>
-                            <input
-                              autoFocus
-                              value={editing.value}
-                              onChange={e => setEditing(prev => prev ? { ...prev, value: e.target.value } : null)}
-                              onBlur={commitEdit}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') commitEdit();
-                                if (e.key === 'Escape') setEditing(null);
-                              }}
-                              className={`w-full px-2 py-1 rounded-md bg-earth-800 border border-emerald-500/50 text-earth-100 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/30 ${mono ? 'font-mono' : ''} ${align === 'right' ? 'text-right' : ''}`}
-                            />
-                          </td>
-                        );
-                      }
-                      return (
-                        <td
-                          className={`px-3 py-2.5 cursor-text group/cell ${align === 'right' ? 'text-right' : ''}`}
-                          onClick={() => !isSaving && startEdit(item.id, field, value)}
-                        >
-                          <span className={`text-earth-300 text-xs ${mono ? 'font-mono tabular-nums' : ''} group-hover/cell:text-earth-100 transition-colors`}>
-                            {value}
-                          </span>
-                          {!isSaving && (
-                            <Edit2 className="w-2.5 h-2.5 text-earth-700 inline ml-1 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
-                          )}
-                        </td>
-                      );
-                    };
-
-                    return (
-                      <tr
-                        key={item.id}
-                        className={`border-b border-earth-800/40 group hover:bg-earth-800/20 transition-colors ${isSaving ? 'opacity-60' : ''}`}
-                      >
-                        <td className="px-3 py-2.5 text-earth-600 text-xs font-mono tabular-nums">{idx + 1}</td>
-                        <EditCell field="description" value={item.description} />
-                        <EditCell field="unit" value={item.unit} />
-                        <EditCell field="quantity" value={fmtNum(item.quantity)} align="right" mono />
-                        <EditCell field="unit_price" value={fmtNum(item.unit_price)} align="right" mono />
-                        <td className="px-3 py-2.5 text-right">
-                          <span className="text-earth-200 text-xs font-bold font-mono tabular-nums">
-                            {fmtPLN(wartosc)}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2.5 text-center">
-                          {isSaving ? (
-                            <Loader2 className="w-3.5 h-3.5 text-earth-500 animate-spin mx-auto" />
-                          ) : (
-                            <button
-                              onClick={() => deleteItem(item.id)}
-                              className="w-6 h-6 rounded flex items-center justify-center text-earth-700 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                  {/* ── Add row form ─────────────────────────────────────── */}
-                  {tenderId && (
-                    <tr className="border-b border-earth-800/30 bg-earth-900/20">
-                      <td className="px-3 py-2">
-                        <Plus className="w-3.5 h-3.5 text-earth-600" />
-                      </td>
-                      <td className="px-1.5 py-2">
-                        <input
-                          value={addDesc}
-                          onChange={e => setAddDesc(e.target.value)}
-                          placeholder="Opis roboty / pozycji…"
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-earth-800/60 border border-earth-700/40 text-earth-200 placeholder-earth-700 text-xs focus:outline-none focus:border-emerald-500/40 transition-colors"
-                        />
-                      </td>
-                      <td className="px-1.5 py-2">
-                        <input
-                          value={addUnit}
-                          onChange={e => setAddUnit(e.target.value)}
-                          placeholder="m²"
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-earth-800/60 border border-earth-700/40 text-earth-200 placeholder-earth-700 text-xs font-mono focus:outline-none focus:border-emerald-500/40 transition-colors"
-                        />
-                      </td>
-                      <td className="px-1.5 py-2">
-                        <input
-                          value={addQty}
-                          onChange={e => setAddQty(e.target.value)}
-                          placeholder="0"
-                          type="number"
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-earth-800/60 border border-earth-700/40 text-earth-200 placeholder-earth-700 text-xs font-mono text-right focus:outline-none focus:border-emerald-500/40 transition-colors"
-                        />
-                      </td>
-                      <td className="px-1.5 py-2">
-                        <input
-                          value={addPrice}
-                          onChange={e => setAddPrice(e.target.value)}
-                          placeholder="0.00"
-                          type="number"
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-earth-800/60 border border-earth-700/40 text-earth-200 placeholder-earth-700 text-xs font-mono text-right focus:outline-none focus:border-emerald-500/40 transition-colors"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {addQty && addPrice ? (
-                          <span className="text-earth-500 text-xs font-mono tabular-nums">
-                            {fmtPLN((parseFloat(addQty) || 0) * (parseFloat(addPrice) || 0))}
-                          </span>
-                        ) : (
-                          <span className="text-earth-700 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={addItem}
-                          disabled={addLoading || !addDesc || !addUnit || !addQty || !addPrice}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Dodaj pozycję"
-                        >
-                          {addLoading
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <Save className="w-3.5 h-3.5" />}
-                        </button>
-                      </td>
-                    </tr>
-                  )}
-
-                  {/* ── Total row ───────────────────────────────────────── */}
-                  {items.length > 0 && (
-                    <tr className="bg-earth-800/30 border-t-2 border-earth-700/60">
-                      <td colSpan={5} className="px-3 py-3 text-right">
-                        <span className="text-earth-400 text-xs font-semibold uppercase tracking-wide">
-                          Razem netto
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <span className="text-earth-100 text-base font-bold font-mono tabular-nums">
-                          {fmtPLN(totalNet)}
-                        </span>
-                      </td>
-                      <td />
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* ── 4. Export buttons + summary bar ──────────────────────────── */}
-          {tenderId && (
-            <div className="flex flex-col gap-3">
-              {/* Export buttons */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-earth-500 text-xs font-medium">Eksport:</span>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={exportATH}
-                  disabled={exportLoading === 'ath'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-earth-800/60 border border-earth-700/50 text-earth-300 text-xs font-medium hover:bg-earth-700/60 hover:text-earth-100 transition-colors disabled:opacity-50"
+                  onClick={recalc}
+                  disabled={recalcLoading}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600/10 border border-blue-600/20 text-blue-400 text-xs hover:bg-blue-600/20 transition-colors disabled:opacity-50"
                 >
-                  {exportLoading === 'ath'
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <Download className="w-3.5 h-3.5" />}
+                  {recalcLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  Przelicz
+                </button>
+                <button
+                  onClick={() => exportFile('pdf')}
+                  disabled={exportLoading === 'pdf'}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600/10 border border-red-600/20 text-red-400 text-xs hover:bg-red-600/20 transition-colors disabled:opacity-50"
+                >
+                  {exportLoading === 'pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                  PDF
+                </button>
+                <button
+                  onClick={() => exportFile('ath')}
+                  disabled={exportLoading === 'ath'}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-600/10 border border-purple-600/20 text-purple-400 text-xs hover:bg-purple-600/20 transition-colors disabled:opacity-50"
+                >
+                  {exportLoading === 'ath' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                   ATH
                 </button>
                 <button
                   onClick={() => exportFile('xlsx')}
                   disabled={exportLoading === 'xlsx'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600/10 border border-green-600/20 text-green-400 text-xs font-medium hover:bg-green-600/20 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-600/10 border border-green-600/20 text-green-400 text-xs hover:bg-green-600/20 transition-colors disabled:opacity-50"
                 >
-                  {exportLoading === 'xlsx'
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <FileSpreadsheet className="w-3.5 h-3.5" />}
-                  XLSX
-                </button>
-                <button
-                  onClick={() => exportFile('docx')}
-                  disabled={exportLoading === 'docx'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/10 border border-blue-600/20 text-blue-400 text-xs font-medium hover:bg-blue-600/20 transition-colors disabled:opacity-50"
-                >
-                  {exportLoading === 'docx'
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <FileText className="w-3.5 h-3.5" />}
-                  DOCX
-                </button>
-                <button
-                  onClick={() => {
-                    setItems([]);
-                    setAddDesc(''); setAddUnit(''); setAddQty(''); setAddPrice('');
-                    setPredictResult(null);
-                    if (tenderId) {
-                      setKosztLoading(true);
-                      authFetch(`/api/v1/kosztorys/${tenderId}`)
-                        .then((d: { items: KosztorysItem[] }) => setItems(d.items ?? []))
-                        .catch(() => {})
-                        .finally(() => setKosztLoading(false));
-                    }
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-earth-800/40 border border-earth-700/30 text-earth-500 text-xs font-medium hover:text-earth-300 transition-colors ml-auto"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Odśwież
+                  {exportLoading === 'xlsx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                  CSV
                 </button>
               </div>
+            </div>
 
-              {/* Summary bar */}
-              {items.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22 }}
-                  className="p-4 rounded-2xl bg-earth-900/70 border border-emerald-500/20 flex items-center gap-6 flex-wrap"
-                >
-                  {/* Net */}
-                  <div>
-                    <p className="text-earth-500 text-xs mb-0.5">Razem NETTO</p>
-                    <p className="text-earth-100 text-xl font-bold font-mono tabular-nums">
-                      {fmtPLN(totalNet)}
-                    </p>
-                  </div>
-
-                  <div className="text-earth-700 text-xl font-light">+</div>
-
-                  {/* Overhead */}
-                  <div>
-                    <p className="text-earth-500 text-xs mb-0.5">Narzut ({(OVERHEAD_PCT * 100).toFixed(0)}%)</p>
-                    <p className="text-earth-400 text-xl font-bold font-mono tabular-nums">
-                      {fmtPLN(totalNet * OVERHEAD_PCT)}
-                    </p>
-                  </div>
-
-                  <div className="text-earth-700 text-xl font-light">=</div>
-
-                  {/* Gross */}
-                  <div className="flex-1 min-w-[200px]">
-                    <p className="text-emerald-400 text-xs mb-0.5 font-medium">Szacunek BRUTTO (z narzutem)</p>
-                    <p className="text-emerald-400 text-2xl font-bold font-mono tabular-nums">
-                      {fmtPLN(totalGross)}
-                    </p>
-                  </div>
-
-                  {/* Comparison with tender value */}
-                  {tenderValuePln > 0 && (
-                    <div className="shrink-0">
-                      <p className="text-earth-500 text-xs mb-0.5">vs. wartość przetargu</p>
-                      <div className={`flex items-center gap-1.5 ${totalGross <= tenderValuePln ? 'text-emerald-400' : 'text-red-400'}`}>
-                        <TrendingUp className="w-4 h-4" />
-                        <span className="text-sm font-bold font-mono tabular-nums">
-                          {totalGross <= tenderValuePln ? '' : '+'}
-                          {fmtPLN(totalGross - tenderValuePln)}
-                        </span>
-                        <span className="text-xs">
-                          ({totalGross <= tenderValuePln ? '' : '+'}
-                          {tenderValuePln > 0 ? (((totalGross - tenderValuePln) / tenderValuePln) * 100).toFixed(1) : 0}%)
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
+            <div className="flex-1 overflow-auto">
+              {kosztLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-earth-600 animate-spin" />
+                </div>
+              ) : pozycje.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Calculator className="w-10 h-10 text-earth-800" />
+                  <p className="text-earth-600 text-sm">Brak pozycji kosztorysowych</p>
+                  <p className="text-earth-700 text-xs">Dodaj pozycje ręcznie lub zaimportuj z ICB/ATH</p>
+                </div>
+              ) : (
+                <table className="w-full text-xs border-collapse">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-earth-900/90 backdrop-blur-sm border-b border-earth-800/60">
+                      <th className="px-2 py-2 text-left text-earth-600 font-medium w-8">Lp</th>
+                      <th className="px-2 py-2 text-left text-earth-600 font-medium w-28">Kod KNR</th>
+                      <th className="px-2 py-2 text-left text-earth-600 font-medium">Opis</th>
+                      <th className="px-2 py-2 text-center text-earth-600 font-medium w-12">Jm</th>
+                      <th className="px-2 py-2 text-right text-earth-600 font-medium w-16">Ilość</th>
+                      <th className="px-2 py-2 text-right text-blue-600 font-medium w-16">R jcena</th>
+                      <th className="px-2 py-2 text-right text-emerald-600 font-medium w-16">M jcena</th>
+                      <th className="px-2 py-2 text-right text-amber-600 font-medium w-16">S jcena</th>
+                      <th className="px-2 py-2 text-right text-earth-600 font-medium w-24">CJ netto</th>
+                      <th className="px-2 py-2 text-right text-earth-400 font-medium w-28">Wartość</th>
+                      <th className="w-8" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pozycje.map(poz => (
+                      <PozycjaRow
+                        key={poz.id ?? poz.lp}
+                        poz={poz}
+                        onDelete={() => deletePozycja(poz)}
+                        onEdit={(field, value) => editPozycja(poz, field, value)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
-          )}
+
+            {/* Sumy */}
+            {pozycje.length > 0 && (
+              <div className="shrink-0 border-t border-earth-800/60 px-4 py-3 bg-earth-900/40">
+                <div className="grid grid-cols-6 gap-3 text-xs">
+                  <div>
+                    <p className="text-blue-600 font-medium mb-0.5">Robocizna (R)</p>
+                    <p className="text-earth-300 tabular-nums font-semibold">{fmtPLN(sumaR)}</p>
+                    <p className="text-earth-700">{pct(sumaR, sumaNetto)}</p>
+                  </div>
+                  <div>
+                    <p className="text-emerald-600 font-medium mb-0.5">Materiały (M)</p>
+                    <p className="text-earth-300 tabular-nums font-semibold">{fmtPLN(sumaM)}</p>
+                    <p className="text-earth-700">{pct(sumaM, sumaNetto)}</p>
+                  </div>
+                  <div>
+                    <p className="text-amber-600 font-medium mb-0.5">Sprzęt (S)</p>
+                    <p className="text-earth-300 tabular-nums font-semibold">{fmtPLN(sumaS)}</p>
+                    <p className="text-earth-700">{pct(sumaS, sumaNetto)}</p>
+                  </div>
+                  <div>
+                    <p className="text-earth-600 font-medium mb-0.5">Ko + Z + Kz</p>
+                    <p className="text-earth-300 tabular-nums font-semibold">{fmtPLN(sumaKo + sumaZ + sumaKz)}</p>
+                    <p className="text-earth-700">{pct(sumaKo + sumaZ + sumaKz, sumaNetto)}</p>
+                  </div>
+                  <div>
+                    <p className="text-earth-400 font-medium mb-0.5">NETTO</p>
+                    <p className="text-earth-200 tabular-nums font-bold text-sm">{fmtPLN(sumaNetto)}</p>
+                    <p className="text-earth-700">VAT {fmtPLN(sumaVat)}</p>
+                  </div>
+                  <div>
+                    <p className="text-blue-400 font-semibold mb-0.5">BRUTTO</p>
+                    <p className="text-blue-300 tabular-nums font-black text-base">{fmtPLN(sumaBrutto)}</p>
+                    <p className="text-earth-700">VAT {narzuty.vat_pct}%</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </GlassCard>
         </div>
 
-        {/* ── Sekocenbud Sidebar ───────────────────────────────────────────── */}
-        <AnimatePresence>
-          {showSeko && (
-            <div className="py-5 pr-6 shrink-0">
-              <SekocenbudSidebar
-                onPrefill={prefillFromSeko}
-                onClose={() => setShowSeko(false)}
-              />
-            </div>
+        {/* Right panel */}
+        <div className="w-72 shrink-0 flex flex-col gap-4">
+          <AnimatePresence>
+            {showIcb && (
+              <IcbSidebar onSelect={icbSelect} onClose={() => setShowIcb(false)} />
+            )}
+          </AnimatePresence>
+
+          {!showIcb && (
+            <IntelligencePanel
+              kosztorysId={kosztorysId ?? undefined}
+              tender={tender}
+              sumaNet={sumaNetto}
+              authFetch={authFetch}
+            />
           )}
-        </AnimatePresence>
+
+          {/* Narzuty summary */}
+          <GlassCard className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-earth-500" />
+                <span className="text-earth-300 text-sm font-semibold">Narzuty</span>
+              </div>
+              <button onClick={() => setShowNarzuty(true)} className="text-earth-600 hover:text-earth-400 transition-colors">
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                ['Ko/R', narzuty.ko_r_pct + '%'],
+                ['Ko/S', narzuty.ko_s_pct + '%'],
+                ['Z', narzuty.z_pct + '%'],
+                ['Kz', narzuty.kz_pct + '%'],
+                ['VAT', narzuty.vat_pct + '%'],
+              ] as [string, string][]).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between bg-earth-800/30 rounded-lg px-2.5 py-1.5">
+                  <span className="text-earth-600 text-xs">{k}</span>
+                  <span className="text-earth-300 text-xs font-bold tabular-nums">{v}</span>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+
+          {/* RMS chart */}
+          {pozycje.length > 0 && (
+            <GlassCard className="p-4">
+              <p className="text-earth-500 text-xs font-semibold uppercase tracking-wide mb-3">Struktura kosztów</p>
+              <ResponsiveContainer width="100%" height={120}>
+                <BarChart data={[
+                  { name: 'R', value: sumaR, fill: '#60a5fa' },
+                  { name: 'M', value: sumaM, fill: '#34d399' },
+                  { name: 'S', value: sumaS, fill: '#fbbf24' },
+                  { name: 'Ko', value: sumaKo, fill: '#8b5cf6' },
+                  { name: 'Z+Kz', value: sumaZ + sumaKz, fill: '#f97316' },
+                ]} barCategoryGap="20%">
+                  <XAxis dataKey="name" tick={{ fill: '#555', fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={false} axisLine={false} />
+                  <Tooltip
+                    formatter={(v: number) => [fmtPLN(v), '']}
+                    contentStyle={{ background: '#111', border: '1px solid #333', borderRadius: 8, fontSize: 10 }}
+                    labelStyle={{ color: '#888' }}
+                  />
+                  <Bar dataKey="value" radius={[3, 3, 0, 0]}>
+                    {[
+                      { fill: '#60a5fa' }, { fill: '#34d399' }, { fill: '#fbbf24' },
+                      { fill: '#8b5cf6' }, { fill: '#f97316' },
+                    ].map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </GlassCard>
+          )}
+        </div>
       </div>
 
-      {/* ── Compare Modal (Portal-like AnimatePresence) ──────────────────── */}
+      {/* Modals */}
       <AnimatePresence>
-        {compareOpen && compareIds.length >= 2 && (
-          <CompareModal
-            tenders={tenders}
-            compareIds={compareIds}
-            onClose={() => setCompareOpen(false)}
-            authFetch={authFetch}
+        {showNarzuty && (
+          <NarzutyEditor
+            narzuty={narzuty}
+            onChange={n => { setNarzuty(n); recalc(); }}
+            onClose={() => setShowNarzuty(false)}
           />
         )}
       </AnimatePresence>
