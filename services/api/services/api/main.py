@@ -49,6 +49,7 @@ from .routers import (
     benchmark, advanced_analytics, analytics_v2,
     organizations,
     offers,  # Faza 7 — Oferty
+    dashboard,  # BUG FIX — dashboard endpoints
 )
 
 # Faza 3 — nowe routery analytics/intelligence
@@ -242,6 +243,7 @@ app.include_router(export.router)
 app.include_router(offers.router)   # Faza 7 — Oferty
 app.include_router(bzp.router)
 app.include_router(market_data.router)
+app.include_router(dashboard.router)  # BUG FIX — dashboard endpoints
 
 # Fazy 63-81 — Advanced routers (other agent)
 for _r in _phase3_routers:

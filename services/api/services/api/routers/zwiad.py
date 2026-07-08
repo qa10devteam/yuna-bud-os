@@ -180,9 +180,8 @@ def list_tenders(
         params["status"] = status
 
     if voivodeship:
-        conditions.append("(t.voivodeship ILIKE :voiv OR t.voivodeship ILIKE :voiv_plain)")
-        params["voiv"] = f"%{voivodeship}%"
-        params["voiv_plain"] = f"%{_normalize_voiv(voivodeship)}%"
+        conditions.append("LOWER(TRIM(t.voivodeship)) = LOWER(TRIM(:voiv))")
+        params["voiv"] = voivodeship.strip()
 
     if source:
         conditions.append("t.source = CAST(:source AS source_kind)")
@@ -190,19 +189,16 @@ def list_tenders(
 
     if cpv:
         codes = [c.strip() for c in cpv.split(",")]
-        # A full CPV code looks like '45111200-0' (10 chars with dash) or
-        # '45111200' (8 digits). Treat a single code without comma as a prefix
-        # search if it's shorter than a full 8-digit CPV (i.e. < 9 chars before dash).
         if len(codes) == 1:
             code = codes[0]
-            # Full CPV: 8 digits optionally followed by '-X' (e.g. '45111200-0')
-            is_full_cpv = bool(re.match(r'^\d{8}(-\d)?$', code))
-            if is_full_cpv:
-                # Exact or near-exact: use array overlap
+            # Zawsze użyj LIKE — obsługuje prefixe (45, 451…) i pełne kody (45111200, 45111200-0)
+            # Jeśli podany z myślnikiem (45111200-0) — exact match; bez — prefix
+            if re.match(r'^\d{8}-\d$', code):
+                # Exact match z myślnikiem (np. 45111200-0)
                 conditions.append("t.cpv && :cpv_arr")
                 params["cpv_arr"] = "{" + code + "}"
             else:
-                # Prefix search: matches '45', '451', '4511', '45111200', etc.
+                # Prefix search (działa dla 45111200, 451, 45, itd.)
                 conditions.append(
                     "EXISTS (SELECT 1 FROM unnest(t.cpv) c WHERE c LIKE :cpv_prefix)"
                 )
@@ -227,8 +223,11 @@ def list_tenders(
 
     sort_map = {
         "match_score": "t.match_score DESC NULLS LAST, t.published_at DESC NULLS LAST, t.id DESC",
+        "score":       "t.match_score DESC NULLS LAST, t.published_at DESC NULLS LAST, t.id DESC",
         "deadline":    "t.deadline_at ASC NULLS LAST, t.id DESC",
         "value":       "t.value_pln DESC NULLS LAST, t.id DESC",
+        "value_desc":  "t.value_pln DESC NULLS LAST, t.id DESC",
+        "value_asc":   "t.value_pln ASC NULLS LAST, t.id DESC",
         "published":   "t.published_at DESC NULLS LAST, t.id DESC",
     }
     order_clause = sort_map.get(sort_key, sort_map["published"])
@@ -389,3 +388,40 @@ def patch_tender(
             )
 
     return {"ok": True, "id": tender_id, "status": body.status}
+
+
+# ─── BUG 2: Alias /api/v1/tenders/{tender_id}/documents ───────────────────────
+
+@router.get("/tenders/{tender_id}/documents", tags=["bzp-documents"])
+def get_tender_documents_alias(tender_id: str, user: AuthUser):
+    """Alias dla /api/v1/bzp/documents/{tender_id} — lista pobranych dokumentów SWZ."""
+    import sqlalchemy as sa
+    engine = get_engine()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sa.text("""
+                SELECT id, bzp_notice_id, doc_type, filename, url, fetched_at,
+                       LENGTH(content) as content_length
+                FROM bzp_documents
+                WHERE tender_id = :tid
+                ORDER BY fetched_at DESC
+            """),
+            {"tid": tender_id},
+        ).fetchall()
+
+    return {
+        "tender_id": tender_id,
+        "total": len(rows),
+        "documents": [
+            {
+                "id": str(r.id),
+                "notice_id": r.bzp_notice_id,
+                "doc_type": r.doc_type,
+                "filename": r.filename,
+                "download_url": r.url,
+                "fetched_at": r.fetched_at.isoformat() if r.fetched_at else None,
+                "size_bytes": r.content_length or 0,
+            }
+            for r in rows
+        ],
+    }

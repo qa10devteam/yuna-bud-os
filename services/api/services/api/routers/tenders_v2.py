@@ -99,6 +99,10 @@ class TenderListResponse(BaseModel):
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _resolve_tenant_id(engine, org_id: str) -> str:
+    # Najpierw użyj org_id z JWT — to jest tenant_id w tabeli tender
+    if org_id:
+        return str(org_id)
+    # Fallback: szukaj w tabeli organizations
     with engine.connect() as conn:
         row = conn.execute(
             sa.text("SELECT tenant_id FROM organizations WHERE id = :id"),

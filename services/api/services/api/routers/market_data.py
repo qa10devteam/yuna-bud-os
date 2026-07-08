@@ -8,7 +8,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query
+
+from terra_db.session import get_engine
+from ..auth.deps import AuthUser
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/market", tags=["market-data"])
@@ -316,3 +320,75 @@ def get_weather_history(
             for i in range(len(dates))
         ],
     }
+
+
+# ─── Tender Market Summary & Seasonality (BUG FIX) ──────────────────────────
+
+@router.get("/summary")
+def market_summary(user: AuthUser) -> dict:
+    """
+    Podsumowanie rynku przetargów: liczba, podział po źródle/województwie,
+    średnia wartość i match_score.
+    """
+    engine = get_engine()
+    with engine.connect() as conn:
+        # Łączna liczba przetargów (bez duplikatów)
+        total_row = conn.execute(sa.text(
+            "SELECT COUNT(*) FROM tender WHERE duplicate_of IS NULL"
+        )).fetchone()
+        total_tenders = int(total_row[0]) if total_row else 0
+
+        # Podział po źródle
+        source_rows = conn.execute(sa.text(
+            "SELECT source, COUNT(*) FROM tender WHERE duplicate_of IS NULL GROUP BY source"
+        )).fetchall()
+        by_source = {row[0]: int(row[1]) for row in source_rows if row[0]}
+
+        # Podział po województwie (top 10)
+        voiv_rows = conn.execute(sa.text(
+            """SELECT voivodeship, COUNT(*) FROM tender
+               WHERE voivodeship IS NOT NULL
+               GROUP BY voivodeship ORDER BY 2 DESC LIMIT 10"""
+        )).fetchall()
+        by_voivodeship = {row[0]: int(row[1]) for row in voiv_rows}
+
+        # Średnia wartość i match_score
+        avg_row = conn.execute(sa.text(
+            "SELECT AVG(value_pln), AVG(match_score) FROM tender"
+        )).fetchone()
+        avg_value_pln = float(avg_row[0]) if avg_row and avg_row[0] is not None else None
+        avg_match_score = float(avg_row[1]) if avg_row and avg_row[1] is not None else None
+
+    return {
+        "total_tenders": total_tenders,
+        "by_source": by_source,
+        "by_voivodeship": by_voivodeship,
+        "avg_value_pln": round(avg_value_pln, 2) if avg_value_pln is not None else None,
+        "avg_match_score": round(avg_match_score, 4) if avg_match_score is not None else None,
+    }
+
+
+@router.get("/seasonality")
+def market_seasonality(user: AuthUser) -> list:
+    """
+    Sezonowość przetargów: liczba i średnia wartość per miesiąc (ostatnie 12 miesięcy).
+    """
+    engine = get_engine()
+    with engine.connect() as conn:
+        rows = conn.execute(sa.text(
+            """SELECT TO_CHAR(published_at, 'YYYY-MM') AS month,
+                      COUNT(*) AS cnt,
+                      AVG(value_pln) AS avg_value
+               FROM tender
+               WHERE published_at >= NOW() - INTERVAL '12 months'
+               GROUP BY month ORDER BY month"""
+        )).fetchall()
+
+    return [
+        {
+            "month": row[0],
+            "count": int(row[1]),
+            "avg_value": round(float(row[2]), 2) if row[2] is not None else None,
+        }
+        for row in rows
+    ]

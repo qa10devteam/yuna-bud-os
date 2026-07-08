@@ -72,6 +72,25 @@ async def health() -> HealthResponse:
     )
 
 
+@router.get("/api/v2/health")
+async def health_v2() -> dict:
+    """V2 health check: returns {status: ok, version: 2.0, db: ok}."""
+    db_status = "ok"
+    try:
+        from terra_db.session import get_engine
+        from sqlalchemy import text
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as exc:
+        db_status = f"error: {exc}"
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "version": "2.0",
+        "db": db_status,
+    }
+
+
 # Liveness
 
 @router.get("/health/live", response_model=LiveResponse)

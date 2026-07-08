@@ -13,8 +13,27 @@ from __future__ import annotations
 
 # NUTS2 prefix (4 chars) → canonical Polish voivodeship name
 NUTS2_TO_VOIVODESHIP: dict[str, str] = {
-    "PL21": "małopolskie",
+    # Historyczne kody PL0x-PL3x (używane w starszych danych BZP/historycznych)
+    "PL02": "dolnośląskie",
+    "PL04": "kujawsko-pomorskie",
+    "PL06": "lubelskie",
+    "PL08": "lubuskie",
+    "PL10": "łódzkie",
+    "PL12": "mazowieckie",
+    "PL14": "mazowieckie",
+    "PL16": "opolskie",
+    "PL18": "podkarpackie",
+    "PL1A": "mazowieckie",
+    "PL20": "podlaskie",
     "PL22": "śląskie",
+    "PL24": "śląskie",
+    "PL26": "świętokrzyskie",
+    "PL28": "warmińsko-mazurskie",
+    "PL30": "wielkopolskie",
+    "PL32": "zachodniopomorskie",
+    "PL34": "podlaskie",
+    # Aktualne kody NUTS2 (od 2018)
+    "PL21": "małopolskie",
     "PL41": "wielkopolskie",
     "PL42": "zachodniopomorskie",
     "PL43": "lubuskie",

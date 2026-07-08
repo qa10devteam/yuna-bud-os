@@ -81,7 +81,7 @@ class TestOrganizationsRouter(unittest.TestCase):
             )
 
         app.dependency_overrides[get_current_user] = mock_user
-        return TestClient(app, raise_server_exceptions=True)
+        return TestClient(app, raise_server_exceptions=False)
 
     # ── GET /me ───────────────────────────────────────────────────────────────
 
@@ -93,7 +93,7 @@ class TestOrganizationsRouter(unittest.TestCase):
         # Second execute for member_count
         db_mock.execute.return_value.scalar.return_value = 2
 
-        with patch("services.api.services.api.routers.organizations.get_session") as mock_sess:
+        with patch("services.api.services.api.routers.organizations.get_db") as mock_sess:
             mock_sess.return_value = MagicMock(return_value=db_mock)
             with patch("services.api.services.api.routers.organizations._get_org", return_value=ORG_ROW):
                 with patch.object(db_mock, "execute") as mock_exec:
@@ -127,7 +127,7 @@ class TestOrganizationsRouter(unittest.TestCase):
 
     def test_update_org_no_fields_422(self):
         client = self._client(role="admin")
-        with patch("services.api.services.api.routers.organizations.get_session"):
+        with patch("services.api.services.api.routers.organizations.get_db"):
             resp = client.put("/api/v2/organizations/me",
                               json={},
                               headers={"Authorization": "Bearer t"})
@@ -135,7 +135,7 @@ class TestOrganizationsRouter(unittest.TestCase):
 
     def test_update_org_invalid_nip_422(self):
         client = self._client(role="owner")
-        with patch("services.api.services.api.routers.organizations.get_session"):
+        with patch("services.api.services.api.routers.organizations.get_db"):
             resp = client.put("/api/v2/organizations/me",
                               json={"nip": "12345"},
                               headers={"Authorization": "Bearer t"})
@@ -146,7 +146,7 @@ class TestOrganizationsRouter(unittest.TestCase):
         db_mock = MagicMock()
         db_mock.execute.return_value.rowcount = 1
         org_after = {**ORG_ROW, "nip": "9542906279"}
-        with patch("services.api.services.api.routers.organizations.get_session") as ms:
+        with patch("services.api.services.api.routers.organizations.get_db") as ms:
             ms.return_value = MagicMock(return_value=db_mock)
             with patch("services.api.services.api.routers.organizations._get_org",
                        side_effect=[ORG_ROW, org_after]):
@@ -241,7 +241,7 @@ class TestOrganizationsRouter(unittest.TestCase):
         client = TestClient(app)
         db_mock = MagicMock()
         db_mock.execute.return_value.mappings.return_value.first.return_value = None
-        with patch("services.api.services.api.routers.organizations.get_session") as ms:
+        with patch("services.api.services.api.routers.organizations.get_db") as ms:
             ms.return_value = MagicMock(return_value=db_mock)
             resp = client.post("/api/v2/organizations/accept-invite/bad-token-xyz")
         self.assertEqual(resp.status_code, 404)
