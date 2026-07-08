@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Any
+import logging
 
 import sqlalchemy as sa
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -35,6 +36,7 @@ from terra_db.session import get_engine
 from ..auth.deps import AuthUser
 
 router = APIRouter(prefix="/api/v2/kosztorys", tags=["kosztorys-v2"])
+logger = logging.getLogger(__name__)
 
 
 # ─── Models ───────────────────────────────────────────────────────────────────
@@ -439,6 +441,34 @@ def get_win_probability(kid: str, cpv: str | None = None, user: AuthUser = None)
             "error": str(e),
             "total_netto": total_netto,
         }
+
+
+
+# ─── Material Alerts ──────────────────────────────────────────────────────────
+
+@router.get("/material-alerts")
+def get_material_alerts(user: AuthUser, limit: int = 50) -> list[dict]:
+    """Pobierz aktywne alerty cen materiałów dla tenanta."""
+    tenant_id = _require_tenant(user)
+    try:
+        from ..intelligence.material_risk import get_active_alerts
+        return get_active_alerts(tenant_id, limit=limit)
+    except Exception as e:
+        logger.warning("material alerts failed: %s", e)
+        return []
+
+
+@router.post("/material-alerts/{alert_id}/acknowledge")
+def acknowledge_material_alert(alert_id: str, user: AuthUser) -> dict:
+    """Oznacz alert jako przeczytany."""
+    tenant_id = _require_tenant(user)
+    try:
+        from ..intelligence.material_risk import acknowledge_alert
+        ok = acknowledge_alert(alert_id, tenant_id)
+        return {"ok": ok}
+    except Exception as e:
+        logger.warning("acknowledge alert failed: %s", e)
+        return {"ok": False}
 
 
 # ─── Działy ───────────────────────────────────────────────────────────────────

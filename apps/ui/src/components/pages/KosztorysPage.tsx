@@ -11,7 +11,7 @@ import {
   ChevronRight, X, Loader2, Zap, TrendingUp, AlertCircle, Edit2, Save,
   RotateCcw, SlidersHorizontal, Info, PanelRightOpen, PanelRightClose,
   BookOpen, CheckCircle2, Package, Database, Columns2, FileDown,
-  BarChart2, Target, Shield, RefreshCw, Wrench, ChevronDown, ChevronUp,
+  BarChart2, Target, Shield, RefreshCw, Wrench, ChevronDown, ChevronUp, AlertTriangle,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useAuthFetch } from '@/lib/api-v2';
@@ -721,6 +721,13 @@ export function KosztorysPage() {
   const [narzuty, setNarzuty] = useState<Narzuty>({ ...DEFAULT_NARZUTY });
   const [showNarzuty, setShowNarzuty] = useState(false);
 
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  const [activeKTab, setActiveKTab] = useState<'pozycje' | 'ryzyko' | 'prognoza'>('pozycje');
+  const [anomalyData, setAnomalyData] = useState<{count: number; anomalies: Array<{id: string; opis: string; kst_code?: string; is_anomaly: boolean}>} | null>(null);
+  const [anomalyLoading, setAnomalyLoading] = useState(false);
+  const [alertsData, setAlertsData] = useState<Array<{id: string; symbol: string; change_pct: number; severity: string; current_price: number; baseline_price: number}>>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+
   // ── Add row form ───────────────────────────────────────────────────────────
   const [addKst, setAddKst] = useState('');
   const [addOpis, setAddOpis] = useState('');
@@ -962,6 +969,34 @@ export function KosztorysPage() {
     }
   }
 
+  // ── Risk / Intelligence ────────────────────────────────────────────────────
+  async function runAnomaly() {
+    if (!kosztorysId) return;
+    setAnomalyLoading(true);
+    try {
+      const res = await authFetch(`/api/v2/kosztorys/${kosztorysId}/anomalies`);
+      const data = await res.json();
+      setAnomalyData(data);
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setAnomalyLoading(false);
+    }
+  }
+
+  async function loadAlerts() {
+    setAlertsLoading(true);
+    try {
+      const res = await authFetch('/api/v2/kosztorys/material-alerts');
+      const data = await res.json();
+      setAlertsData(Array.isArray(data) ? data : data.alerts ?? []);
+    } catch {
+      setAlertsData([]);
+    } finally {
+      setAlertsLoading(false);
+    }
+  }
+
   // ── Export ─────────────────────────────────────────────────────────────────
   async function exportFile(format: 'pdf' | 'ath' | 'xlsx') {
     if (!kosztorysId && format !== 'xlsx') {
@@ -1123,13 +1158,32 @@ export function KosztorysPage() {
             </div>
           </GlassCard>
 
-          {/* Pozycje table */}
+          {/* Pozycje / Risk / Prognoza tabs */}
           <GlassCard className="flex-1 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-earth-800/40 shrink-0">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-earth-500" />
-                <span className="text-earth-300 text-sm font-semibold">Pozycje kosztorysowe</span>
-                <span className="px-2 py-0.5 rounded-full bg-earth-800 text-earth-500 text-xs">{pozycje.length}</span>
+              <div className="flex items-center gap-1">
+                {([
+                  { key: 'pozycje', label: 'Pozycje', icon: <Calculator className="w-3.5 h-3.5" /> },
+                  { key: 'ryzyko',  label: 'Ryzyko cen', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+                  { key: 'prognoza', label: 'Prognoza', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+                ] as const).map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => {
+                      setActiveKTab(t.key);
+                      if (t.key === 'ryzyko' && alertsData.length === 0) loadAlerts();
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                      activeKTab === t.key
+                        ? 'bg-earth-700/60 text-earth-200'
+                        : 'text-earth-500 hover:text-earth-300 hover:bg-earth-800/40'
+                    }`}
+                  >
+                    {t.icon}{t.label}
+                    {t.key === 'pozycje' && <span className="px-1.5 py-0.5 rounded-full bg-earth-800 text-earth-500 text-xs">{pozycje.length}</span>}
+                    {t.key === 'ryzyko' && alertsData.length > 0 && <span className="px-1.5 py-0.5 rounded-full bg-red-900/60 text-red-400 text-xs">{alertsData.length}</span>}
+                  </button>
+                ))}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -1167,6 +1221,10 @@ export function KosztorysPage() {
               </div>
             </div>
 
+            {/* ── Tab content ──────────────────────────────────────────────── */}
+
+            {/* TAB: Pozycje */}
+            {activeKTab === 'pozycje' && (
             <div className="flex-1 overflow-auto">
               {kosztLoading ? (
                 <div className="flex items-center justify-center py-12">
@@ -1208,6 +1266,134 @@ export function KosztorysPage() {
                 </table>
               )}
             </div>
+            )}
+
+            {/* TAB: Ryzyko cen */}
+            {activeKTab === 'ryzyko' && (
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              {/* Anomaly analysis */}
+              <div className="rounded-xl border border-earth-800/60 bg-earth-900/40 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <span className="text-earth-300 text-sm font-semibold">Analiza anomalii cenowych</span>
+                  </div>
+                  <button
+                    onClick={runAnomaly}
+                    disabled={anomalyLoading || !kosztorysId}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/10 border border-amber-600/20 text-amber-400 text-xs hover:bg-amber-600/20 transition-colors disabled:opacity-50"
+                  >
+                    {anomalyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Analizuj
+                  </button>
+                </div>
+                {anomalyData ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-earth-800/40 p-3 text-center">
+                        <p className="text-earth-500 text-xs mb-1">Pozycje z anomaliami</p>
+                        <p className={`text-lg font-bold tabular-nums ${anomalyData.count > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {anomalyData.count}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-earth-800/40 p-3 text-center">
+                        <p className="text-earth-500 text-xs mb-1">Łącznie pozycji</p>
+                        <p className="text-lg font-bold tabular-nums text-earth-300">{pozycje.length}</p>
+                      </div>
+                    </div>
+                    {anomalyData.anomalies.length > 0 && (
+                      <div>
+                        <p className="text-earth-500 text-xs mb-2">Pozycje z anomaliami cenowymi:</p>
+                        <div className="space-y-1">
+                          {anomalyData.anomalies.map(a => (
+                            <div key={a.id} className="flex items-center gap-2 rounded-lg bg-red-900/10 border border-red-800/30 px-3 py-2">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                              <span className="text-earth-300 text-xs flex-1 truncate">{a.opis}</span>
+                              {a.kst_code && <span className="text-earth-600 text-xs ml-auto shrink-0">{a.kst_code}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {anomalyData.count === 0 && (
+                      <p className="text-emerald-400 text-xs text-center py-2">Brak anomalii cenowych w tym kosztorysie</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-earth-600 text-xs text-center py-4">
+                    {!kosztorysId ? 'Wybierz kosztorys aby uruchomić analizę' : 'Kliknij „Analizuj" aby wykryć anomalie cenowe'}
+                  </p>
+                )}
+              </div>
+
+              {/* Material alerts */}
+              <div className="rounded-xl border border-earth-800/60 bg-earth-900/40 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-blue-400" />
+                    <span className="text-earth-300 text-sm font-semibold">Alerty cen materiałów</span>
+                    {alertsData.length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-red-900/60 text-red-400 text-xs">{alertsData.length}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={loadAlerts}
+                    disabled={alertsLoading}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600/10 border border-blue-600/20 text-blue-400 text-xs hover:bg-blue-600/20 transition-colors disabled:opacity-50"
+                  >
+                    {alertsLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Odśwież
+                  </button>
+                </div>
+                {alertsLoading ? (
+                  <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-earth-600 animate-spin" /></div>
+                ) : alertsData.length === 0 ? (
+                  <p className="text-earth-600 text-xs text-center py-4">Brak aktywnych alertów cenowych</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {alertsData.map(alert => (
+                      <div key={alert.id} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 border ${
+                        alert.severity === 'critical' ? 'bg-red-900/10 border-red-800/30' :
+                        alert.severity === 'high' ? 'bg-orange-900/10 border-orange-800/30' :
+                        'bg-amber-900/10 border-amber-800/30'
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-earth-300 text-xs font-medium truncate">{alert.symbol}</p>
+                          <p className="text-earth-500 text-xs">
+                            {alert.baseline_price?.toFixed(2)} → {alert.current_price?.toFixed(2)} PLN
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`text-sm font-bold tabular-nums ${alert.change_pct > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {alert.change_pct > 0 ? '+' : ''}{alert.change_pct?.toFixed(1)}%
+                          </p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            alert.severity === 'critical' ? 'bg-red-900/60 text-red-300' :
+                            alert.severity === 'high' ? 'bg-orange-900/60 text-orange-300' :
+                            'bg-amber-900/60 text-amber-300'
+                          }`}>{alert.severity}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
+
+            {/* TAB: Prognoza */}
+            {activeKTab === 'prognoza' && (
+            <div className="flex-1 overflow-auto p-4">
+              <div className="rounded-xl border border-earth-800/60 bg-earth-900/40 p-6 flex flex-col items-center justify-center gap-3">
+                <TrendingUp className="w-10 h-10 text-earth-700" />
+                <p className="text-earth-400 text-sm font-medium">Prognoza ICB — wkrótce</p>
+                <p className="text-earth-600 text-xs text-center max-w-xs">
+                  Prognozowanie cen materiałów na podstawie regresji liniowej (ostatnie 12 kwartałów ICB).
+                  Moduł w przygotowaniu.
+                </p>
+              </div>
+            </div>
+            )}
 
             {/* Sumy */}
             {pozycje.length > 0 && (
