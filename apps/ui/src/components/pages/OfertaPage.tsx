@@ -1096,7 +1096,7 @@ export function OfertaPage() {
   useEffect(() => {
     if (!wizardOpen) return;
     setLoadingTenders(true);
-    authFetch('/api/v1/tenders?limit=20&status=active')
+    authFetch('/api/v1/tenders?limit=20&status=new')
       .then((d: unknown) => {
         const data = d as { items?: TenderOption[] } | TenderOption[];
         setTenders(Array.isArray(data) ? data : (data.items ?? []));
