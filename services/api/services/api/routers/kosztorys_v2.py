@@ -644,7 +644,7 @@ def export_pdf(kid: str, user: AuthUser) -> Response:
     )
 
 
-
+@router.get("/{kid}/export-ath")
 def export_ath(kid: str, user: AuthUser) -> Response:
     """Eksportuj kosztorys do formatu ATH XML (Norma PRO)."""
     tenant_id = _require_tenant(user)
@@ -700,3 +700,101 @@ def _kosztorys_row(row: Any) -> dict:
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
     }
+
+
+# ─── Summary endpoint ─────────────────────────────────────────────────────────
+
+@router.get("/{kid}/summary")
+def get_kosztorys_summary(kid: str, user: AuthUser) -> dict:
+    """Podsumowanie kosztorysu — nagłówek + sumy + liczba pozycji."""
+    tenant_id = _require_tenant(user)
+    with get_engine().connect() as conn:
+        row = conn.execute(sa.text("""
+            SELECT k.id, k.nazwa, k.inwestor, k.obiekt, k.lokalizacja, k.typ,
+                   k.kwartalnr, k.kwartalrok, k.tender_id, k.status,
+                   k.suma_netto, k.suma_brutto, k.suma_vat,
+                   k.ko_r_pct, k.ko_s_pct, k.z_pct, k.kz_pct, k.vat_pct,
+                   k.win_probability, k.anomaly_score,
+                   k.created_at, k.updated_at,
+                   (SELECT count(*) FROM kosztorys_pozycja WHERE kosztorys_id = k.id) AS poz_count
+            FROM kosztorys k
+            WHERE k.id = :kid AND k.tenant_id = :tid
+        """), {"kid": kid, "tid": tenant_id}).mappings().first()
+    if not row:
+        raise HTTPException(404, "Kosztorys not found")
+    return {
+        "id": row.id,
+        "nazwa": row.nazwa,
+        "inwestor": row.inwestor,
+        "obiekt": row.obiekt,
+        "lokalizacja": row.lokalizacja,
+        "typ": row.typ,
+        "kwartalnr": row.kwartalnr,
+        "kwartalrok": row.kwartalrok,
+        "tender_id": row.tender_id,
+        "status": row.status,
+        "suma_netto": float(row.suma_netto) if row.suma_netto else 0.0,
+        "suma_brutto": float(row.suma_brutto) if row.suma_brutto else 0.0,
+        "suma_vat": float(row.suma_vat) if row.suma_vat else 0.0,
+        "narzuty": {
+            "ko_r_pct": float(row.ko_r_pct),
+            "ko_s_pct": float(row.ko_s_pct),
+            "z_pct": float(row.z_pct),
+            "kz_pct": float(row.kz_pct),
+            "vat_pct": float(row.vat_pct),
+        },
+        "win_probability": float(row.win_probability) if row.win_probability else None,
+        "anomaly_score": float(row.anomaly_score) if row.anomaly_score else None,
+        "pozycje_count": row.poz_count,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+# ─── Create from tender convenience ──────────────────────────────────────────
+
+@router.post("/from-tender/{tender_id}", status_code=201)
+def create_from_tender(tender_id: str, user: AuthUser) -> dict:
+    """Utwórz kosztorys powiązany z przetargiem — pobiera dane z ZWIAD."""
+    tenant_id = _require_tenant(user)
+    with get_engine().connect() as conn:
+        # Pobierz dane z tenders (ZWIAD)
+        tender = conn.execute(sa.text("""
+            SELECT id, title, buyer, voivodeship
+            FROM tender
+            WHERE id = :tid AND tenant_id = :tenant_id
+        """), {"tid": tender_id, "tenant_id": tenant_id}).mappings().first()
+
+        if not tender:
+            raise HTTPException(404, "Tender not found")
+
+        import uuid
+        kid = str(uuid.uuid4())
+        conn.execute(sa.text("""
+            INSERT INTO kosztorys
+                (id, tenant_id, tender_id, nazwa, inwestor, lokalizacja,
+                 typ, kwartalnr, kwartalrok,
+                 ko_r_pct, ko_s_pct, z_pct, kz_pct, vat_pct)
+            VALUES
+                (:id, :tid, :tender_id, :nazwa, :inwestor, :lokalizacja,
+                 'ofertowy', :kw_nr, :kw_rok,
+                 70.0, 30.0, 12.5, 7.1, 23.0)
+        """), {
+            "id": kid,
+            "tid": tenant_id,
+            "tender_id": tender_id,
+            "nazwa": f"Kosztorys — {tender.title[:80]}" if tender.title else "Kosztorys ofertowy",
+            "inwestor": tender.buyer,
+            "lokalizacja": tender.voivodeship,
+            "kw_nr": _current_quarter()[0],
+            "kw_rok": _current_quarter()[1],
+        })
+        conn.commit()
+    return {"id": kid, "status": "created", "tender_id": tender_id}
+
+
+def _current_quarter() -> tuple[int, int]:
+    """Return (quarter_number, year) for current date."""
+    from datetime import date
+    today = date.today()
+    return (today.month - 1) // 3 + 1, today.year
