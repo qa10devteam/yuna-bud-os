@@ -7,27 +7,30 @@
 
 | # | Faza | Stan | Uwagi |
 |---|------|------|-------|
-| 1 | TED EU connector + normalizer | ✅ DONE | 1015 TED w DB, BT-21-Lot titles, classification-cpv |
-| 2 | TED: CPV + wartość z search API | ✅ DONE | 1015/1015 real titles PL, 124/1015 values (API limit) |
+| 1 | TED EU connector + normalizer | ✅ DONE | 569 TED w DB, BT-21-Lot titles, classification-cpv |
+| 2 | TED: CPV + wartość z search API | ✅ DONE | real titles PL, classification-cpv |
 | 3 | BZP dokumenty SIWZ | ❌ TODO | Router `bzp_documents.py` istnieje, sprawdzić live fetch + UI drawer |
-| 4 | BZP ResultNotice (kto wygrał) | ❌ TODO | `NoticeType=ResultNotice`, mapuj na `historical_bids` |
-| 5 | Historical tenders → main table | ❌ TODO | 1.4M w `historical_tenders`, migruj 90 dni Works do `tender` |
+| 4 | BZP ResultNotice (kto wygrał) | ✅ DONE | `fetch_result_notices()` + `sync_result_notices_to_historical_bids()` w bzp_connector.py |
+| 5 | Historical tenders → main table | ✅ DONE | `scripts/migrate_historical_to_tender.py` — 500 rows migrated (5035 dostępnych CPV45%) |
 | 6 | Cron systemd timer (BZP daily) | ✅ DONE | `terra-ingest.timer` 04:00 UTC, errors=0 |
 | 7 | Cron TED tygodniowy | ✅ DONE | `terra-ingest-ted.timer` Sun 05:00 UTC, errors=0 |
 | 8 | BIP connector | ❌ TODO | `source_kind='bip'` istnieje, brak implementacji |
-| 9 | Deduplicator cross-source | ❌ TODO | Ta sama oferta może mieć numer BZP i TED |
-| 10 | Geo enrichment (NUTS/TERC) | ❌ TODO | TED ma `place-of-performance-post-code-part`, BZP ma voivodeship |
-| 11 | ZwiadPage — filtr po źródle | ❌ TODO | UI nie ma filtra source (bzp/ted/bip) |
-| 12 | ZwiadPage — filtr po CPV | ❌ TODO | CPV obecne w DB, brak filtra w UI |
-| 13 | ZwiadPage — filtr po wartości | ❌ TODO | value_pln obecne, brak range slider |
-| 14 | ZwiadPage — filtr po voivodeship | ❌ TODO | voivodeship obecne (BZP), brak dropdownu |
-| 15 | ZwiadPage — sorting | ❌ TODO | Default: match_score DESC; brak opcji sort w UI |
-| 16 | Scoring v2 — wagi konfigurowalne | ❌ TODO | Scorer hardcoded; dodać tenant-level config |
+| 9 | Deduplicator cross-source | ⚠️ PARTIAL | pg_trgm działa (1 para znaleziona), brak BZP↔TED fuzzy match po buyer+title |
+| 10 | Geo enrichment (NUTS/TERC) | ❌ TODO | TED: 569 bez voivodeship; potrzeba NUTS→voivodeship mapping |
+| 11 | ZwiadPage — filtr po źródle | ✅ DONE | Source dropdown: bzp/ted/bip |
+| 12 | ZwiadPage — filtr po CPV | ✅ DONE | CPV prefix search (4511→536, 45111200→103) |
+| 13 | ZwiadPage — filtr po wartości | ✅ DONE | min_value/max_value (min 500k→361 wyników) |
+| 14 | ZwiadPage — filtr po voivodeship | ✅ DONE | ILIKE z diacritics (śląskie→497) |
+| 15 | ZwiadPage — sorting | ✅ DONE | match_score/deadline/value/published |
+| 16 | Scoring v2 — wagi konfigurowalne | ❌ TODO | Scorer hardcoded; dodać tenant-level config (tabela `scoring_config`) |
 | 17 | Scorer — deadline proximity bonus | ❌ TODO | Przetargi z bliskim deadline powinny mieć boost |
 | 18 | Scorer — historical win rate CPV | ❌ TODO | Jeśli tenant wygrywał w CPV X → boost |
 | 19 | Alert email — nowe przetargi | ❌ TODO | `tender_alert` tabela istnieje, brak email dispatch |
-| 20 | Health check źródeł | ✅ DONE | `/api/v1/sources/health` — BZP OK, TED OK, 2124 tenders |
-| 25 | BZP multi-page AM/PM split | ✅ DONE | pageSize=500, 1109 BZP w DB |
+| 20 | Health check źródeł | ✅ DONE | `/api/v1/sources/health` — BZP OK, TED OK |
+| 21 | Dashboard — real tender total | ✅ DONE | `api.ts` używa `json.total` zamiast `tenders.length` |
+| 22 | MarketIntelPage — seasonality tab | ✅ DONE | `useSeasonality` hook + `SeasonalityChart` komponent |
+| 23 | MarketBar — poll throttle | ✅ DONE | 60s → 300s (12 req/h zamiast 60) |
+| 25 | BZP multi-page AM/PM split | ✅ DONE | pageSize=500, 1075 BZP w DB |
 
 ---
 
