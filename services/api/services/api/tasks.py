@@ -114,6 +114,24 @@ def run_analysis_task(self, tender_id: str, org_id: str):
 
 
 @celery_app.task(
+    name="services.api.services.api.tasks.fire_tender_alerts",
+    queue="normal",
+    bind=True,
+    max_retries=2,
+)
+def fire_tender_alerts(self, tenant_id: str | None = None, frequency: str = "daily"):
+    """Faza 19 — Send alert email digests for all due tender_alert rows."""
+    try:
+        from services.ingestion.alert_runner import run_alert_runner
+        stats = run_alert_runner(tenant_id=tenant_id, frequency=frequency)
+        logger.info("Alert runner done: %s", stats)
+        return {"status": "ok", **stats}
+    except Exception as exc:
+        logger.error("fire_tender_alerts failed: %s", exc)
+        raise self.retry(exc=exc, countdown=120)
+
+
+@celery_app.task(
     name="services.api.services.api.tasks.notify_task",
     queue="critical",
 )
