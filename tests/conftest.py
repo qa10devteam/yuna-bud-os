@@ -26,6 +26,7 @@ if _api_path not in sys.path:
 
 os.environ.setdefault("TERRA_OFFLINE", "1")
 os.environ.setdefault("ENVIRONMENT", "dev")
+os.environ.setdefault("TESTING", "1")
 
 # DB credentials (match running API so integration tests can connect)
 # Force-set these before any DB-touching imports so lru_cache(get_engine) picks them up.

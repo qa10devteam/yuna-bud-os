@@ -319,7 +319,7 @@ def _suggest_tender_actions(tid: str, tenant_id: str) -> list[dict]:
 
     if row.deadline_at:
         from datetime import timedelta
-        days_left = (row.deadline_at.replace(tzinfo=None) - datetime.utcnow()).days
+        days_left = (row.deadline_at.replace(tzinfo=None) - datetime.now(datetime.timezone.utc)).days
         if days_left <= 3:
             suggestions.append({
                 "event": "tender.deadline_approaching",
@@ -442,3 +442,62 @@ def _update_event_log(tenant_id: str, event: str, status_code: int) -> None:
             conn.commit()
     except Exception:
         pass
+
+
+# ─── n8n Integration Endpoints ────────────────────────────────────────────────
+
+@router.get("/n8n/status")
+def n8n_status(user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Status lokalnego n8n — health, ilość workflow, aktywne webhooki."""
+    try:
+        from services.api.services.api.integrations.n8n_client import get_n8n_client
+        client = get_n8n_client()
+        health = client.health()
+        workflows = client.list_workflows()
+        active = [w for w in workflows if w.get("active")]
+        webhooks = client.get_webhook_urls()
+        return {
+            "status": health.get("status", "unknown"),
+            "workflows_total": len(workflows),
+            "workflows_active": len(active),
+            "webhooks": webhooks,
+            "base_url": client.base_url,
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+@router.get("/n8n/workflows")
+def n8n_workflows(user: CurrentUser = Depends(get_current_user)) -> list[dict]:
+    """Lista workflow z n8n."""
+    try:
+        from services.api.services.api.integrations.n8n_client import get_n8n_client
+        workflows = get_n8n_client().list_workflows()
+        return [{
+            "id": w["id"],
+            "name": w["name"],
+            "active": w.get("active", False),
+            "nodes": len(w.get("nodes", [])),
+            "created_at": w.get("createdAt"),
+        } for w in workflows]
+    except Exception as e:
+        return []
+
+
+@router.post("/n8n/provision")
+def n8n_provision_webhook(
+    event: str,
+    user: CurrentUser = Depends(get_current_user),
+) -> dict:
+    """
+    Auto-provision: utwórz webhook workflow w n8n dla danego event type.
+    Simply-clever: one-click i n8n jest gotowe do odbioru eventów.
+    """
+    try:
+        from services.api.services.api.integrations.n8n_client import get_n8n_client
+        client = get_n8n_client()
+        result = client.provision_terra_webhook(event)
+        return {"status": "provisioned", **result}
+    except Exception as e:
+        raise HTTPException(500, f"n8n provisioning failed: {e}")
+

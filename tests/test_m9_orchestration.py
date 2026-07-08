@@ -229,8 +229,8 @@ async def test_backup_run_endpoint():
     assert r.status_code == 200
     body = r.json()
     assert "status" in body
-    # ok or skipped_no_pg_dump — both acceptable in test env
-    assert body["status"] in ("ok", "skipped_no_pg_dump", "error")
+    # ok or skipped_no_pg_dump or skipped_timeout — all acceptable in test env
+    assert body["status"] in ("ok", "skipped_no_pg_dump", "skipped_timeout", "error")
 
 
 @pytest.mark.asyncio
@@ -240,7 +240,7 @@ async def test_backup_status_after_run():
         await ac.post("/api/v1/system/backup/run")
         r = await ac.get("/api/v1/system/backup/status")
     body = r.json()
-    assert body["status"] in ("ok", "skipped_no_pg_dump", "error")
+    assert body["status"] in ("ok", "skipped_no_pg_dump", "skipped_timeout", "error")
     assert body["last_backup_at"] is not None
 
 

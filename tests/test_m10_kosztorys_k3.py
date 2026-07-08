@@ -190,7 +190,8 @@ class TestKosztorysV2Api:
         data = resp.json()
         assert data["id"]
         assert data["status"] == "created"
-        return data["id"]
+        # store for potential downstream use (class-level)
+        type(self)._last_id = data["id"]
 
     def test_list_kosztorys(self, client, auth_headers):
         resp = client.get("/api/v2/kosztorys?limit=5", headers=auth_headers)

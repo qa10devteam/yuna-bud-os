@@ -39,7 +39,7 @@ _sse_channels: dict[str, list[asyncio.Queue]] = defaultdict(list)
 
 def publish_event(org_id: str, event_type: str, data: dict) -> None:
     """Publish an event to all SSE subscribers for an org."""
-    payload = json.dumps({"type": event_type, "data": data, "ts": datetime.utcnow().isoformat()})
+    payload = json.dumps({"type": event_type, "data": data, "ts": datetime.now(datetime.timezone.utc).isoformat()})
     for q in _sse_channels.get(org_id, []):
         try:
             q.put_nowait(payload)

@@ -241,7 +241,7 @@ def update_kosztorys(kid: str, body: KosztorysUpdate, user: AuthUser) -> dict:
     engine = get_engine()
     updates: dict[str, Any] = {}
 
-    for field_name in body.model_fields:
+    for field_name in body.__class__.model_fields:
         val = getattr(body, field_name)
         if val is not None:
             updates[field_name] = val

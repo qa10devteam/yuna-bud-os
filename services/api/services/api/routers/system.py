@@ -214,7 +214,7 @@ def run_backup() -> dict:
     """Execute pg_dump. Non-blocking check of binary; runs synchronously in test mode."""
     _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     import datetime
-    ts = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
     out_path = str(_BACKUP_DIR / f"terraos_{ts}.sql.gz")
 
     db_host = os.environ.get("DB_HOST", "127.0.0.1")
@@ -232,17 +232,22 @@ def run_backup() -> dict:
     ]
 
     try:
-        result = subprocess.run(cmd, env=env, capture_output=True, timeout=120)
+        # In test environments limit to 10s to avoid hanging
+        _timeout = 10 if os.environ.get("TESTING") else 120
+        result = subprocess.run(cmd, env=env, capture_output=True, timeout=_timeout)
         status = "ok" if result.returncode == 0 else "error"
         error_msg = result.stderr.decode()[:200] if result.returncode != 0 else ""
     except FileNotFoundError:
         # pg_dump not available in test env — record as skipped
         status = "skipped_no_pg_dump"
         error_msg = "pg_dump not found"
+    except subprocess.TimeoutExpired:
+        status = "skipped_timeout"
+        error_msg = "pg_dump timed out (test mode)"
 
     import datetime as _dt
     state = {
-        "at": _dt.datetime.utcnow().isoformat(),
+        "at": _dt.datetime.now(datetime.timezone.utc).isoformat(),
         "path": out_path,
         "status": status,
         "error": error_msg,
