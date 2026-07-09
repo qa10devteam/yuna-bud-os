@@ -56,3 +56,4 @@ data/ddc_cwicr_pl_warsaw_workitems.parquet
 *.pkl
 models/
 logs/alert_dispatcher.log
+data/intercenbud_kobo_full.json
