@@ -728,6 +728,33 @@ export function KosztorysPage() {
   const [alertsData, setAlertsData] = useState<Array<{id: string; symbol: string; change_pct: number; severity: string; current_price: number; baseline_price: number}>>([]);
   const [alertsLoading, setAlertsLoading] = useState(false);
 
+  // ── Prognoza tab ───────────────────────────────────────────────────────────
+  type ForecastPoint = { period: string; avg_price: number | null; is_forecast?: boolean };
+  const [forecastData, setForecastData] = useState<ForecastPoint[]>([]);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastHorizon, setForecastHorizon] = useState(4);
+  const [forecastCategory, setForecastCategory] = useState('murarstwo');
+  const [forecastError, setForecastError] = useState<string | null>(null);
+
+  const runForecast = useCallback(async () => {
+    setForecastLoading(true);
+    setForecastError(null);
+    try {
+      const params = new URLSearchParams({
+        category: forecastCategory,
+        typ_rms: 'M',
+        horizon: String(forecastHorizon),
+      });
+      const res = await authFetch(`/api/v1/intelligence/prices/forecast?${params}`);
+      const d = res as { quarters?: ForecastPoint[]; history?: ForecastPoint[] };
+      setForecastData(d.quarters ?? d.history ?? []);
+    } catch (e) {
+      setForecastError('Błąd ładowania prognozy');
+    } finally {
+      setForecastLoading(false);
+    }
+  }, [authFetch, forecastCategory, forecastHorizon]);
+
   // ── Add row form ───────────────────────────────────────────────────────────
   const [addKst, setAddKst] = useState('');
   const [addOpis, setAddOpis] = useState('');
@@ -1383,15 +1410,115 @@ export function KosztorysPage() {
 
             {/* TAB: Prognoza */}
             {activeKTab === 'prognoza' && (
-            <div className="flex-1 overflow-auto p-4">
-              <div className="rounded-xl border border-earth-800/60 bg-earth-900/40 p-6 flex flex-col items-center justify-center gap-3">
-                <TrendingUp className="w-10 h-10 text-earth-700" />
-                <p className="text-earth-400 text-sm font-medium">Prognoza ICB — wkrótce</p>
-                <p className="text-earth-600 text-xs text-center max-w-xs">
-                  Prognozowanie cen materiałów na podstawie regresji liniowej (ostatnie 12 kwartałów ICB).
-                  Moduł w przygotowaniu.
-                </p>
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              {/* Kontrolki */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-earth-500">Kategoria</label>
+                  <select
+                    value={forecastCategory}
+                    onChange={e => setForecastCategory(e.target.value)}
+                    className="text-xs bg-earth-800/60 border border-earth-700/60 rounded-lg px-2 py-1.5 text-earth-200 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                  >
+                    {['murarstwo','beton_cement','stal_konstrukcyjna','dach_pokrycia','drewno',
+                      'kruszywa_ziemne','nawierzchnie','instalacje_wod_kan','ogrzewanie',
+                      'wentylacja_klima','elektryka','izolacja_termo','malowanie',
+                      'plytki_ceramiczne','stolarka','inne'].map(c => (
+                      <option key={c} value={c}>{c.replace(/_/g,' ')}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-earth-500">Horyzont</label>
+                  <select
+                    value={forecastHorizon}
+                    onChange={e => setForecastHorizon(Number(e.target.value))}
+                    className="text-xs bg-earth-800/60 border border-earth-700/60 rounded-lg px-2 py-1.5 text-earth-200 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                  >
+                    {[2,4,6,8,12].map(h => <option key={h} value={h}>{h} kw.</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={runForecast}
+                  disabled={forecastLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  {forecastLoading
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <TrendingUp className="w-3.5 h-3.5" />
+                  }
+                  Generuj prognozę
+                </button>
               </div>
+
+              {/* Error */}
+              {forecastError && (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {forecastError}
+                </div>
+              )}
+
+              {/* Wykres */}
+              {forecastData.length > 0 ? (
+                <div className="rounded-xl border border-earth-800/60 bg-earth-900/40 p-4">
+                  <p className="text-xs text-earth-500 mb-3 font-medium">
+                    Cena średnia [PLN/jm] — {forecastCategory.replace(/_/g,' ')} · historia + prognoza {forecastHorizon} kw.
+                  </p>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={forecastData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+                      <XAxis dataKey="period" tick={{ fontSize: 10, fill: '#6b6b6b' }} />
+                      <YAxis tick={{ fontSize: 10, fill: '#6b6b6b' }} width={56}
+                        tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
+                      <Tooltip
+                        contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, fontSize: 11 }}
+                        formatter={(v: number | string, name: string): [string, string] => [
+                          typeof v === 'number' ? `${v.toFixed(2)} PLN` : String(v),
+                          name === 'avg_price' ? 'Historia' : name === 'forecast_price' ? 'Prognoza' : name,
+                        ]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {/* Historia — linia ciągła */}
+                      <Line
+                        type="monotone"
+                        dataKey="avg_price"
+                        name="Historia"
+                        stroke="#3b82f6" strokeWidth={2} dot={{ r: 2 }}
+                        connectNulls
+                      />
+                      {/* Prognoza — linia przerywana */}
+                      <Line
+                        type="monotone"
+                        dataKey="forecast_price"
+                        name="Prognoza"
+                        stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }}
+                        strokeDasharray="6 3"
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  {/* Legenda prognoza vs historia */}
+                  <div className="flex gap-4 mt-2">
+                    <div className="flex items-center gap-1.5 text-xs text-earth-500">
+                      <span className="w-5 border-t-2 border-blue-500 inline-block" />
+                      Historia
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-earth-500">
+                      <span className="w-5 border-t-2 border-dashed border-blue-400 inline-block" />
+                      Prognoza
+                    </div>
+                  </div>
+                </div>
+              ) : !forecastLoading && (
+                <div className="rounded-xl border border-earth-800/60 bg-earth-900/40 p-8 flex flex-col items-center gap-3">
+                  <TrendingUp className="w-10 h-10 text-earth-700" />
+                  <p className="text-earth-400 text-sm font-medium">Wybierz kategorię i kliknij „Generuj prognozę"</p>
+                  <p className="text-earth-600 text-xs text-center max-w-xs">
+                    Regresja liniowa na ostatnich 12 kwartałach ICB (784k wierszy). Horyzont do 12 kwartałów.
+                  </p>
+                </div>
+              )}
             </div>
             )}
 

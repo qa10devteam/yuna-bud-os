@@ -1,7 +1,17 @@
 """Faza 46 — Norma PRO Interop: import/export formatu ATH (kosztorys).
 Faza 47 — Kosztorys Editor: CRUD pozycji kosztorysu.
+
+.. deprecated::
+    Ten router (v1, prefix /api/v1/kosztorys) jest przestarzały.
+    Używaj v2: /api/v2/kosztorys  (routers/kosztorys_v2.py).
+    V1 zostanie usunięty w Q4 2026.
 """
 from __future__ import annotations
+
+DEPRECATION_NOTICE = (
+    "This endpoint is deprecated. Use /api/v2/kosztorys instead. "
+    "V1 will be removed in Q4 2026."
+)
 
 
 import io
@@ -11,13 +21,22 @@ from typing import Any
 
 import sqlalchemy as sa
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
 from terra_db.session import get_engine
 from ..auth.deps import AuthUser
 
-router = APIRouter(prefix="/api/v1/kosztorys", tags=["kosztorys"])
+router = APIRouter(prefix="/api/v1/kosztorys", tags=["kosztorys-v1-deprecated"])
+
+
+def _deprecation_headers() -> dict[str, str]:
+    """Zwraca nagłówki deprecacji RFC 8594 dla v1 endpointów."""
+    return {
+        "Deprecation": "true",
+        "Sunset": "Sat, 01 Nov 2026 00:00:00 GMT",
+        "Link": '</api/v2/kosztorys>; rel="successor-version"',
+    }
 
 
 class KosztorysItemCreate(BaseModel):
@@ -97,8 +116,8 @@ def _generate_ath_xml(items: list[dict]) -> bytes:
 # ──────────────────────────────────────────────────────────────────────────────
 
 @router.get("/{tender_id}")
-def list_kosztorys_items(tender_id: str, user: AuthUser) -> dict:
-    """Lista pozycji kosztorysu dla przetargu."""
+def list_kosztorys_items(tender_id: str, user: AuthUser) -> JSONResponse:
+    """Lista pozycji kosztorysu dla przetargu. DEPRECATED — użyj /api/v2/kosztorys."""
     engine = get_engine()
     with engine.connect() as conn:
         rows = conn.execute(
@@ -112,7 +131,7 @@ def list_kosztorys_items(tender_id: str, user: AuthUser) -> dict:
             {"tid": tender_id},
         ).fetchall()
     total = sum(float(r.quantity) * float(r.unit_price) for r in rows)
-    return {
+    content = {
         "tender_id": tender_id,
         "items": [
             {
@@ -130,7 +149,9 @@ def list_kosztorys_items(tender_id: str, user: AuthUser) -> dict:
         ],
         "total": round(total, 2),
         "count": len(rows),
+        "_deprecated": DEPRECATION_NOTICE,
     }
+    return JSONResponse(content=content, headers=_deprecation_headers())
 
 
 @router.post("/{tender_id}")
