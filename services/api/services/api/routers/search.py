@@ -140,7 +140,7 @@ def search(
                     params,
                 ).fetchall()
             except Exception:
-                logger.warning("FTS query failed for q=%r, falling back to ILIKE", q)
+                logger.exception("FTS query failed for q=%r, falling back to ILIKE", exc_info=True)
                 fts_rows = []
 
         # ILIKE fallback — produces a meaningful excerpt from the title

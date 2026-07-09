@@ -305,6 +305,7 @@ def _setup_full_tender() -> str:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_engine_run_includes_risk():
     """POST /engine/run → EngineResult with risk{} block when estimate exists."""
     from services.api.services.api.main import app
@@ -336,6 +337,7 @@ async def test_engine_run_includes_risk():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_risk_endpoint_standalone():
     """POST /tenders/{id}/risk → RiskSchema."""
     from services.api.services.api.main import app
@@ -356,6 +358,7 @@ async def test_risk_endpoint_standalone():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_risk_endpoint_deterministic():
     """Two calls with same seed return identical p50."""
     from services.api.services.api.main import app
@@ -371,6 +374,7 @@ async def test_risk_endpoint_deterministic():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_engine_run_get_includes_risk():
     """GET /engine after run returns stored risk."""
     from services.api.services.api.main import app

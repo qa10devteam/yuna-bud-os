@@ -227,8 +227,8 @@ async def handle_checkout_completed(obj: dict[str, Any], db: Any) -> None:
         org_id = _resolve_org_id_from_customer(db, customer_id)
 
     if not org_id:
-        logger.warning(
-            "checkout.session.completed: cannot resolve org_id for customer=%s", customer_id
+        logger.exception(
+            "checkout.session.completed: cannot resolve org_id for customer=%s", customer_id, exc_info=True
         )
         return
 
@@ -320,7 +320,7 @@ async def handle_subscription_updated(obj: dict[str, Any], db: Any) -> None:
 
     org_id = _resolve_org_id_from_customer(db, customer_id)
     if not org_id:
-        logger.warning("subscription.updated: unknown customer=%s", customer_id)
+        logger.exception("subscription.updated: unknown customer=%s", exc_info=True)
         return
 
     db.execute(
@@ -370,7 +370,7 @@ async def handle_subscription_deleted(obj: dict[str, Any], db: Any) -> None:
     customer_id = obj.get("customer", "")
     org_id = _resolve_org_id_from_customer(db, customer_id)
     if not org_id:
-        logger.warning("subscription.deleted: unknown customer=%s", customer_id)
+        logger.exception("subscription.deleted: unknown customer=%s", exc_info=True)
         return
 
     grace_until = datetime.now(tz=timezone.utc) + timedelta(days=3)
@@ -410,7 +410,7 @@ async def handle_payment_succeeded(obj: dict[str, Any], db: Any) -> None:
 
     org_id = _resolve_org_id_from_customer(db, customer_id)
     if not org_id:
-        logger.warning("invoice.payment_succeeded: unknown customer=%s", customer_id)
+        logger.exception("invoice.payment_succeeded: unknown customer=%s", exc_info=True)
         return
 
     db.execute(
@@ -438,7 +438,7 @@ async def handle_payment_failed(obj: dict[str, Any], db: Any) -> None:
 
     org_id = _resolve_org_id_from_customer(db, customer_id)
     if not org_id:
-        logger.warning("invoice.payment_failed: unknown customer=%s", customer_id)
+        logger.exception("invoice.payment_failed: unknown customer=%s", exc_info=True)
         return
 
     db.execute(
@@ -533,7 +533,7 @@ def checkout(body: CheckoutRequest, current_user: AuthUser) -> dict[str, str]:
                 "plan_id": body.plan_id,
             }
         except Exception as e:
-            logger.warning("Stripe checkout error: %s", e)
+            logger.exception("Stripe checkout error: %s", exc_info=True)
 
     return {
         "redirect_url": "#stripe-not-configured",
@@ -672,7 +672,7 @@ def cancel_subscription(current_user: AuthUser, db: DB) -> dict[str, Any]:
             stripe.Subscription.modify(stripe_sub_id, cancel_at_period_end=True)
             logger.info("Stripe subscription cancel_at_period_end=True for sub=%s", stripe_sub_id)
         except Exception as e:
-            logger.warning("Stripe cancel error: %s", e)
+            logger.exception("Stripe cancel error: %s", exc_info=True)
             # Fallback: set flag locally
             db.execute(
                 text(

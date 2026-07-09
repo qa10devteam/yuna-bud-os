@@ -275,7 +275,7 @@ def invite_member(body: InviteRequest, user: AuthUser, db: DB):
             invite_url=invite_url,
         )
     except Exception as exc:
-        logger.warning("Nie udalo sie wyslac emaila z zaproszeniem: %s", exc)
+        logger.exception("Nie udalo sie wyslac emaila z zaproszeniem: %s", exc_info=True)
 
     return {
         "status": "sent",

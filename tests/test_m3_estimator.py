@@ -224,6 +224,7 @@ def _get_or_create_analyzed_tender() -> str:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_post_estimate_creates_both_variants():
     """POST /tenders/{id}/estimate → returns doc_id + owner_id."""
     from services.api.services.api.main import app
@@ -238,6 +239,7 @@ async def test_post_estimate_creates_both_variants():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_estimate_sum_reconciled():
     """GET /estimates/{id} → sum_reconciled=True."""
     from services.api.services.api.main import app
@@ -252,6 +254,7 @@ async def test_get_estimate_sum_reconciled():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_compare_returns_delta():
     """GET /tenders/{id}/estimate/compare → correct delta."""
     from services.api.services.api.main import app
@@ -269,6 +272,7 @@ async def test_compare_returns_delta():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_patch_params_recomputes():
     """PATCH /estimates/{id}/params → recomputes with new overhead."""
     from services.api.services.api.main import app
@@ -292,6 +296,7 @@ async def test_patch_params_recomputes():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_acceptance_a1_end_to_end():
     """A1: ingest → /tenders → analyze → estimate → compare (all offline)."""
     from services.api.services.api.main import app

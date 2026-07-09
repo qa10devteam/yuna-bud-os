@@ -388,7 +388,7 @@ def _log_event(tenant_id: str, event: str, entity_id: str, payload: dict) -> Non
             })
             conn.commit()
     except Exception as e:
-        logger.warning(f"Failed to log event: {e}")
+        logger.exception(f"Failed to log event: {e}", exc_info=True)
 
 
 async def _dispatch_webhooks(tenant_id: str, event: str, payload: dict) -> None:
@@ -418,7 +418,7 @@ async def _dispatch_webhooks(tenant_id: str, event: str, payload: dict) -> None:
                 _update_event_log(tenant_id, event, resp.status_code)
                 logger.info(f"Webhook {wh.name} → {resp.status_code}")
             except Exception as e:
-                logger.warning(f"Webhook {wh.id} failed: {e}")
+                logger.exception(f"Webhook {wh.id} failed: {e}", exc_info=True)
                 _update_event_log(tenant_id, event, 0)
 
 
@@ -464,7 +464,8 @@ def n8n_status(user: CurrentUser = Depends(get_current_user)) -> dict:
             "base_url": client.base_url,
         }
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        logger.exception("n8n_status failed: %s", e, exc_info=True)
+        return {"status": "unavailable", "error": str(e)}
 
 
 @router.get("/n8n/workflows")
@@ -481,6 +482,7 @@ def n8n_workflows(user: CurrentUser = Depends(get_current_user)) -> list[dict]:
             "created_at": w.get("createdAt"),
         } for w in workflows]
     except Exception as e:
+        logger.exception("n8n list_workflows failed: %s", e, exc_info=True)
         return []
 
 

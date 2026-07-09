@@ -177,7 +177,7 @@ def analyze_swz(
         "warranty_years": warranty_years,
         "ai_enhanced": False,
         "method": "ai" if req.use_ai else "regex",
-        "analyzed_at": datetime.now(datetime.timezone.utc).isoformat() + "Z",
+        "analyzed_at": datetime.utcnow().isoformat() + "Z",
     }
 
 
@@ -270,7 +270,7 @@ def score_decision(
         "breakdown": sorted(breakdown, key=lambda x: -x["contribution"]),
         "key_risks": key_risks,
         "key_opportunities": key_opportunities,
-        "scored_at": datetime.now(datetime.timezone.utc).isoformat() + "Z",
+        "scored_at": datetime.utcnow().isoformat() + "Z",
     }
 
 
@@ -365,7 +365,7 @@ def full_recommendation(
             "max": round(req.cost_estimate * 1.15),
         },
         "tender_id": req.tender_id,
-        "generated_at": datetime.now(datetime.timezone.utc).isoformat() + "Z",
+        "generated_at": datetime.utcnow().isoformat() + "Z",
     }
 
 
@@ -428,7 +428,7 @@ def submit_feedback(
         "calibration": calibration,
         "insights": insights,
         "model_updated": False,  # W produkcji: True po re-fit
-        "recorded_at": datetime.now(datetime.timezone.utc).isoformat() + "Z",
+        "recorded_at": datetime.utcnow().isoformat() + "Z",
         "message": "Wynik zapisany. Model zostanie zaktualizowany po zebraniu 10+ obserwacji.",
     }
 
@@ -467,7 +467,7 @@ def get_report(
     return {
         "report_id": f"RPT-{tender_id[:8].upper()}",
         "tender_id": tender_id,
-        "generated_at": datetime.now(datetime.timezone.utc).isoformat() + "Z",
+        "generated_at": datetime.utcnow().isoformat() + "Z",
         "generated_by": "Terra.OS Analytics Engine v1.0",
         
         "executive_summary": {

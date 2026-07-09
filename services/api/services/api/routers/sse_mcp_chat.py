@@ -365,4 +365,4 @@ def playground_execute(
                 "elapsed_ms": int(req.elapsed.total_seconds() * 1000),
             }
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))

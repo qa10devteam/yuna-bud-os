@@ -480,6 +480,7 @@ def _setup_analyzed_tender_for_engine() -> str:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_post_engine_run_returns_result():
     """POST /tenders/{id}/engine/run → EngineResult."""
     from services.api.services.api.main import app
@@ -502,6 +503,7 @@ async def test_post_engine_run_returns_result():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_engine_returns_stored_result():
     """GET /tenders/{id}/engine → stored discrepancies."""
     from services.api.services.api.main import app
@@ -519,6 +521,7 @@ async def test_get_engine_returns_stored_result():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_rules_check_returns_violations():
     """POST /tenders/{id}/rules/check → RuleCheck."""
     from services.api.services.api.main import app
@@ -533,6 +536,7 @@ async def test_rules_check_returns_violations():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_engine_nonexistent_tender_404():
     """POST /tenders/nonexistent/engine/run → 404."""
     from services.api.services.api.main import app
@@ -542,6 +546,7 @@ async def test_engine_nonexistent_tender_404():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_violations_have_provenance():
     """Every violation in /engine/run response has provenance with source+field."""
     from services.api.services.api.main import app

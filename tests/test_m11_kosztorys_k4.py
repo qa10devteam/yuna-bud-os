@@ -34,6 +34,7 @@ def auth_headers():
 
 
 class TestSummaryEndpoint:
+    @pytest.mark.integration
     def test_summary_existing_kosztorys(self, client, auth_headers):
         """Create kosztorys, add pozycja, recalc, then get summary."""
         r = client.post("/api/v2/kosztorys", json={
@@ -60,6 +61,7 @@ class TestSummaryEndpoint:
         assert "narzuty" in data
         assert data["narzuty"]["ko_r_pct"] == 70.0
 
+    @pytest.mark.integration
     def test_summary_nonexistent(self, client, auth_headers):
         fake_id = str(uuid.uuid4())
         resp = client.get(f"/api/v2/kosztorys/{fake_id}/summary", headers=auth_headers)
@@ -67,6 +69,7 @@ class TestSummaryEndpoint:
 
 
 class TestAthExportFixed:
+    @pytest.mark.integration
     def test_ath_export_returns_xml(self, client, auth_headers):
         """ATH export should now work with the @router.get decorator fix."""
         r = client.post("/api/v2/kosztorys", json={
@@ -90,12 +93,14 @@ class TestAthExportFixed:
 
 
 class TestFromTenderEndpoint:
+    @pytest.mark.integration
     def test_from_tender_not_found(self, client, auth_headers):
         """Non-existent tender should 404."""
         fake_id = str(uuid.uuid4())
         resp = client.post(f"/api/v2/kosztorys/from-tender/{fake_id}", headers=auth_headers)
         assert resp.status_code == 404
 
+    @pytest.mark.integration
     def test_from_tender_creates(self, client, auth_headers):
         """If tender exists, creates kosztorys linked to it."""
         import sqlalchemy as sa
@@ -118,6 +123,7 @@ class TestFromTenderEndpoint:
 
 
 class TestPdfExportK4:
+    @pytest.mark.integration
     def test_pdf_content_headers(self, client, auth_headers):
         """PDF export returns correct content-disposition."""
         r = client.post("/api/v2/kosztorys", json={

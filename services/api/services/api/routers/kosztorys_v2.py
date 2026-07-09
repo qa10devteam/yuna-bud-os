@@ -454,7 +454,7 @@ def get_material_alerts(user: AuthUser, limit: int = 50) -> list[dict]:
         from ..intelligence.material_risk import get_active_alerts
         return get_active_alerts(tenant_id, limit=limit)
     except Exception as e:
-        logger.warning("material alerts failed: %s", e)
+        logger.exception("material alerts failed: %s", e, exc_info=True)
         return []
 
 
@@ -467,7 +467,7 @@ def acknowledge_material_alert(alert_id: str, user: AuthUser) -> dict:
         ok = acknowledge_alert(alert_id, tenant_id)
         return {"ok": ok}
     except Exception as e:
-        logger.warning("acknowledge alert failed: %s", e)
+        logger.exception("acknowledge alert failed: %s", exc_info=True)
         return {"ok": False}
 
 
@@ -559,7 +559,7 @@ def add_pozycja(kid: str, body: PozycjaCreate, user: AuthUser) -> dict:
             from ..intelligence.material_risk import check_material_risks
             check_material_risks(kosztorys_id=kid, tenant_id=tenant_id)
         except Exception as _e:
-            logger.warning("material_risk trigger failed after add_pozycja: %s", _e)
+            logger.exception("material_risk trigger failed after add_pozycja: %s", exc_info=True)
 
     return {"id": pid, "status": "created"}
 
@@ -617,7 +617,7 @@ def update_pozycja(kid: str, pid: str, body: PozycjaUpdate, user: AuthUser) -> d
             from ..intelligence.material_risk import check_material_risks
             check_material_risks(kosztorys_id=kid, tenant_id=tenant_id)
         except Exception as _e:
-            logger.warning("material_risk trigger failed after update_pozycja: %s", _e)
+            logger.exception("material_risk trigger failed after update_pozycja: %s", exc_info=True)
 
     return {"id": pid, "updated": list(updates.keys())}
 
