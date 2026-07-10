@@ -11,10 +11,13 @@ Logika:
   3. Zbuduj HTML digest (do 20 przetargów per email)
   4. Wyślij SMTP lub zapisz do email_logs
   5. Ustaw last_fired_at = NOW()
+
+Sprint 12 (BPMN Faza 1): SMTP batch — jeden session per dispatch run.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import os
 import smtplib
@@ -430,6 +433,84 @@ def send_smtp(
     return False
 
 
+@contextlib.contextmanager
+def open_smtp_session(
+    smtp_host: str = "",
+    smtp_port: int = 587,
+    smtp_user: str = "",
+    smtp_pass: str = "",
+):
+    """Sprint 12: Context manager yielding a reusable SMTP session.
+
+    Usage:
+        with open_smtp_session(...) as server:
+            send_via_session(server, ...)  # N emails — 1 SMTP handshake
+
+    Yields None when smtp_host is empty (dry-run / no SMTP configured).
+    """
+    if not smtp_host:
+        yield None
+        return
+
+    ctx = ssl.create_default_context()
+    server = smtplib.SMTP(smtp_host, smtp_port)
+    try:
+        server.ehlo()
+        server.starttls(context=ctx)
+        if smtp_user:
+            server.login(smtp_user, smtp_pass)
+        logger.debug("SMTP session opened: %s:%d", smtp_host, smtp_port)
+        yield server
+    finally:
+        try:
+            server.quit()
+        except Exception:
+            pass
+        logger.debug("SMTP session closed")
+
+
+def send_via_session(
+    server,  # smtplib.SMTP | None
+    to_email: str,
+    subject: str,
+    html: str,
+    text: str,
+    from_email: str = "noreply@terra-os.qa10.io",
+    from_name: str = "Terra.OS",
+) -> bool:
+    """Sprint 12: Send one email via existing SMTP session (no reconnect).
+
+    Falls back to EMAIL-DRY log when server is None.
+    """
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{from_name} <{from_email}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(text, "plain", "utf-8"))
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    if server is None:
+        logger.info("[EMAIL-DRY] To=%s | Subject=%s", to_email, subject)
+        return True
+
+    try:
+        server.sendmail(from_email, to_email, msg.as_string())
+        logger.info("Email sent via session: to=%s subject=%s", to_email, subject)
+        return True
+    except smtplib.SMTPServerDisconnected:
+        logger.warning("SMTP session disconnected — single retry")
+        try:
+            server.connect()
+            server.sendmail(from_email, to_email, msg.as_string())
+            return True
+        except Exception as exc:
+            logger.error("SMTP retry failed: %s", exc)
+            return False
+    except Exception as exc:
+        logger.error("SMTP send failed: %s", exc)
+        return False
+
+
 def deliver_alert(
     conn,
     alert: Alert,
@@ -530,51 +611,84 @@ def run_alert_runner(
     frequency: str | None = None,
     dry_run: bool = False,
 ) -> dict:
-    """Main entry point — runs all eligible alerts."""
+    """Main entry point — runs all eligible alerts.
+
+    Sprint 12: One SMTP session for the whole dispatch run (batch mode).
+    """
     conn = psycopg2.connect(db_dsn)
     stats = {"alerts_checked": 0, "alerts_fired": 0, "emails_sent": 0, "tenders_found": 0, "skipped": 0}
+
+    smtp_host = os.getenv("SMTP_HOST", "")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_pass = os.getenv("SMTP_PASS", "")
+    from_email = os.getenv("SMTP_FROM", "noreply@terra-os.qa10.io")
+    from_name = os.getenv("SMTP_FROM_NAME", "Terra.OS")
 
     try:
         alerts = fetch_active_alerts(conn, tenant_id=tenant_id, frequency=frequency)
         stats["alerts_checked"] = len(alerts)
         logger.info("Active alerts: %d", len(alerts))
 
-        for alert in alerts:
-            if not _should_fire(alert):
-                stats["skipped"] += 1
-                logger.debug("Alert %s: not due yet (freq=%s)", alert.name, alert.frequency)
-                continue
+        # Sprint 12: open ONE SMTP session for all outgoing emails
+        with open_smtp_session(smtp_host, smtp_port, smtp_user, smtp_pass) as smtp_server:
+            for alert in alerts:
+                if not _should_fire(alert):
+                    stats["skipped"] += 1
+                    logger.debug("Alert %s: not due yet (freq=%s)", alert.name, alert.frequency)
+                    continue
 
-            # Determine since window
-            now = datetime.now(timezone.utc)
-            if alert.last_fired_at:
-                since = alert.last_fired_at
-                if since.tzinfo is None:
-                    since = since.replace(tzinfo=timezone.utc)
-            else:
-                # First run: look back based on frequency
-                lookback = {"instant": 1, "daily": 1, "weekly": 7}
-                since = now - timedelta(days=lookback.get(alert.frequency, 1))
+                # Determine since window
+                now = datetime.now(timezone.utc)
+                if alert.last_fired_at:
+                    since = alert.last_fired_at
+                    if since.tzinfo is None:
+                        since = since.replace(tzinfo=timezone.utc)
+                else:
+                    lookback = {"instant": 1, "daily": 1, "weekly": 7}
+                    since = now - timedelta(days=lookback.get(alert.frequency, 1))
 
-            tenders = match_tenders(conn, alert, since)
-            stats["tenders_found"] += len(tenders)
+                tenders = match_tenders(conn, alert, since)
+                stats["tenders_found"] += len(tenders)
 
-            if not tenders:
-                logger.info("Alert '%s': 0 new tenders since %s — skip", alert.name, since.date())
-                if not dry_run:
-                    update_last_fired(conn, alert.id)
-                    conn.commit()
-                continue
+                if not tenders:
+                    logger.info("Alert '%s': 0 new tenders since %s — skip", alert.name, since.date())
+                    if not dry_run:
+                        update_last_fired(conn, alert.id)
+                        conn.commit()
+                    continue
 
-            logger.info("Alert '%s': %d new tenders → sending digest", alert.name, len(tenders))
-            ok = deliver_alert(conn, alert, tenders, since, dry_run=dry_run)
+                logger.info("Alert '%s': %d new tenders → sending digest", alert.name, len(tenders))
 
-            if ok:
-                stats["emails_sent"] += 1
-                stats["alerts_fired"] += 1
-                if not dry_run:
-                    update_last_fired(conn, alert.id)
-                    conn.commit()
+                if dry_run:
+                    ok = deliver_alert(conn, alert, tenders, since, dry_run=True)
+                else:
+                    # Build message bodies
+                    to_email_addr = get_user_email(conn, alert.user_id, alert.tenant_id)
+                    if not to_email_addr:
+                        logger.warning("Alert %s: no recipient email, skipping", alert.id)
+                        continue
+                    subject = f"Terra.OS Zwiad: {len(tenders)} nowych przetargów — {alert.name}"
+                    html = build_html_digest(alert, tenders, since)
+                    text = build_text_digest(alert, tenders, since)
+                    ok = send_via_session(
+                        smtp_server,
+                        to_email=to_email_addr,
+                        subject=subject,
+                        html=html,
+                        text=text,
+                        from_email=from_email,
+                        from_name=from_name,
+                    )
+                    log_email_sent(conn, alert.tenant_id, to_email_addr, subject,
+                                   "tender_alert_digest", "sent" if ok else "failed")
+
+                if ok:
+                    stats["emails_sent"] += 1
+                    stats["alerts_fired"] += 1
+                    if not dry_run:
+                        update_last_fired(conn, alert.id)
+                        conn.commit()
 
     except Exception as exc:
         logger.error("Alert runner error: %s", exc)
