@@ -45,7 +45,7 @@ export function NotificationsBell() {
 
   useEffect(() => {
     if (!accessToken) return;
-    fetch('/api/v1/notifications?limit=20', {
+    fetch('/api/v2/notifications?limit=20', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -66,10 +66,9 @@ export function NotificationsBell() {
   function markRead(id: string) {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
     if (accessToken) {
-      fetch(`/api/v1/notifications/${id}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ read: true }),
+      fetch(`/api/v2/notifications/${id}/read`, {
+        method: 'POST',
+        headers: { Authorization: *** ${accessToken}` },
       }).catch(() => {});
     }
   }
@@ -77,9 +76,9 @@ export function NotificationsBell() {
   function markAllRead() {
     setNotifications(ns => ns.map(n => ({ ...n, read: true })));
     if (accessToken) {
-      fetch('/api/v1/notifications/read-all', {
+      fetch('/api/v2/notifications/read-all', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: *** ${accessToken}` },
       }).catch(() => {});
     }
   }
