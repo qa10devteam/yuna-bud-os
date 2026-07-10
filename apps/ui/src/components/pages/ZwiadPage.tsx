@@ -825,7 +825,8 @@ function DocumentsTab({ tenderId, authFetch, source }: { tenderId: string; authF
   };
 
   const handleDownload = (doc: BzpDocument) => {
-    window.open(doc.download_url, '_blank');
+    // Use local proxy endpoint for reliable downloads (handles CORS + caching)
+    window.open(`/api/v1/bzp/documents/${tenderId}/download/${doc.id}`, '_blank');
   };
 
   if (source && source !== 'bzp') {
