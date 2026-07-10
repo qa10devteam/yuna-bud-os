@@ -144,11 +144,26 @@ def _run_ingest_worker(task_id: str, tenant_id: str, params: dict) -> None:
                 {"task_id": task_id, **kw},
             )
 
+    # S23: step→message map for granular SSE progress
+    _STEP_MESSAGES = {
+        "init": "Inicjalizacja...",
+        "fetching_bzp": "Pobieranie BZP...",
+        "fetching_ted": "Pobieranie TED...",
+        "fetching_bip": "Pobieranie BIP...",
+        "normalizing": "Normalizacja...",
+        "scoring": "Scorowanie...",
+        "upserting": "Zapisywanie...",
+        "done": "Zakończono",
+    }
+
+    def _pipeline_progress_cb(step: str, pct: int) -> None:
+        msg = _STEP_MESSAGES.get(step, step)
+        _set_progress(task_id, step, pct, msg)
+
     try:
         _update_task(status="running", started_at=now())
-        _set_progress(task_id, "starting", 5, "Inicjalizacja pipeline...")
+        _set_progress(task_id, "init", 5, "Inicjalizacja...")
 
-        _set_progress(task_id, "fetching", 15, "Pobieranie ogloszen BZP/TED...")
         result = run_ingest(
             engine,
             days_back=params.get("days_back", 7),
@@ -158,9 +173,10 @@ def _run_ingest_worker(task_id: str, tenant_id: str, params: dict) -> None:
             run_dedup=params.get("run_dedup", True),
             bip_max_sites=50,
             tenant_id=tenant_id if tenant_id else None,  # S8: explicit tenant isolation
+            progress_cb=_pipeline_progress_cb,  # S23: granular progress steps
         )
 
-        _set_progress(task_id, "done", 100, f"Zakonczone: +{result.created} nowych")
+        _set_progress(task_id, "done", 100, f"Zakończono: +{result.created} nowych")
         result_dict = {
             "fetched": result.raw_fetched,
             "created": result.created,
@@ -175,7 +191,7 @@ def _run_ingest_worker(task_id: str, tenant_id: str, params: dict) -> None:
             finished_at=now(),
             result=json.dumps(result_dict),
             progress=json.dumps({"step": "done", "pct": 100,
-                                  "message": f"Zakonczone: +{result.created} nowych"}),
+                                  "message": f"Zakończono: +{result.created} nowych"}),
         )
         logger.info("Ingest task %s done: %s", task_id, result_dict)
 
@@ -210,6 +226,31 @@ def ingest_run(
 
     from services.ingestion.repository import get_or_create_default_tenant
     tenant_id = get_or_create_default_tenant(engine)
+
+    # S106 — Billing plan limit check
+    with engine.connect() as _conn:
+        # Resolve org_id from tenant_id
+        _org_row = _conn.execute(
+            sa.text("SELECT id FROM organizations WHERE tenant_id = :tid LIMIT 1"),
+            {"tid": tenant_id},
+        ).fetchone()
+        if _org_row:
+            _org_id = str(_org_row[0])
+            _sub = _conn.execute(
+                sa.text("SELECT plan FROM subscription WHERE org_id = :oid LIMIT 1"),
+                {"oid": _org_id},
+            ).fetchone()
+            if _sub:
+                _plan = _sub[0]
+                # Plan limits (tenders_limit not in table — use defaults per plan)
+                _plan_limits = {"free": 500, "starter": 2000, "pro": 20000, "enterprise": 999999}
+                _tenders_limit = _plan_limits.get(_plan, 500)
+                _count = _conn.execute(
+                    sa.text("SELECT count(*) FROM tender WHERE tenant_id = :tid"),
+                    {"tid": tenant_id},
+                ).scalar() or 0
+                if _count >= _tenders_limit:
+                    raise HTTPException(status_code=402, detail="Plan limit exceeded")
 
     created_at = datetime.now(timezone.utc)
     with engine.begin() as conn:

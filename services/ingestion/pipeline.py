@@ -1,9 +1,10 @@
 """M1 — Ingestion pipeline: orchestrates fetch → normalize → filter → score → upsert."""
 from __future__ import annotations
-
 import logging
 import os
+import sqlalchemy as sa
 from datetime import date, timedelta
+from typing import Callable
 
 from sqlalchemy.engine import Engine
 
@@ -59,6 +60,7 @@ def run_ingest(
     bip_max_sites: int = 50,
     run_dedup: bool = True,
     tenant_id: str | None = None,  # explicit tenant override (multitenant SaaS)
+    progress_cb: "Callable[[str, int], None] | None" = None,  # S23: (step, pct)
 ) -> IngestResult:
     """Full M1 ingestion pipeline — BZP + TED EU.
 
@@ -72,12 +74,23 @@ def run_ingest(
     result = IngestResult()
     use_fixtures = offline if offline is not None else TERRA_OFFLINE
 
+    # S23: helper to safely call progress callback
+    def _progress(step: str, pct: int) -> None:
+        if progress_cb is not None:
+            try:
+                progress_cb(step, pct)
+            except Exception:
+                pass
+
+    _progress("init", 5)
+
     date_from = date.today() - timedelta(days=days_back)
     date_to = date.today()
 
     # S19: BZP + TED both receive the same days_back (default 7) for consistency
 
     # Step 1a: BZP fetch
+    _progress("fetching_bzp", 15)
     if use_fixtures:
         logger.info("OFFLINE mode — loading BZP fixtures")
         bzp_raw = load_bzp_fixtures()
@@ -88,6 +101,7 @@ def run_ingest(
     logger.info("BZP fetched %d raw notices", len(bzp_raw))
 
     # Step 1b: TED fetch
+    _progress("fetching_ted", 30)
     ted_raw: list = []
     if include_ted and not use_fixtures:
         try:
@@ -101,6 +115,7 @@ def run_ingest(
     result.raw_fetched = len(bzp_raw) + len(ted_raw)
 
     # Step 2a: Normalize BZP
+    _progress("normalizing", 60)
     tenders_in = []
     for notice in bzp_raw:
         try:
@@ -148,6 +163,7 @@ def run_ingest(
     logger.info("Filter: %d passed, %d dropped", result.passed_filter, result.dropped_filter)
 
     # Step 4+5: Score + Upsert
+    _progress("scoring", 75)
     # tenant_id and profile already loaded above (Step 3)
     for tender in passed:
         try:
@@ -169,8 +185,64 @@ def run_ingest(
 
     logger.info("Ingest done: %r", result)
 
+    # S58: KRS auto-enrich for new tenders with buyer_nip not yet in buyer_crm
+    try:
+        with engine.connect() as conn:
+            rows_nip = conn.execute(sa.text("""
+                SELECT DISTINCT t.buyer_nip
+                FROM tender t
+                WHERE t.tenant_id = :tid
+                  AND t.buyer_nip IS NOT NULL
+                  AND t.buyer_nip <> ''
+                  AND NOT EXISTS (
+                      SELECT 1 FROM buyer_crm bc
+                      WHERE bc.nip = t.buyer_nip AND bc.tenant_id = :tid
+                  )
+                LIMIT 20
+            """), {"tid": str(tenant_id)}).fetchall()
+        if rows_nip:
+            def _krs_enrich_batch(nips: list[str], tid: str) -> None:
+                try:
+                    from terra_db.session import get_engine as _get_engine
+                    eng2 = _get_engine()
+                    for nip_val in nips:
+                        try:
+                            info: dict = {"name": ""}
+                            try:
+                                import httpx
+                                r = httpx.get(
+                                    f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/podmiot/nip/{nip_val}",
+                                    headers={"Accept": "application/json"}, timeout=10,
+                                )
+                                if r.status_code == 200:
+                                    d = r.json()
+                                    info = {"name": d.get("odpis", {}).get("dane", {}).get("dzialy", {}).get("dzial1", {}).get("danePodmiotu", {}).get("nazwa", "")}
+                            except Exception:
+                                pass
+                            with eng2.connect() as c2:
+                                c2.execute(sa.text("""
+                                    INSERT INTO buyer_crm (id, tenant_id, buyer_nip, crm_stage, notes, last_verified_at)
+                                    VALUES (gen_random_uuid(), :tid, :nip, 'prospect',
+                                            :note, now())
+                                    ON CONFLICT (tenant_id, buyer_nip) DO UPDATE
+                                    SET last_verified_at = now()
+                                """), {"tid": tid, "nip": nip_val,
+                                       "note": info.get("name", "")})
+                                c2.commit()
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+            import threading
+            nip_list = [r[0] for r in rows_nip]
+            threading.Thread(target=_krs_enrich_batch, args=(nip_list, str(tenant_id)), daemon=True).start()
+            logger.info("S58: KRS enrich started for %d NIPs", len(nip_list))
+    except Exception as exc_s58:
+        logger.debug("S58 KRS enrich skip: %s", exc_s58)
+
     # Step 6 (optional): BIP scraping
     if include_bip and not use_fixtures:
+        _progress("fetching_bip", 45)
         try:
             from services.ingestion.bip_connector import run_bip_scraper
             bip_stats = run_bip_scraper(
@@ -291,5 +363,8 @@ def run_ingest(
         )
     except Exception as exc:
         logger.debug("n8n trigger_webhook non-critical: %s", exc)
+
+    # S23: final done step
+    _progress("done", 100)
 
     return result
