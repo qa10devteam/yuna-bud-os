@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle, TrendingUp, Filter } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { useAuthFetch } from '@/lib/api-v2';
 import { showToast } from '@/components/Toast';
 import { TenderDetail } from '@/components/TenderDetail';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -185,12 +186,11 @@ export function PipelinePage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  const authFetch = useAuthFetch();
+
   const fetchTenders = useCallback(async () => {
     try {
-      const headers: Record<string, string> = accessToken ? { Authorization: 'Bearer ' + accessToken } : {};
-      const res = await fetch('/api/v1/tenders?limit=100', { headers });
-      if (!res.ok) throw new Error('Błąd ' + res.status);
-      const data = await res.json();
+      const data = await authFetch('/api/v1/tenders?limit=100');
       const items: TenderItem[] = data.items ?? [];
       const byStage: Record<string, TenderItem[]> = {};
       for (const st of PIPELINE_STAGES) byStage[st.key] = [];
@@ -254,11 +254,8 @@ export function PipelinePage() {
     });
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
-      await fetch('/api/v1/tenders/' + tenderId, {
+      await authFetch('/api/v1/tenders/' + tenderId, {
         method: 'PATCH',
-        headers,
         body: JSON.stringify({ status: toStage }),
       });
       showToast('success', 'Status przetargu zaktualizowany');

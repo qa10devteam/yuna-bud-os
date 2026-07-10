@@ -8,6 +8,7 @@ import {
   Zap, Calculator, Scale,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import MarketIntelligenceDashboard from '@/components/MarketIntelligenceDashboard';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface AHPCriterion {
@@ -530,6 +531,11 @@ export function AnalyticsPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Market Intelligence Dashboard */}
+      <div className="mt-8">
+        <MarketIntelligenceDashboard />
       </div>
     </motion.div>
   );
