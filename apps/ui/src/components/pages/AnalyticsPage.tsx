@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import MarketIntelligenceDashboard from '@/components/MarketIntelligenceDashboard';
+import ICBPriceExplorer from '@/components/ICBPriceExplorer';
+import TenderFTSSearch from '@/components/TenderFTSSearch';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface AHPCriterion {
@@ -536,6 +538,16 @@ export function AnalyticsPage() {
       {/* Market Intelligence Dashboard */}
       <div className="mt-8">
         <MarketIntelligenceDashboard />
+      </div>
+
+      {/* ICB Price Explorer */}
+      <div className="mt-6">
+        <ICBPriceExplorer />
+      </div>
+
+      {/* Full-text Tender Search */}
+      <div className="mt-6">
+        <TenderFTSSearch />
       </div>
     </motion.div>
   );
