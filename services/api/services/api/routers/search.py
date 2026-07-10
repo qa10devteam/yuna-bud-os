@@ -1,4 +1,8 @@
-"""Faza 15 — Full-Text Search router."""
+"""Faza 15 — Full-Text Search router.
+
+S40/S41/S42: Added cpv_prefix, region, min_value, max_value, deadline_before filters
+and POST /save-as-alert endpoint.
+"""
 from __future__ import annotations
 
 import base64
@@ -9,6 +13,7 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from terra_db.session import get_engine
 from ..auth.deps import AuthUser
@@ -61,6 +66,11 @@ def search(
     type: str = Query("all", description="all|tenders|documents"),
     source: str | None = Query(None, description="Filtr źródła: bzp|ted|bip"),
     status: str | None = Query(None, description="Filtr statusu przetargu, np. active"),
+    cpv_prefix: str | None = Query(None, description="S40: Filtr CPV prefix, np. '45200'"),
+    region: str | None = Query(None, description="S41: Filtr NUTS region prefix, np. 'PL21'"),
+    min_value: float | None = Query(None, description="S42: Minimalna wartość PLN"),
+    max_value: float | None = Query(None, description="S42: Maksymalna wartość PLN"),
+    deadline_before: str | None = Query(None, description="S42: Termin składania ofert przed datą (ISO 8601)"),
     limit: int = Query(20, ge=1, le=100),
     cursor: str | None = Query(None, description="Kursor paginacji (base64 JSON)"),
 ) -> dict:
@@ -89,6 +99,11 @@ def search(
         # Build optional filter fragments
         source_clause = "AND t.source = :source" if source else ""
         status_clause = "AND t.status = :status" if status else ""
+        cpv_clause = "AND EXISTS (SELECT 1 FROM unnest(t.cpv) AS c WHERE c LIKE :cpv_prefix)" if cpv_prefix else ""
+        region_clause = "AND t.nuts_code LIKE :region" if region else ""
+        min_value_clause = "AND t.value_pln >= :min_value" if min_value is not None else ""
+        max_value_clause = "AND t.value_pln <= :max_value" if max_value is not None else ""
+        deadline_clause = "AND t.deadline_at <= :deadline_before::timestamptz" if deadline_before else ""
         cursor_clause = (
             "AND (t.created_at, t.id::text) < (:cursor_ts::timestamptz, :cursor_id)"
             if cursor_ts and cursor_id
@@ -100,6 +115,16 @@ def search(
             params["source"] = source
         if status:
             params["status"] = status
+        if cpv_prefix:
+            params["cpv_prefix"] = cpv_prefix + "%"
+        if region:
+            params["region"] = region + "%"
+        if min_value is not None:
+            params["min_value"] = min_value
+        if max_value is not None:
+            params["max_value"] = max_value
+        if deadline_before:
+            params["deadline_before"] = deadline_before
         if cursor_ts and cursor_id:
             params["cursor_ts"] = cursor_ts
             params["cursor_id"] = cursor_id
@@ -122,6 +147,11 @@ def search(
                         WHERE t.tenant_id = :tid
                           {source_clause}
                           {status_clause}
+                          {cpv_clause}
+                          {region_clause}
+                          {min_value_clause}
+                          {max_value_clause}
+                          {deadline_clause}
                           {cursor_clause}
                           AND to_tsvector(
                               '{fts}',
@@ -156,6 +186,11 @@ def search(
                         WHERE t.tenant_id = :tid
                           {source_clause}
                           {status_clause}
+                          {cpv_clause}
+                          {region_clause}
+                          {min_value_clause}
+                          {max_value_clause}
+                          {deadline_clause}
                           {cursor_clause}
                           AND (t.title ILIKE :q_like OR t.buyer ILIKE :q_like)
                         ORDER BY t.created_at DESC, t.id DESC
@@ -240,3 +275,61 @@ def search(
         "query": q,
         "next_cursor": next_cursor,
     }
+
+
+# S40/S41/S42: POST /save-as-alert — save current search as a tender_alert
+
+class SaveAsAlertRequest(BaseModel):
+    name: str = "Search Alert"
+    q: str
+    cpv_prefix: str | None = None
+    region: str | None = None
+    min_value: float | None = None
+    max_value: float | None = None
+
+
+@router.post("/save-as-alert", status_code=201)
+def save_search_as_alert(body: SaveAsAlertRequest, user: AuthUser) -> dict:
+    """S40/S41/S42: Save current search parameters as a tender_alert (daily email)."""
+    if not user.org_id:
+        raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
+
+    engine = get_engine()
+
+    cpv_prefixes = [body.cpv_prefix] if body.cpv_prefix else []
+    provinces = [body.region] if body.region else []
+    keywords = [body.q] if body.q else []
+
+    # Check duplicate by name
+    with engine.connect() as conn:
+        dup = conn.execute(
+            sa.text("SELECT id FROM tender_alert WHERE tenant_id = :tid AND name = :name"),
+            {"tid": str(user.org_id), "name": body.name},
+        ).one_or_none()
+        if dup:
+            return {"id": str(dup.id), "status": "already_exists"}
+
+        row = conn.execute(
+            sa.text("""
+                INSERT INTO tender_alert (
+                    tenant_id, user_id, name, cpv_prefixes, provinces, keywords,
+                    value_min, value_max, is_active, frequency, channel
+                ) VALUES (
+                    :tid, :uid, :name, :cpv_prefixes, :provinces, :keywords,
+                    :value_min, :value_max, true, 'daily', 'email'
+                )
+                RETURNING id, name, is_active, frequency, created_at
+            """),
+            {
+                "tid": str(user.org_id),
+                "uid": str(user.user_id),
+                "name": body.name,
+                "cpv_prefixes": cpv_prefixes,
+                "provinces": provinces,
+                "keywords": keywords,
+                "value_min": body.min_value,
+                "value_max": body.max_value,
+            },
+        ).mappings().one()
+        conn.commit()
+    return dict(row)
