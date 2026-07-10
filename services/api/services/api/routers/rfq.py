@@ -544,3 +544,10 @@ def send_rfq_to_subcontractors(
         )
 
     return {"sent_to": body.emails, "status": "queued"}
+
+
+# ── v2 POST alias — musi być po definicji ApprovalResponse + create_rfq ────────
+@router_v2.post("/tenders/{tender_id}/rfq", status_code=202, response_model=ApprovalResponse)
+def create_rfq_v2(tender_id: str, body: RFQCreate, tenant_id: TenantDep, user: AuthUser) -> ApprovalResponse:
+    """POST /api/v2/tenders/{id}/rfq — alias v2 dla v1 RFQ gated endpoint."""
+    return create_rfq(tender_id, body, tenant_id, user)

@@ -169,8 +169,8 @@ def list_notifications(
         cd = _decode_cursor(cursor)
         # Tuple comparison: rows strictly before (created_at, id) in DESC order
         conditions.append(
-            "(created_at < :cursor_ts::timestamptz"
-            " OR (created_at = :cursor_ts::timestamptz AND id < :cursor_id::uuid))"
+            "(created_at < CAST(:cursor_ts AS TIMESTAMPTZ)"
+            " OR (created_at = CAST(:cursor_ts AS TIMESTAMPTZ) AND id < CAST(:cursor_id AS UUID)))"
         )
         params["cursor_ts"] = cd["created_at"]
         params["cursor_id"] = cd["id"]

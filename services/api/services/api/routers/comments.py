@@ -103,7 +103,7 @@ def list_comments(
         cursor_ts, cursor_id = _decode_cursor(cursor)
 
     cursor_clause = (
-        "AND (c.created_at, c.id::text) > (:cursor_ts::timestamptz, :cursor_id)"
+        "AND (c.created_at, c.id::text) > (CAST(:cursor_ts AS TIMESTAMPTZ), :cursor_id)"
         if cursor_ts and cursor_id
         else ""
     )
@@ -394,7 +394,7 @@ def tender_activity(
                                action || ': ' || coalesce(entity, '') AS detail,
                                actor, at AS created_at
                         FROM audit_log
-                        WHERE entity_id = :tid::uuid
+                        WHERE entity_id = CAST(:tid AS UUID)
                         ORDER BY at DESC LIMIT :limit
                         """
                     ),

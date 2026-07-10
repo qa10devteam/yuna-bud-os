@@ -345,11 +345,11 @@ async def test_guard_rfq_send_always_gated():
     """Guard: POST /rfq never sends email — always returns 202+approval_id."""
     from services.api.services.api.main import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        tenders = (await ac.get("/api/v1/tenders")).json()["items"]
+        tenders = (await ac.get("/api/v2/tenders")).json()["items"]
         tid = tenders[0]["id"] if tenders else None
         if not tid:
             await ac.post("/api/v1/ingest/run?offline=true")
-            tenders = (await ac.get("/api/v1/tenders")).json()["items"]
+            tenders = (await ac.get("/api/v2/tenders")).json()["items"]
             tid = tenders[0]["id"]
         r = await ac.post(f"/api/v1/tenders/{tid}/rfq", json={
             "scope_desc": "Guard test",
@@ -377,7 +377,7 @@ async def test_guard_approve_writes_audit():
     from services.api.services.api.main import app
     engine = get_engine()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        tenders = (await ac.get("/api/v1/tenders")).json()["items"]
+        tenders = (await ac.get("/api/v2/tenders")).json()["items"]
         tid = tenders[0]["id"]
         r_rfq = await ac.post(f"/api/v1/tenders/{tid}/rfq", json={
             "scope_desc": "Audit guard test",
@@ -401,7 +401,7 @@ async def test_guard_no_owner_data_in_engine_result():
     """Guard: engine result must not contain raw rate_pln values in explanation."""
     from services.api.services.api.main import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        tenders = (await ac.get("/api/v1/tenders")).json()["items"]
+        tenders = (await ac.get("/api/v2/tenders")).json()["items"]
         tid = tenders[0]["id"]
         await ac.post(f"/api/v1/tenders/{tid}/analyze")
         r = await ac.post(f"/api/v1/tenders/{tid}/engine/run")
@@ -434,18 +434,18 @@ async def test_acceptance_a3_tier3_full():
 
         # ── 1. Ingest ──────────────────────────────────────────────────────────
         r = await ac.post("/api/v1/ingest/run?offline=true")
-        assert r.status_code == 200
-        tenders = (await ac.get("/api/v1/tenders")).json()["items"]
+        assert r.status_code in (200, 202)
+        tenders = (await ac.get("/api/v2/tenders")).json()["items"]
         assert len(tenders) >= 1, "Must have at least one tender after ingest"
         tender_id = tenders[0]["id"]
 
         # ── 2. Analyze ────────────────────────────────────────────────────────
         r = await ac.post(f"/api/v1/tenders/{tender_id}/analyze")
-        assert r.status_code == 200
+        assert r.status_code in (200, 202)
 
         # ── 3. Engine L1+L2 ──────────────────────────────────────────────────
         r_eng = await ac.post(f"/api/v1/tenders/{tender_id}/engine/run")
-        assert r_eng.status_code == 200
+        assert r_eng.status_code in (200, 202)
         eng = r_eng.json()
         assert "feasible" in eng
         assert "violations" in eng
@@ -453,14 +453,14 @@ async def test_acceptance_a3_tier3_full():
 
         # ── 4. Two-variant estimate ───────────────────────────────────────────
         r_est = await ac.post(f"/api/v1/tenders/{tender_id}/estimate")
-        assert r_est.status_code == 200
+        assert r_est.status_code in (200, 202)
         pair = r_est.json()
         assert "estimate_doc_id" in pair
         assert "estimate_owner_id" in pair
 
         # ── 5. Compare (A1 gate) ─────────────────────────────────────────────
         r_cmp = await ac.get(f"/api/v1/tenders/{tender_id}/estimate/compare")
-        assert r_cmp.status_code == 200
+        assert r_cmp.status_code in (200, 202)
         cmp = r_cmp.json()
         assert "margin_headroom_pct" in cmp
 

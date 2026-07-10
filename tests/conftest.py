@@ -14,9 +14,24 @@ for path in [
     os.path.join(ROOT, "packages", "shared"),
     os.path.join(ROOT, "packages", "db"),
     os.path.join(ROOT, "services", "estimator"),
+    os.path.join(ROOT, "services", "api"),
 ]:
     if path not in sys.path:
         sys.path.insert(0, path)
+
+# NOTE: The API uses PEP 420 namespace packages (no __init__.py) for uvicorn.
+# But pytest needs __init__.py to resolve "services.api.services.api.main".
+# We create them here and clean them up via a session-scoped finalizer so that
+# uvicorn (started separately) is never affected.
+_pkg_inits_created: list[str] = []
+for _pkg_dir in [
+    os.path.join(ROOT, "services"),
+    os.path.join(ROOT, "services", "api"),
+]:
+    _init = os.path.join(_pkg_dir, "__init__.py")
+    if not os.path.exists(_init):
+        open(_init, "w").close()
+        _pkg_inits_created.append(_init)
 
 # services/api appended LAST — it has its own `services/` sub-package that would
 # shadow terra-os/services (engine, ingestion…) if inserted at position 0.
@@ -52,6 +67,22 @@ except Exception:
 
 # ─── Auth fixture ─────────────────────────────────────────────────────────────
 import pytest
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _cleanup_pkg_inits():
+    """Remove __init__.py files created for pytest namespace resolution.
+
+    These files are needed so pytest can import 'services.api.services.api.main',
+    but they must NOT persist after the test session because they break uvicorn's
+    namespace package resolution ('services.api.main').
+    """
+    yield
+    for init_path in _pkg_inits_created:
+        try:
+            os.remove(init_path)
+        except OSError:
+            pass
 
 
 @pytest.fixture(scope="session")
@@ -105,4 +136,26 @@ def _override_auth_for_tests() -> None:
         app.dependency_overrides[get_current_user] = lambda: _demo
     except Exception:
         pass  # non-ASGI test files — no-op
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Clear the in-process rate-limiter buckets between tests.
+
+    The middleware uses a module-level defaultdict that accumulates all
+    requests across the entire pytest session.  Without this reset every
+    test suite that fires >100 ASGI requests against the same org_id
+    starts getting 429 responses, causing cascading failures in m9/m7/m1.
+    """
+    try:
+        from services.api.services.api.middleware.rate_limiter import _buckets
+        _buckets.clear()
+    except Exception:
+        pass
+    yield
+    try:
+        from services.api.services.api.middleware.rate_limiter import _buckets
+        _buckets.clear()
+    except Exception:
+        pass
 

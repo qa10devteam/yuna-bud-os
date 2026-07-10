@@ -151,7 +151,7 @@ def list_offers(
     if cursor:
         cur_ts, cur_id = _decode_cursor(cursor)
         conditions.append(
-            "(created_at < :cur_ts OR (created_at = :cur_ts AND id < :cur_id::uuid))"
+            "(created_at < :cur_ts OR (created_at = :cur_ts AND id < CAST(:cur_id AS UUID)))"
         )
         params["cur_ts"] = cur_ts
         params["cur_id"] = cur_id

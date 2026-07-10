@@ -10,6 +10,26 @@ from ..auth.deps import AuthUser
 router = APIRouter(prefix="/api/v2/gantt", tags=["gantt-v2"])
 
 
+@router.get("/list")
+def list_gantt_projects(user: AuthUser) -> list:
+    """Lista projektów Gantt dla tenanta."""
+    engine = get_engine()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                """SELECT DISTINCT ON (tender_id) tender_id,
+                          MIN(start_date) as start_date,
+                          MAX(end_date) as end_date,
+                          COUNT(*) as task_count
+                   FROM gantt_tasks
+                   GROUP BY tender_id
+                   ORDER BY tender_id, MIN(start_date) DESC
+                   LIMIT 50"""
+            )
+        ).mappings().fetchall()
+    return [dict(r) for r in rows]
+
+
 @router.get("/{tender_id}")
 def get_gantt(tender_id: str, user: AuthUser) -> list:
     """S81 — Pobierz zadania Gantt dla przetargu."""

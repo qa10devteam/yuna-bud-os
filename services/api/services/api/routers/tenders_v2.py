@@ -260,7 +260,7 @@ def list_tenders(
     if cursor:
         try:
             cd = json.loads(base64.b64decode(cursor).decode())
-            cursor_sql = "AND (t.created_at < :cur_ts OR (t.created_at = :cur_ts AND t.id < :cur_id::uuid))"
+            cursor_sql = "AND (t.created_at < :cur_ts OR (t.created_at = :cur_ts AND t.id < CAST(:cur_id AS UUID)))"
             params["cur_ts"] = cd["created_at"]
             params["cur_id"] = cd["id"]
         except Exception:
@@ -435,7 +435,7 @@ def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
                    deadline_at, published_at, url, status::text, match_score,
                    match_reason, raw, created_at
             FROM tender
-            WHERE id = :id::uuid AND tenant_id = :tid
+            WHERE id = CAST(:id AS UUID) AND tenant_id = :tid
         """), {"id": tender_id, "tid": tenant_id}).fetchone()
 
         if not row:
@@ -445,7 +445,7 @@ def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
         dup_as_dup = conn.execute(sa.text("""
             SELECT master_id::text, similarity, match_fields
             FROM tender_duplicate
-            WHERE duplicate_id = :id::uuid AND tenant_id = :tid
+            WHERE duplicate_id = CAST(:id AS UUID) AND tenant_id = :tid
             LIMIT 1
         """), {"id": tender_id, "tid": tenant_id}).fetchone()
 
@@ -458,7 +458,7 @@ def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
                    t.source::text, t.title, t.url
             FROM tender_duplicate d
             JOIN tender t ON t.id = d.duplicate_id
-            WHERE d.master_id = :id::uuid AND d.tenant_id = :tid
+            WHERE d.master_id = CAST(:id AS UUID) AND d.tenant_id = :tid
         """), {"id": tender_id, "tid": tenant_id}).fetchall()
 
         # Also check if master → pull in master's detail for "sibling" duplicates
@@ -469,7 +469,7 @@ def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
                        t.source::text, t.title, t.url
                 FROM tender_duplicate d
                 JOIN tender t ON t.id = d.duplicate_id
-                WHERE d.master_id = :master_id::uuid
+                WHERE d.master_id = CAST(:master_id AS UUID)
                   AND d.duplicate_id != :self_id::uuid
                   AND d.tenant_id = :tid
             """), {"master_id": master_id, "self_id": tender_id, "tid": tenant_id}).fetchall()
@@ -536,7 +536,7 @@ def patch_tender(tender_id: str, body: TenderPatch, user: AuthUser) -> dict:
         result = conn.execute(sa.text("""
             UPDATE tender
             SET status = :status::tender_status
-            WHERE id = :id::uuid AND tenant_id = :tid
+            WHERE id = CAST(:id AS UUID) AND tenant_id = :tid
             RETURNING id::text, status::text
         """), {"status": body.status, "id": tender_id, "tid": tenant_id}).fetchone()
 
@@ -558,7 +558,7 @@ def delete_tender(tender_id: str, user: AuthUser) -> dict:
     with engine.begin() as conn:
         result = conn.execute(sa.text("""
             UPDATE tender SET status = 'archived'
-            WHERE id = :id::uuid AND tenant_id = :tid
+            WHERE id = CAST(:id AS UUID) AND tenant_id = :tid
             RETURNING id::text
         """), {"id": tender_id, "tid": tenant_id}).fetchone()
 

@@ -83,7 +83,7 @@ def _get_dashboard_data() -> dict:
 
         # Liczba unikalnych zamawiających
         buyers_row = conn.execute(sa.text(
-            "SELECT COUNT(DISTINCT buyer_name) FROM tender WHERE duplicate_of IS NULL AND buyer_name IS NOT NULL"
+            "SELECT COUNT(DISTINCT buyer) FROM tender WHERE duplicate_of IS NULL AND buyer IS NOT NULL"
         )).fetchone()
         unique_buyers = int(buyers_row[0]) if buyers_row else 0
 
