@@ -24,6 +24,10 @@ import { NotificationsPage } from '@/components/pages/NotificationsPage';
 import ExportPage from '@/components/pages/ExportPage';
 import { OfertaPage } from '@/components/pages/OfertaPage';
 import AutomationPage from '@/components/pages/AutomationPage';
+import { ResourcesPage } from '@/components/pages/ResourcesPage';
+import { ContractsPage } from '@/components/pages/ContractsPage';
+import { TeamPage } from '@/components/pages/TeamPage';
+import { ReportsPage } from '@/components/pages/ReportsPage';
 import { Sidebar } from '@/components/Sidebar';
 import { MarketBar } from '@/components/widgets/MarketBar';
 import { ChatWidget } from '@/components/ChatWidget';
@@ -57,6 +61,10 @@ function ActivePage() {
     case 'export':        return <ExportPage />;
     case 'oferta':        return <OfertaPage />;
     case 'automations':   return <AutomationPage />;
+    case 'resources':     return <ResourcesPage />;
+    case 'contracts':     return <ContractsPage />;
+    case 'team':          return <TeamPage />;
+    case 'reports':       return <ReportsPage />;
     default:              return <DashboardPage />;
   }
 }
