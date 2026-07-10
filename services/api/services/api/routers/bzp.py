@@ -20,6 +20,13 @@ from terra_db.session import get_engine
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["bzp"])
 
+# S26: Deprecation catch-all — these v1 BZP endpoints are deprecated, use /api/v2/bzp
+@router.get("/bzp/{path:path}", deprecated=True, include_in_schema=True)
+@router.post("/bzp/{path:path}", deprecated=True, include_in_schema=True)
+async def _bzp_deprecated(path: str):
+    from fastapi import HTTPException
+    raise HTTPException(410, detail="Deprecated. Use /api/v2/bzp")
+
 BZP_BASE = "https://ezamowienia.gov.pl/mo-board/api/v1/notice"
 DEFAULT_TENANT_ID = "ec3d1e16-2139-48c2-93b5-ffe0defd606d"
 
