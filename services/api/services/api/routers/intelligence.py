@@ -19,8 +19,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+
+from ..auth.deps import AuthUser, get_current_user as _get_current_user
 
 router = APIRouter(prefix="/api/v2/intelligence", tags=["intelligence"])
 
@@ -334,5 +336,29 @@ def api_win_probability(req: WinProbRequest) -> dict:
             req.our_price, req.estimated_value, req.cpv_prefix,
             req.province, req.n_competitors,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── S48: ML Win Probability per tender_id ─────────────────────────────────────
+
+from sqlalchemy import text as _sa_text
+from terra_db.session import get_engine as _get_engine
+
+
+@router.get("/win-prob/{tender_id}")
+def get_win_prob_ml(tender_id: str, user: AuthUser = Depends(_get_current_user)) -> dict:
+    """S48: Probabilistyczna ocena szansy wygranej dla przetargu (ML model)."""
+    tenant_id = user.org_id if user else None
+    try:
+        from ..intelligence.win_prob_ml import predict_win_prob
+        engine = _get_engine()
+        with engine.connect() as conn:
+            prob = predict_win_prob(tender_id, tenant_id, conn)
+        return {
+            "tender_id": tender_id,
+            "win_probability": prob,
+            "model": "logistic_regression",
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
