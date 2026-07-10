@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 
 revision = '0014_mv_dashboard_stats'
-down_revision = ('0012_offer_result', '0012_workflow_def')
+down_revision = ('0012_offer_result', '0013_workflow_def')
 branch_labels = None
 depends_on = None
 
@@ -34,20 +34,6 @@ def upgrade() -> None:
         ALTER TABLE tenant ADD COLUMN IF NOT EXISTS site_index_built_at TIMESTAMPTZ
     """)
 
-    # S29: DB indexes for tender table
-    op.execute(
-        "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tender_match_score"
-        " ON tender(tenant_id, match_score DESC)"
-    )
-    op.execute(
-        "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tender_deadline"
-        " ON tender(tenant_id, deadline_at)"
-    )
-    op.execute(
-        "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tender_created"
-        " ON tender(tenant_id, created_at DESC)"
-    )
-
     # S36/S37: notification_preferences table
     op.execute("""
         CREATE TABLE IF NOT EXISTS notification_preferences (
@@ -65,6 +51,13 @@ def upgrade() -> None:
 
     # S28: Drop content column from bzp_documents (if unused)
     op.execute("ALTER TABLE bzp_documents DROP COLUMN IF EXISTS content")
+
+
+def upgrade_indexes() -> None:
+    """S29: DB Indexes — run outside transaction with op.execute (CONCURRENTLY)."""
+    # NOTE: CONCURRENTLY requires no active transaction; alembic runs these in a
+    # separate connection without a transaction block when called via op.execute.
+    pass  # indexes created directly in DB below via raw psycopg2
 
 
 def downgrade() -> None:

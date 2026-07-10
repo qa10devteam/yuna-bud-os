@@ -1,0 +1,27 @@
+{
+  "id": "offer_lost_workflow",
+  "name": "Offer Lost Workflow",
+  "version": "1.0",
+  "description": "When offer status=lost → increment competitor_watch counter for winner",
+  "trigger": {"type": "DECISION_MADE"},
+  "conditions": [
+    {"field": "offer_status", "operator": "eq", "value": "lost"}
+  ],
+  "condition_logic": "AND",
+  "actions": [
+    {
+      "type": "WEBHOOK",
+      "params": {
+        "url": "${INTERNAL_API}/api/v2/competitor-watch/increment",
+        "payload": {"source": "offer_lost_workflow"}
+      },
+      "order": 1
+    },
+    {
+      "type": "NOTIFICATION",
+      "params": {"message": "Oferta przegrana. Zaktualizowano licznik konkurenta."},
+      "order": 2
+    }
+  ],
+  "is_active": true
+}
