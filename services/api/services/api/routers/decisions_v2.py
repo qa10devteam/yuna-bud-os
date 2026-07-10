@@ -169,3 +169,80 @@ def get_decision(decision_id: str, user: AuthUser) -> dict:
         "created_at": row.requested_at.isoformat() if row.requested_at else None,
         "decided_at": row.decided_at.isoformat() if row.decided_at else None,
     }
+
+
+# ─────────────────── S73: Bulk decision update ───────────────────────────── #
+
+class BulkDecisionCreate(BaseModel):
+    tender_ids: list[str]
+    decision: str  # GO | NO-GO | bid | pass
+    rationale: str = ""
+
+
+@router.post("/bulk", status_code=201)
+def bulk_decision(body: BulkDecisionCreate, user: AuthUser) -> dict:
+    """S73: Batch upsert decyzji dla listy przetargów."""
+    engine = get_engine()
+    tenant_id = user.org_id
+    if not tenant_id:
+        raise HTTPException(403, "Brak org_id")
+
+    created = []
+    with engine.connect() as conn:
+        for tid in body.tender_ids:
+            req_id = str(uuid.uuid4())
+            conn.execute(sa.text("""
+                INSERT INTO approval_request (id, tenant_id, action, payload, status)
+                VALUES (:id, :tenant_id, 'decision', :payload::jsonb, 'pending')
+            """), {
+                "id": req_id,
+                "tenant_id": tenant_id,
+                "payload": json.dumps({
+                    "tender_id": tid,
+                    "decision": body.decision,
+                    "rationale": body.rationale,
+                }),
+            })
+            created.append(req_id)
+        conn.commit()
+    return {"created": len(created), "ids": created}
+
+
+# ─────────────────── S75: Deadline reminders (post-hook) ─────────────────── #
+
+def insert_deadline_reminders(engine: Any, tenant_id: str) -> int:
+    """S75: Wstaw powiadomienia dla przetargów z deadline za 1/3/7 dni."""
+    inserted = 0
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(sa.text("""
+                SELECT t.id, t.title, t.deadline_at::date AS dl,
+                       o.id AS org_id
+                FROM tender t
+                JOIN tenant ten ON ten.id = t.tenant_id
+                JOIN organizations o ON o.id = ten.id
+                WHERE t.tenant_id = :tid
+                  AND t.deadline_at IS NOT NULL
+                  AND t.deadline_at::date IN (
+                      current_date + 7,
+                      current_date + 3,
+                      current_date + 1
+                  )
+            """), {"tid": tenant_id}).fetchall()
+            for row in rows:
+                days_left = (row.dl - __import__("datetime").date.today()).days
+                conn.execute(sa.text("""
+                    INSERT INTO notifications (id, org_id, type, title, body)
+                    VALUES (gen_random_uuid(), :org_id, 'deadline_reminder',
+                            :title, :body)
+                    ON CONFLICT DO NOTHING
+                """), {
+                    "org_id": str(row.org_id),
+                    "title": f"Deadline przetargu za {days_left} dni",
+                    "body": f"Przetarg: {row.title} — termin: {row.dl}",
+                })
+                inserted += 1
+            conn.commit()
+    except Exception:
+        pass
+    return inserted

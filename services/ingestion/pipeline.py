@@ -321,6 +321,60 @@ def run_ingest(
         except Exception as exc:
             logger.warning("Auto-fetch SWZ failed (non-fatal): %s", exc)
 
+    # S69: Risk extraction for newly fetched SWZ documents
+    try:
+        from services.documents.risk_extractor import extract_risk_flags, risk_level as _risk_level
+        with engine.connect() as conn:
+            docs = conn.execute(sa.text("""
+                SELECT td.id, td.tender_id, td.local_path, td.parsed_ok
+                FROM tender_document td
+                JOIN tender t ON t.id = td.tender_id
+                WHERE t.tenant_id = :tid
+                  AND td.risk_level = 'unknown'
+                  AND td.parsed_ok = true
+                ORDER BY td.created_at DESC
+                LIMIT 20
+            """), {"tid": str(tenant_id)}).fetchall()
+
+        for doc in docs:
+            try:
+                text_content = ""
+                if doc.local_path:
+                    try:
+                        with open(doc.local_path, "r", errors="ignore") as fh:
+                            text_content = fh.read(50_000)
+                    except Exception:
+                        pass
+                flags = extract_risk_flags(text_content)
+                lvl, rscore = _risk_level(flags)
+                with engine.connect() as conn2:
+                    conn2.execute(sa.text("""
+                        UPDATE tender_document
+                        SET risk_level = :lvl, risk_score = :score
+                        WHERE id = :doc_id
+                    """), {"lvl": lvl, "score": rscore, "doc_id": str(doc.id)})
+                    # S69: notification for high-risk documents
+                    if lvl == "high":
+                        conn2.execute(sa.text("""
+                            INSERT INTO notifications (id, org_id, type, title, body)
+                            SELECT gen_random_uuid(), o.id,
+                                   'high_risk_document',
+                                   'Wysokie ryzyko w dokumencie SWZ',
+                                   :body
+                            FROM organizations o
+                            JOIN tenant ten ON ten.id = :tid
+                            WHERE o.id = ten.id
+                            LIMIT 1
+                        """), {
+                            "tid": str(tenant_id),
+                            "body": f"Dokument {doc.id}: flagi {flags}",
+                        })
+                    conn2.commit()
+            except Exception as exc2:
+                logger.debug("S69 risk extraction skip doc %s: %s", doc.id, exc2)
+    except Exception as exc_s69:
+        logger.debug("S69 risk extraction skip: %s", exc_s69)
+
     # Sprint 9: Audit log — ingest.complete
     if _AUDIT_AVAILABLE:
         try:

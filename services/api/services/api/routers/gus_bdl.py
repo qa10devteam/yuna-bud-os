@@ -189,3 +189,58 @@ def get_inflation_summary(user: AuthUser) -> dict:
         ],
         "note": "P1774=CPI, P3808=Ceny materiałów budowlanych",
     }
+
+
+# S60: GET /api/v2/gus/buyer/{nip}
+gus_v2_router = APIRouter(prefix="/api/v2/gus", tags=["gus-buyer"])
+
+
+@gus_v2_router.get("/buyer/{nip}")
+def get_gus_buyer(nip: str, user: AuthUser) -> dict:
+    """S60: Pobierz dane nabywcy z GUS BDL lub buyer_crm wg NIP."""
+    engine = get_engine()
+    # Najpierw sprawdź buyer_crm
+    with engine.connect() as conn:
+        row = conn.execute(
+            sa.text("""
+                SELECT id, buyer_nip, crm_stage, contact_name, contact_email,
+                       annual_budget_est, notes, last_verified_at, created_at
+                FROM buyer_crm
+                WHERE buyer_nip = :nip
+                LIMIT 1
+            """),
+            {"nip": nip},
+        ).fetchone()
+    if row:
+        return {
+            "source": "buyer_crm",
+            "nip": nip,
+            "crm_stage": row.crm_stage,
+            "contact_name": row.contact_name,
+            "contact_email": row.contact_email,
+            "annual_budget_est": float(row.annual_budget_est) if row.annual_budget_est else None,
+            "notes": row.notes,
+            "last_verified_at": row.last_verified_at.isoformat() if row.last_verified_at else None,
+        }
+    # Fallback: entity_verifications
+    with engine.connect() as conn:
+        row2 = conn.execute(
+            sa.text("""
+                SELECT nip, name, status, address, source, verified_at
+                FROM entity_verifications
+                WHERE nip = :nip
+                ORDER BY verified_at DESC
+                LIMIT 1
+            """),
+            {"nip": nip},
+        ).fetchone()
+    if row2:
+        return {
+            "source": row2.source,
+            "nip": nip,
+            "name": row2.name,
+            "status": row2.status,
+            "address": row2.address,
+            "verified_at": row2.verified_at.isoformat() if row2.verified_at else None,
+        }
+    return {"source": "not_found", "nip": nip, "message": "Brak danych w bazie. Użyj POST /api/v1/verify aby zweryfikować."}

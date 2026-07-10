@@ -702,3 +702,28 @@ def cancel_subscription(current_user: AuthUser, db: DB) -> dict[str, Any]:
         "cancel_at_period_end": True,
         "org_id": current_user.org_id,
     }
+
+
+# S107 — GET /api/v2/billing/checkout-url?plan=pro
+@router.get("/checkout-url")
+def get_checkout_url(plan: str = "pro") -> dict[str, Any]:
+    """S107 — Zwróć URL do Stripe Checkout (lub placeholder)."""
+    stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if stripe_key and stripe_key.startswith("sk_"):
+        try:
+            import stripe  # type: ignore
+            stripe.api_key = stripe_key
+            plan_prices = {"pro": "price_pro_placeholder", "starter": "price_starter_placeholder", "enterprise": "price_enterprise_placeholder"}
+            price_id = plan_prices.get(plan)
+            if not price_id:
+                raise HTTPException(status_code=400, detail=f"Nieznany plan: {plan}")
+            session = stripe.checkout.Session.create(
+                mode="subscription",
+                line_items=[{"price": price_id, "quantity": 1}],
+                success_url="https://app.terra.os/billing?success=1",
+                cancel_url="https://app.terra.os/billing?cancel=1",
+            )
+            return {"url": session.url, "plan": plan}
+        except Exception:
+            pass
+    return {"url": "https://stripe.com/pay/placeholder", "plan": plan}

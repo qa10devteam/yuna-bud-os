@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
+import threading
 from typing import Any, Literal
 
 import sqlalchemy as sa
@@ -18,6 +20,11 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from terra_db.session import get_engine
+
+logger = logging.getLogger(__name__)
+
+# S116 — Allowed fields for sparse fieldset (mobile)
+ALLOWED_FIELDS = ['id', 'title', 'match_score', 'deadline_at', 'source', 'value_pln', 'cpv_code']
 from ..auth.deps import AuthUser
 
 router = APIRouter(prefix="/api/v2/tenders", tags=["tenders-v2"])
@@ -168,6 +175,7 @@ def list_tenders(
     deadline_before: str | None = Query(None, description="ISO date, np. 2026-08-01"),
     hide_duplicates: bool = Query(False, description="Ukryj rekordy zduplikowane (pozostaw master)"),
     q: str | None = Query(None, min_length=2, description="Full-text search"),
+    fields: str | None = Query(None, description="Sparse fieldset: id,title,match_score,... (mobile)"),
 ) -> TenderListResponse:
     """
     Lista przetargów z cursor-based pagination.
@@ -289,7 +297,41 @@ def list_tenders(
             json.dumps({"created_at": last.created_at.isoformat(), "id": str(last.id)}).encode()
         ).decode()
 
+    # S116 — Sparse fieldset: filter items to requested fields only
+    if fields:
+        selected = [f.strip() for f in fields.split(",") if f.strip() in ALLOWED_FIELDS]
+        if selected:
+            items = [
+                {k: v for k, v in item.model_dump().items() if k in selected}
+                for item in items
+            ]
+
+    # S108 — Log usage event (fire-and-forget, don't block response)
+    try:
+        _t = threading.Thread(
+            target=_log_usage_event, args=(tenant_id, "tender_viewed", None), daemon=True
+        )
+        _t.start()
+    except Exception:
+        pass
+
     return TenderListResponse(items=items, total=int(total), next_cursor=next_cursor)
+
+
+def _log_usage_event(tenant_id: str, event_type: str, resource_id: str | None = None) -> None:
+    """S108 — Fire-and-forget usage event logging."""
+    try:
+        _eng = get_engine()
+        with _eng.begin() as _conn:
+            _conn.execute(
+                sa.text(
+                    "INSERT INTO usage_events(tenant_id, event_type, resource_id) "
+                    "VALUES (:tid, :et, :rid)"
+                ),
+                {"tid": tenant_id, "et": event_type, "rid": resource_id},
+            )
+    except Exception as _e:
+        logger.debug("usage_events insert failed (non-critical): %s", _e)
 
 
 @router.get("/stats", response_model=TenderStatsResponse, summary="Agregaty przetargów")

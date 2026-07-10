@@ -160,3 +160,25 @@ def delete_api_key(key_id: str, current_user: AuthUser, db: DB) -> None:
 
     db.execute(text("DELETE FROM api_keys WHERE id = :id"), {"id": key_id})
     db.commit()
+
+
+# S111 — Rate limit check per API key
+@router.get("/rate-limit-check")
+def check_rate_limit(current_user: AuthUser, db: DB) -> dict:
+    """S111 — Sprawdź zużycie rate limit per klucz API (placeholder + counter)."""
+    rows = db.execute(
+        text("SELECT id, name, prefix FROM api_keys WHERE org_id = :oid"),
+        {"oid": current_user.org_id},
+    ).fetchall()
+    result = []
+    for r in rows:
+        # Rate limiting info - could be expanded with Redis counters
+        result.append({
+            "key_id": str(r.id),
+            "name": r.name,
+            "prefix": r.prefix,
+            "rate_limit_per_hour": 1000,
+            "used_this_hour": 0,  # Real impl: check Redis counter
+            "status": "ok",
+        })
+    return {"api_keys": result, "global_rate_limit_per_hour": 10000}

@@ -358,3 +358,75 @@ except ImportError as _e:
 # S13: Alert config UI
 if 'alert_config' in _opt_map:
     app.include_router(_opt_map['alert_config'].router)
+
+# S103-S105 — Onboarding
+try:
+    from .routers import onboarding as _onboarding_mod
+    app.include_router(_onboarding_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("onboarding router error: %s", _e)
+
+# S109-S110 — API v3 (webhooks + WebSocket)
+try:
+    from .routers.v3 import webhooks as _v3_webhooks
+    from .routers.v3 import ws_tenders as _v3_ws
+    app.include_router(_v3_webhooks.router)
+    app.include_router(_v3_ws.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("v3 routers error: %s", _e)
+
+# S112-S115 — Integrations
+try:
+    from .routers import integrations as _integrations_mod
+    app.include_router(_integrations_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("integrations router error: %s", _e)
+
+# S117 — PWA subscribe
+try:
+    from .routers import pwa as _pwa_mod
+    app.include_router(_pwa_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("pwa router error: %s", _e)
+
+# S118-S120 — Reports
+try:
+    from .routers import reports as _reports_mod
+    app.include_router(_reports_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("reports router error: %s", _e)
+
+# S121-S124 — AI Chat enhancements
+try:
+    from .routers import chat_ai as _chat_ai_mod
+    app.include_router(_chat_ai_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("chat_ai router error: %s", _e)
+
+# S125-S126 — Data Quality
+try:
+    from .routers import data_quality as _dq_mod
+    app.include_router(_dq_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("data_quality router error: %s", _e)
+
+# S127-S129 — Observability/metrics
+try:
+    from .routers import observability as _obs_mod
+    app.include_router(_obs_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("observability router error: %s", _e)
+
+# S132-S133 — Feature flags + A/B
+try:
+    from .routers import feature_flags as _ff_mod
+    app.include_router(_ff_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("feature_flags router error: %s", _e)
+
+# S135 — Kaizen Faza3 summary
+try:
+    from .routers import kaizen as _kaizen_mod
+    app.include_router(_kaizen_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("kaizen router error: %s", _e)

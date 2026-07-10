@@ -346,6 +346,26 @@ def score_tender(
 
     score = round(min(1.0, max(0.0, sum(wt * sc for wt, sc in components.values()))), 4)
 
+    # S64: ML Scorer override if enabled in scoring_config
+    try:
+        if getattr(weights, "ml_scorer_enabled", False):
+            from services.ingestion.scorer_ml import get_ml_scorer
+            ml = get_ml_scorer()
+            if ml.model is not None:
+                tender_feats = {
+                    "cpv_match": components["cpv"][1],
+                    "value_in_range": components["value"][1],
+                    "region_match": components["region"][1],
+                    "deadline_days": float(_g("deadline_days") or 30),
+                    "title_keyword_count": 0.0,
+                    "historical_win_rate": components["win_rate"][1],
+                }
+                ml_score = ml.score_tender(tender_feats)
+                # blend: 60% rule-based + 40% ML
+                score = round(0.6 * score + 0.4 * ml_score, 4)
+    except Exception:
+        pass  # ML scorer optional — fallback to rule-based
+
     # Build human-readable reason string
     reason_parts = []
     if components["cpv"][1] >= 0.8:

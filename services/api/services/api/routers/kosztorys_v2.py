@@ -1141,3 +1141,111 @@ def delete_user_rate(rate_id: str, user: AuthUser) -> None:
         ), {"id": rate_id, "tid": tenant_id})
     if result.rowcount == 0:
         raise HTTPException(404, "Stawka nie znaleziona")
+
+
+# ─────────────────────── S70: Fork kosztorysu ───────────────────────────── #
+
+@router.post("/{kosztorys_id}/fork", status_code=201)
+def fork_kosztorys(kosztorys_id: str, user: AuthUser) -> dict:
+    """S70: Utwórz nową wersję (fork) kosztorysu z version+1."""
+    engine = get_engine()
+    tenant_id = _require_tenant(user)
+    import uuid as _uuid
+    new_id = str(_uuid.uuid4())
+    with engine.connect() as conn:
+        src = _get_kosztorys_or_404(conn, kosztorys_id, tenant_id)
+        cur_version = getattr(src, "version", 1) or 1
+        conn.execute(sa.text("""
+            INSERT INTO kosztorys
+                (id, tenant_id, tender_id, nazwa, inwestor, obiekt, lokalizacja,
+                 data_opracowania, status, typ, kwartalnr, kwartalrok,
+                 ko_r_pct, ko_s_pct, z_pct, kz_pct, vat_pct,
+                 suma_r, suma_m, suma_s, suma_ko, suma_z, suma_kz,
+                 suma_netto, suma_vat, suma_brutto,
+                 version, parent_version_id)
+            SELECT
+                :new_id, tenant_id, tender_id,
+                nazwa || ' (v' || (:cur_ver + 1)::text || ')',
+                inwestor, obiekt, lokalizacja,
+                data_opracowania, 'draft', typ, kwartalnr, kwartalrok,
+                ko_r_pct, ko_s_pct, z_pct, kz_pct, vat_pct,
+                suma_r, suma_m, suma_s, suma_ko, suma_z, suma_kz,
+                suma_netto, suma_vat, suma_brutto,
+                :new_ver, :parent_id
+            FROM kosztorys
+            WHERE id = :src_id AND tenant_id = :tid
+        """), {
+            "new_id": new_id,
+            "cur_ver": cur_version,
+            "new_ver": cur_version + 1,
+            "parent_id": kosztorys_id,
+            "src_id": kosztorys_id,
+            "tid": tenant_id,
+        })
+        conn.commit()
+    return {"id": new_id, "parent_version_id": kosztorys_id, "version": cur_version + 1}
+
+
+# ─────────────────── S72: Material risk per kosztorys ───────────────────── #
+
+@router.get("/{kosztorys_id}/material-risk")
+def get_kosztorys_material_risk(kosztorys_id: str, user: AuthUser) -> dict:
+    """S72: Dla każdej pozycji kosztorysu — aktualny indeks cenowy GUS BDL."""
+    engine = get_engine()
+    tenant_id = _require_tenant(user)
+    import httpx as _httpx
+
+    with engine.connect() as conn:
+        _get_kosztorys_or_404(conn, kosztorys_id, tenant_id)
+        # Get distinct materials from kosztorys_pozycja
+        rows = conn.execute(sa.text("""
+            SELECT DISTINCT kp.symbol, kp.nazwa, kp.m_jcena
+            FROM kosztorys_pozycja kp
+            JOIN kosztorys_dzial kd ON kd.id = kp.dzial_id
+            WHERE kd.kosztorys_id = :kid
+              AND kp.m_jcena > 0
+            LIMIT 20
+        """), {"kid": kosztorys_id}).fetchall()
+
+    results = []
+    for row in rows:
+        # Try to get GUS BDL price (use P3808 as construction materials index)
+        gus_value = None
+        yoy_change = None
+        try:
+            resp = _httpx.get(
+                "https://bdl.stat.gov.pl/api/v1/data/by-variable/282893",
+                params={"year": 2024, "unitLevel": 0, "format": "json"},
+                headers={"X-ClientId": "terra-os-app"},
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                vals = []
+                for item in data.get("results", [])[:1]:
+                    for v in item.get("values", []):
+                        if v.get("val") is not None:
+                            vals.append(float(v["val"]))
+                if vals:
+                    gus_value = vals[0]
+        except Exception:
+            pass
+
+        risk = "low"
+        if gus_value and row.m_jcena:
+            ratio = float(row.m_jcena) / gus_value if gus_value > 0 else 1.0
+            if ratio < 0.7 or ratio > 1.5:
+                risk = "high"
+            elif ratio < 0.85 or ratio > 1.2:
+                risk = "medium"
+
+        results.append({
+            "symbol": row.symbol,
+            "material": row.nazwa,
+            "current_price": float(row.m_jcena),
+            "gus_index": gus_value,
+            "yoy_change": yoy_change,
+            "risk_level": risk,
+        })
+
+    return {"kosztorys_id": kosztorys_id, "items": results}

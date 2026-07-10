@@ -361,6 +361,52 @@ def check_new_tenders_for_alerts(
     return stats
 
 
+# ─────────────────────────── S59: KRS 30-day refresh ────────────────────── #
+
+def refresh_krs_stale_buyers(db_dsn: str = DEFAULT_DSN) -> dict:
+    """S59: Co 30 dni odświeżaj dane KRS dla buyer_crm ze starym last_verified_at."""
+    conn = psycopg2.connect(db_dsn)
+    refreshed = 0
+    errors = 0
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, buyer_nip, tenant_id
+                FROM buyer_crm
+                WHERE last_verified_at IS NULL
+                   OR last_verified_at < now() - interval '30 days'
+                LIMIT 50
+            """)
+            rows = cur.fetchall()
+
+        for row in rows:
+            nip = row["buyer_nip"]
+            try:
+                import httpx
+                r = httpx.get(
+                    f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/podmiot/nip/{nip}",
+                    headers={"Accept": "application/json"}, timeout=10,
+                )
+                name = ""
+                if r.status_code == 200:
+                    d = r.json()
+                    name = d.get("odpis", {}).get("dane", {}).get("dzialy", {}).get("dzial1", {}).get("danePodmiotu", {}).get("nazwa", "")
+                with conn.cursor() as cur2:
+                    cur2.execute(
+                        "UPDATE buyer_crm SET last_verified_at = now(), notes = COALESCE(%s, notes) WHERE id = %s",
+                        (name or None, str(row["id"])),
+                    )
+                    conn.commit()
+                refreshed += 1
+            except Exception as exc:
+                errors += 1
+                logger.debug("KRS refresh failed for NIP %s: %s", nip, exc)
+    finally:
+        conn.close()
+    logger.info("S59 KRS refresh: %d refreshed, %d errors", refreshed, errors)
+    return {"refreshed": refreshed, "errors": errors}
+
+
 # ─────────────────────────────── CLI ──────────────────────────────────────── #
 
 if __name__ == "__main__":
