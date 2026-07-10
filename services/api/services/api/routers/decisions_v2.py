@@ -23,6 +23,7 @@ class DecisionCreate(BaseModel):
     decision: str  # GO | NO-GO
     rationale: str = ""
     ahp_scores: dict | None = None
+    value_pln: float | None = None  # S74: bid value for escalation
 
 
 @router.get("")
@@ -131,7 +132,30 @@ def create_decision(body: DecisionCreate, user: AuthUser) -> dict:
             {"s": new_tender_status, "id": body.tender_id},
         )
 
-    return {
+        # S74 — Escalation: bid > 1 000 000 PLN → dodaj eskalację pending
+        escalation_created = False
+        if decision_upper in ("GO",) and body.value_pln and body.value_pln > 1_000_000:
+            esc_payload = json.dumps({
+                "tender_id": body.tender_id,
+                "decision": decision_upper,
+                "value_pln": body.value_pln,
+                "escalation": True,
+            })
+            conn.execute(
+                sa.text(
+                    """INSERT INTO approval_request
+                           (id, tenant_id, action, payload, status, requested_at)
+                       VALUES (gen_random_uuid(), :tid, :action, CAST(:payload AS jsonb), 'pending', NOW())"""
+                ),
+                {
+                    "tid": actual_tenant_id,
+                    "action": "bid_escalation",
+                    "payload": esc_payload,
+                },
+            )
+            escalation_created = True
+
+    resp = {
         "id": str(result.id),
         "tender_id": body.tender_id,
         "decision": decision_upper,
@@ -139,6 +163,9 @@ def create_decision(body: DecisionCreate, user: AuthUser) -> dict:
         "rationale": body.rationale,
         "created_at": result.requested_at.isoformat() if result.requested_at else None,
     }
+    if escalation_created:
+        resp["escalation"] = "pending"
+    return resp
 
 
 @router.get("/{decision_id}")
