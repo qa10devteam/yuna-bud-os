@@ -448,3 +448,22 @@ try:
     app.include_router(_gantt_mod.router)
 except ImportError as _e:
     logging.getLogger(__name__).warning("gantt v2 router error: %s", _e)
+
+# ── v1 compat aliases — frontend używa /api/v1/tenders ──────────────────────
+from fastapi import Request as _Request
+from fastapi.responses import JSONResponse as _JSONResponse
+
+@app.get("/api/v1/tenders", include_in_schema=False)
+async def v1_tenders_list(_req: _Request):
+    """Alias: przekierowuje v1 → v2 tenders list."""
+    from .routers.tenders_v2 import router as _tv2
+    from .auth.deps import get_current_user as _gcu
+    from starlette.testclient import TestClient as _TC
+    # Proste proxy — pobierz querystring i odpytaj v2
+    qs = str(_req.url.query)
+    target = f"/api/v2/tenders{'?' + qs if qs else ''}"
+    token = _req.headers.get("authorization", "")
+    import httpx as _httpx
+    async with _httpx.AsyncClient(base_url="http://127.0.0.1:8765") as client:
+        resp = await client.get(target, headers={"Authorization": token})
+    return _JSONResponse(content=resp.json(), status_code=resp.status_code)
