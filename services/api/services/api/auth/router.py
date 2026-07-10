@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from secrets import token_urlsafe
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -26,6 +26,7 @@ from .utils import (
     hash_refresh_token,
     verify_password,
 )
+from ..middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v2/auth", tags=["auth"])
 
@@ -148,8 +149,57 @@ def _set_auth_cookies(response: Response, access_token: str) -> None:
 
 # ─── routes ───────────────────────────────────────────────────────────────────
 
+_DEMO_TENDERS = [
+    {"title": "Dostawa sprzętu komputerowego dla jednostki budżetowej",
+     "buyer": "Urząd Gminy Demo", "cpv": "30213300-8", "value_pln": 120000},
+    {"title": "Remont dachu budynku użyteczności publicznej",
+     "buyer": "Starostwo Powiatowe Demo", "cpv": "45261910-6", "value_pln": 450000},
+    {"title": "Usługi utrzymania zieleni miejskiej",
+     "buyer": "Zarząd Dróg Miejskich Demo", "cpv": "77310000-6", "value_pln": 85000},
+]
+
+
+def _seed_new_org(db: Session, org_id: str) -> None:
+    """S3-03: Create free subscription + 3 demo tenders for a freshly registered org."""
+    import uuid as _uuid
+    from datetime import datetime, timezone, timedelta
+
+    # Tenant_id == org_id (production convention)
+    tenant_id = org_id
+
+    # Free subscription (bez tender_limit — nie ma tej kolumny)
+    db.execute(text(
+        "INSERT INTO subscription (org_id, plan, status) "
+        "VALUES (:oid, 'free', 'active') "
+        "ON CONFLICT (org_id) DO NOTHING"
+    ), {"oid": org_id})
+
+    # Demo tenders
+    now = datetime.now(timezone.utc)
+    for i, td in enumerate(_DEMO_TENDERS):
+        ext_id = f"DEMO-{_uuid.uuid4().hex[:8].upper()}"
+        db.execute(text(
+            "INSERT INTO tender (id, title, buyer, source, external_id, published_at, deadline_at, "
+            "                    value_pln, status, match_score, tenant_id) "
+            "VALUES (:id, :title, :buyer, 'bzp', :ext, :pub, :dl, :val, 'new', :ms, :tid) "
+            "ON CONFLICT DO NOTHING"
+        ), {
+            "id": str(_uuid.uuid4()),
+            "title": td["title"],
+            "buyer": td["buyer"],
+            "ext": ext_id,
+            "pub": now - timedelta(days=i),
+            "dl": now + timedelta(days=30 - i * 3),
+            "val": td["value_pln"],
+            "ms": round(0.82 - i * 0.07, 2),
+            "tid": tenant_id,
+        })
+    db.commit()
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, response: Response, db: DB):
+@limiter.limit("10/minute")
+def register(request: Request, body: RegisterRequest, response: Response, db: DB):
     # Check duplicate
     existing = db.execute(
         text("SELECT id FROM users WHERE email = :email"), {"email": body.email}
@@ -160,11 +210,17 @@ def register(body: RegisterRequest, response: Response, db: DB):
     # Create org if name provided
     org_id = None
     if body.org_name:
-        row = db.execute(
-            text("INSERT INTO organizations (name) VALUES (:name) RETURNING id"),
-            {"name": body.org_name},
-        ).fetchone()
-        org_id = str(row.id)
+        # S3-03: org.id == tenant.id (production convention — _resolve_tenant_id returns org_id)
+        import uuid as _uuid
+        org_id = str(_uuid.uuid4())
+        db.execute(
+            text("INSERT INTO tenant (id, name) VALUES (:id, :name)"),
+            {"id": org_id, "name": body.org_name},
+        )
+        db.execute(
+            text("INSERT INTO organizations (id, name, tenant_id) VALUES (:id, :name, :tid)"),
+            {"id": org_id, "name": body.org_name, "tid": org_id},
+        )
         db.commit()
 
     # Create user
@@ -185,6 +241,10 @@ def register(body: RegisterRequest, response: Response, db: DB):
     ).fetchone()
     db.commit()
 
+    # S3-03: seed new org — free subscription + 3 demo tenders
+    if org_id:
+        _seed_new_org(db, org_id)
+
     # Faza 81: send welcome email
     send_welcome_email(body.email, body.name)
 
@@ -194,7 +254,8 @@ def register(body: RegisterRequest, response: Response, db: DB):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, response: Response, db: DB):
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, response: Response, db: DB):
     user_row = db.execute(
         text("SELECT id, email, name, password_hash, org_id, role, is_active FROM users WHERE email = :email"),
         {"email": body.email},
