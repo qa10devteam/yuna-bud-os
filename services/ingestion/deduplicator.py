@@ -129,12 +129,14 @@ def run_deduplicator(
             SELECT
                 id,
                 source::text as source,
-                title,
-                buyer,
+                coalesce(title, '') as title,
+                coalesce(buyer, '') as buyer,
                 value_pln,
                 published_at::date as pub_date
             FROM tender
             WHERE tenant_id = :tid
+              AND title IS NOT NULL
+              AND length(trim(title)) > 3
         """), {"tid": tenant_id})
 
         conn.execute(text("""
