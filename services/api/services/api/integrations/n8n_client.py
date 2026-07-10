@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 N8N_BASE_URL = os.getenv("N8N_BASE_URL", "http://localhost:5678")
 N8N_API_KEY = os.getenv("N8N_API_KEY", "")
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "")
 
 
 class N8nClient:
