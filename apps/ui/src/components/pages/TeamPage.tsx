@@ -94,6 +94,17 @@ export function TeamPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-earth-800/30">
+            {members.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-16 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Users className="w-10 h-10 text-earth-600" />
+                    <p className="text-earth-400 text-sm font-medium">Brak członków zespołu</p>
+                    <p className="text-earth-600 text-xs">Zaproś pierwszego użytkownika</p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {members.map(m => {
               const meta = ROLE_META[m.role];
               return (

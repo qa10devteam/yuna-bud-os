@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 import { useStore } from '@/store/useStore';
 import { useDashboardStats, useTenders } from '@/lib/api';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import MarketKPIBar from '@/components/MarketKPIBar';
 import {
   TrendingUp,
@@ -198,10 +199,11 @@ export function DashboardPage() {
   ];
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
+    <ErrorBoundary>
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
       className="p-6 md:p-8 max-w-7xl mx-auto space-y-6"
     >
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -400,6 +402,7 @@ export function DashboardPage() {
                 <button
                   key={action.label}
                   onClick={() => setCurrentModule(action.module)}
+                  aria-label={action.label}
                   className="w-full flex items-center gap-3 p-3 rounded-xl bg-earth-800/30 border border-earth-700/30 hover:border-accent-primary/40 hover:bg-earth-800/60 transition-all duration-200 group text-left"
                 >
                   <div className="w-8 h-8 rounded-lg bg-earth-700/50 flex items-center justify-center group-hover:bg-accent-primary/15 transition-colors shrink-0">
@@ -425,7 +428,7 @@ export function DashboardPage() {
               Top przetargi
             </h3>
             <div className="space-y-3">
-              {tenders.slice(0, 4).map((t) => {
+              {(Array.isArray(tenders) ? tenders : []).slice(0, 4).map((t) => {
                 const pct = Math.round(t.match_score * 100);
                 return (
                   <div
@@ -459,6 +462,7 @@ export function DashboardPage() {
           </div>
         </motion.div>
       </div>
-    </motion.div>
+      </motion.div>
+    </ErrorBoundary>
   );
 }
