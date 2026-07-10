@@ -61,6 +61,26 @@ class AuditWriter:
         self._entries.append(entry)
         return entry
 
+    def log_cud(
+        self,
+        tenant_id: str,
+        actor_id: str,
+        action: str,
+        entity_kind: str,
+        entity_id: str,
+        payload: Optional[dict] = None,
+    ) -> AuditEntry:
+        """Convenience wrapper for Create/Update/Delete audit events."""
+        return self.log(
+            tenant_id=tenant_id,
+            actor=actor_id,
+            action=action,
+            entity_kind=entity_kind,
+            entity_id=entity_id,
+            payload=payload,
+            ok=True,
+        )
+
     @property
     def entries(self) -> list[AuditEntry]:
         return list(self._entries)

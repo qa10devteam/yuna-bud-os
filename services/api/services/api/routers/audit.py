@@ -161,3 +161,26 @@ def list_audit(
         cursor=next_cursor,
         offset=use_offset if not cursor else None,
     )
+
+
+# ---------------------------------------------------------------------------
+# S32/S33: /trail convenience endpoint
+# ---------------------------------------------------------------------------
+
+@router.get("/trail")
+def get_audit_trail(
+    user: AuthUser,
+    limit: int = 50,
+    entity_kind: str | None = None,
+) -> list[dict]:
+    """S32/S33: Simplified audit trail — last N entries filtered by entity_kind."""
+    engine = get_engine()
+    params: dict = {"tid": str(user.org_id), "lim": limit}
+    q = "SELECT * FROM audit_log WHERE tenant_id = :tid"
+    if entity_kind:
+        q += " AND entity = :ek"
+        params["ek"] = entity_kind
+    q += " ORDER BY at DESC LIMIT :lim"
+    with engine.connect() as conn:
+        rows = conn.execute(sa.text(q), params).fetchall()
+    return [dict(r._mapping) for r in rows]

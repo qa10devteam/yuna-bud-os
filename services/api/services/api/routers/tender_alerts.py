@@ -286,6 +286,22 @@ def create_alert(body: AlertCreate, user: AuthUser, db: DB):
         "webhook_url": body.webhook_url,
     }).mappings().one()
     db.commit()
+    # S32/S33: Audit CUD event for alert creation
+    try:
+        from terra_shared.audit import AuditWriter
+        from terra_db.session import get_engine as _get_engine
+        _aw = AuditWriter()
+        _aw.log_cud(
+            tenant_id=str(org_id),
+            actor_id=str(user.user_id),
+            action="alert.create",
+            entity_kind="tender_alert",
+            entity_id=str(row["id"]),
+            payload={"name": body.name, "channel": body.channel},
+        )
+        _aw.write_to_db(_get_engine())
+    except Exception:
+        pass  # audit is non-critical
     return dict(row)
 
 
