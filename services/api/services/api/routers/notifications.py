@@ -219,3 +219,52 @@ def mark_read(notification_id: str, user: AuthUser) -> dict:
             detail={"error": "not_found", "message": "Powiadomienie nie znalezione"},
         )
     return {"id": notification_id, "read": True}
+
+
+# S36/S37: PUT /{id}/read — mark read (REST alias)
+
+@router.put("/{notification_id}/read")
+def put_mark_read(notification_id: str, user: AuthUser) -> dict:
+    """PUT alias for marking a notification read (S36/S37)."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        result = conn.execute(
+            sa.text(
+                "UPDATE notifications SET read = true"
+                " WHERE id = :id"
+                "   AND user_id = :user_id"
+                "   AND org_id = :org_id"
+                " RETURNING id"
+            ),
+            {"id": notification_id, "user_id": user.user_id, "org_id": user.org_id},
+        ).fetchone()
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Powiadomienie nie znalezione"},
+        )
+    return {"id": notification_id, "read": True}
+
+
+# S36/S37: DELETE /{id} — delete a notification
+
+@router.delete("/{notification_id}", status_code=204)
+def delete_notification(notification_id: str, user: AuthUser) -> None:
+    """Delete a single notification for the authenticated user (S36/S37)."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        result = conn.execute(
+            sa.text(
+                "DELETE FROM notifications"
+                " WHERE id = :id"
+                "   AND user_id = :user_id"
+                "   AND org_id = :org_id"
+                " RETURNING id"
+            ),
+            {"id": notification_id, "user_id": user.user_id, "org_id": user.org_id},
+        ).fetchone()
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Powiadomienie nie znalezione"},
+        )
