@@ -61,7 +61,7 @@ def _get_client():
     """Return an httpx sync client. Offline: ASGI transport. Online: real HTTP."""
     import httpx
     if _OFFLINE:
-        from services.api.services.api.main import app as _app
+        from services.api.main import app as _app
         from httpx import ASGITransport
         return httpx.Client(transport=ASGITransport(app=_app), base_url="http://test")
     base = os.environ.get("TERRA_API_URL", "http://localhost:8000")

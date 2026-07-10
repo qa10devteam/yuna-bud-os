@@ -18,7 +18,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
 
-from services.api.services.api.auth.deps import get_current_user, CurrentUser
+from ..auth.deps import get_current_user, CurrentUser
 from terra_db.session import get_engine
 
 logger = logging.getLogger(__name__)
@@ -450,7 +450,7 @@ def _update_event_log(tenant_id: str, event: str, status_code: int) -> None:
 def n8n_status(user: CurrentUser = Depends(get_current_user)) -> dict:
     """Status lokalnego n8n — health, ilość workflow, aktywne webhooki."""
     try:
-        from services.api.services.api.integrations.n8n_client import get_n8n_client
+        from ..integrations.n8n_client import get_n8n_client
         client = get_n8n_client()
         health = client.health()
         workflows = client.list_workflows()
@@ -472,7 +472,7 @@ def n8n_status(user: CurrentUser = Depends(get_current_user)) -> dict:
 def n8n_workflows(user: CurrentUser = Depends(get_current_user)) -> list[dict]:
     """Lista workflow z n8n."""
     try:
-        from services.api.services.api.integrations.n8n_client import get_n8n_client
+        from ..integrations.n8n_client import get_n8n_client
         workflows = get_n8n_client().list_workflows()
         return [{
             "id": w["id"],
@@ -496,7 +496,7 @@ def n8n_provision_webhook(
     Simply-clever: one-click i n8n jest gotowe do odbioru eventów.
     """
     try:
-        from services.api.services.api.integrations.n8n_client import get_n8n_client
+        from ..integrations.n8n_client import get_n8n_client
         client = get_n8n_client()
         result = client.provision_terra_webhook(event)
         return {"status": "provisioned", **result}
