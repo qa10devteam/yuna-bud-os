@@ -157,6 +157,7 @@ def _run_ingest_worker(task_id: str, tenant_id: str, params: dict) -> None:
             include_ted=params.get("include_ted", True),
             run_dedup=params.get("run_dedup", True),
             bip_max_sites=50,
+            tenant_id=tenant_id if tenant_id else None,  # S8: explicit tenant isolation
         )
 
         _set_progress(task_id, "done", 100, f"Zakonczone: +{result.created} nowych")

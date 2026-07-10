@@ -52,6 +52,7 @@ def run_ingest(
     bip_region: str | None = None,
     bip_max_sites: int = 50,
     run_dedup: bool = True,
+    tenant_id: str | None = None,  # explicit tenant override (multitenant SaaS)
 ) -> IngestResult:
     """Full M1 ingestion pipeline — BZP + TED EU.
 
@@ -115,7 +116,9 @@ def run_ingest(
     result.normalized = len(tenders_in)
 
     # Step 3: Resolve tenant + load per-tenant scoring config
-    tenant_id = get_or_create_default_tenant(engine)
+    if not tenant_id:
+        tenant_id = get_or_create_default_tenant(engine)
+    logger.info("Ingest for tenant_id=%s", tenant_id)
 
     # Load per-tenant scoring weights (falls back to defaults if not configured)
     if owner_profile is not None:
