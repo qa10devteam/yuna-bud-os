@@ -39,7 +39,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
-        logging.StreamHandler(),
+        logging.StreamHandler(),  # systemd journal (gdy uruchamiany przez systemd)
         logging.FileHandler(f"{LOG_DIR}/alert_dispatcher.log"),
     ],
 )
