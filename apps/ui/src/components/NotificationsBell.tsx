@@ -68,7 +68,7 @@ export function NotificationsBell() {
     if (accessToken) {
       fetch(`/api/v2/notifications/${id}/read`, {
         method: 'POST',
-        headers: { Authorization: *** ${accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       }).catch(() => {});
     }
   }
@@ -78,7 +78,7 @@ export function NotificationsBell() {
     if (accessToken) {
       fetch('/api/v2/notifications/read-all', {
         method: 'POST',
-        headers: { Authorization: *** ${accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       }).catch(() => {});
     }
   }

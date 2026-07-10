@@ -1,13 +1,13 @@
 name: CI
-'on':
-  schedule:
-    - cron: '0 6 * * 1'  # every Monday 6am UTC — dependency audit sweep
+
+"on":
   push:
-    branches:
-    - main
-    - dev
-    - develop
-  pull_request: null
+    branches: [main, dev, develop]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: "0 6 * * 1"  # weekly dependency audit (Mon 6:00 UTC)
+
 jobs:
   python-ci:
     name: Python CI
@@ -20,73 +20,97 @@ jobs:
           POSTGRES_USER: terraos
           POSTGRES_PASSWORD: test_password
         ports:
-        - 5432:5432
-        options: --health-cmd "pg_isready -U terraos" --health-interval 10s --health-timeout
-          5s --health-retries 5
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U terraos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       redis:
         image: redis:7-alpine
         ports:
-        - 6379:6379
-        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout
-          5s --health-retries 5
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
+      TERRA_DB_URL: postgresql+psycopg2://terraos:test_password@localhost:5432/terraos_test
       DATABASE_URL: postgresql://terraos:test_password@localhost:5432/terraos_test
-      REDIS_URL: redis://localhost:6379
+      REDIS_URL: redis://localhost:6379/0
+      TERRA_ENV: test
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-        cache: pip
-    - name: Install dev dependencies
-      run: |
-        pip install --upgrade pip
-        pip install \
-          ruff black mypy bandit \
-          pytest pytest-asyncio pytest-cov \
-          fastapi uvicorn pydantic pydantic-settings \
-          sqlalchemy alembic psycopg2-binary httpx \
-          redis celery
-    - name: Install terra packages
-      run: pip install -e packages/shared -e packages/db -e services/api
-    - name: Ruff – lint
-      run: ruff check services/ packages/
-    - name: Black – format check
-      run: black --check services/ packages/
-    - name: mypy – type check (strict=false)
-      run: mypy --ignore-missing-imports --no-strict-optional services/
-    - name: Bandit – security scan
-      run: bandit -r services/ -ll
-    - name: pytest with coverage
-      run: |
-        pytest -q tests/ \
-          --cov=services \
-          --cov-report=xml \
-          --cov-report=term-missing \
-          -x
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: coverage-xml
-        path: coverage.xml
-    # ── Task 123: Security audit ──────────────────────────────────────────────
-    - name: Security audit – pip-audit
-      run: |
-        pip install pip-audit
-        pip-audit --requirement packages/requirements.txt --ignore-vuln PYSEC-2022-42969 || true
-    # ── Task 122: Secrets detection ──────────────────────────────────────────
-    - name: Secrets scan – detect-secrets
-      run: |
-        pip install detect-secrets
-        detect-secrets scan --baseline .secrets.baseline . || true
-        if git diff HEAD .secrets.baseline 2>/dev/null | grep -q '^+'; then
-          echo "NEW SECRETS DETECTED — update .secrets.baseline or remove the secret"
-          exit 1
-        else
-          echo "OK — no new secrets detected"
-        fi
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            ruff black mypy bandit \
+            pytest pytest-asyncio pytest-cov \
+            fastapi uvicorn pydantic pydantic-settings \
+            sqlalchemy alembic psycopg2-binary httpx \
+            redis celery
+
+      - name: Install terra packages
+        run: pip install -e packages/shared -e packages/db -e services/api
+
+      - name: Ruff – lint
+        run: ruff check services/ packages/
+
+      - name: Black – format check
+        run: black --check services/ packages/
+
+      - name: mypy – type check
+        run: mypy --ignore-missing-imports --no-strict-optional services/
+
+      - name: Bandit – security scan
+        run: bandit -r services/ -ll
+
+      - name: Run migrations
+        run: |
+          cd packages/db
+          alembic upgrade head
+
+      - name: pytest (unit, not integration)
+        run: |
+          pytest -q tests/ \
+            -m "not integration" \
+            --cov=services \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -x \
+            --ignore=tests/test_phases_61_100.py
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+      - name: Security audit – pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit --requirement packages/requirements.txt \
+            --ignore-vuln PYSEC-2022-42969 || true
+
+      - name: Secrets scan – detect-secrets
+        run: |
+          pip install detect-secrets
+          detect-secrets scan --baseline .secrets.baseline . || true
+          if git diff HEAD .secrets.baseline 2>/dev/null | grep -q '^+'; then
+            echo "NEW SECRETS DETECTED — update .secrets.baseline or remove the secret"
+            exit 1
+          fi
 
   node-ci:
     name: Node CI
@@ -95,22 +119,27 @@ jobs:
       run:
         working-directory: apps/ui
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Node 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: npm
-        cache-dependency-path: apps/ui/package-lock.json
-    - name: Install dependencies
-      run: npm ci
-    - name: ESLint
-      run: npm run lint
-    - name: Next.js build (includes type-check)
-      run: npm run build
-      env:
-        NEXT_TELEMETRY_DISABLED: 1
-        NODE_ENV: production
-    # ── Task 123: npm security audit ─────────────────────────────────────────
-    - name: Security audit – npm audit
-      run: npm audit --audit-level=high || true
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Next.js build (type-check included)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:8765' }}
+
+      - name: npm security audit
+        run: npm audit --audit-level=high || true

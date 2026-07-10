@@ -2,17 +2,39 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
+import { showToast } from '@/components/Toast';
 
 // ── API Base — uses relative path so it works through any proxy ──────────────
 const API_BASE = '';
 
-// ── Auth-aware fetch helper (auto-refresh on 401) ────────────────────────────
+// ── Retry helper — exponential backoff, 3 attempts (S6-4) ────────────────────
+const RETRY_DELAYS = [200, 600, 1800]; // ms: 0.2s → 0.6s → 1.8s
+
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastError = err;
+      // Don't retry on auth errors (handled by caller) or if aborted
+      if (err instanceof Error && (err.name === 'AbortError')) throw err;
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// ── Auth-aware fetch helper (auto-refresh on 401 + retry backoff) ─────────────
 async function authFetchRaw(url: string, accessToken: string | null, refreshToken: string | null, setAuth: any, clearAuth: any): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-  
-  let res = await fetch(`${API_BASE}${url}`, { headers });
-  
+
+  // Retry on network errors only (not on HTTP error codes)
+  let res = await withRetry(() => fetch(`${API_BASE}${url}`, { headers }));
+
   if (res.status === 401 && refreshToken) {
     const refreshRes = await fetch(`${API_BASE}/api/v2/auth/refresh`, {
       method: 'POST',
@@ -23,7 +45,7 @@ async function authFetchRaw(url: string, accessToken: string | null, refreshToke
       const tokens = await refreshRes.json();
       setAuth(tokens.access_token, tokens.refresh_token || refreshToken);
       headers['Authorization'] = `Bearer ${tokens.access_token}`;
-      res = await fetch(`${API_BASE}${url}`, { headers });
+      res = await withRetry(() => fetch(`${API_BASE}${url}`, { headers }));
     } else {
       clearAuth();
     }
@@ -80,7 +102,11 @@ export function useDashboardStats() {
       try {
         // Pobierz zagregowane statystyki z dedykowanego endpointu
         const res = await authFetchRaw('/api/v2/dashboard/stats', accessToken, refreshToken, setAuth, clearAuth);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const msg = `Błąd ładowania statystyk (HTTP ${res.status})`;
+          showToast('error', msg);
+          throw new Error(msg);
+        }
         const json = await res.json();
 
         // Pobierz ostatnie przetargi osobno
@@ -99,7 +125,12 @@ export function useDashboardStats() {
           });
         }
       } catch (e: unknown) {
-        if (!cancelled) setError((e as Error).message || 'Failed to load stats');
+        if (!cancelled) {
+          const msg = (e as Error).message || 'Błąd ładowania statystyk';
+          setError(msg);
+          // showToast only for network errors (HTTP errors already toasted above)
+          if (!msg.startsWith('Błąd ładowania')) showToast('error', msg);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -133,14 +164,22 @@ export function useTenders(statusFilter?: string) {
             ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           },
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const msg = `Błąd ładowania przetargów (HTTP ${res.status})`;
+          showToast('error', msg);
+          throw new Error(msg);
+        }
         const json = await res.json();
         if (!cancelled) {
           setData(json.items || []);
           setTotal(json.total || 0);
         }
       } catch (e: unknown) {
-        if (!cancelled) setError((e as Error).message || 'Failed to load tenders');
+        if (!cancelled) {
+          const msg = (e as Error).message || 'Błąd ładowania przetargów';
+          setError(msg);
+          if (!msg.startsWith('Błąd ładowania')) showToast('error', msg);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }

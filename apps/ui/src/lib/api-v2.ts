@@ -2,6 +2,26 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/store/useStore';
+import { showToast } from '@/components/Toast';
+
+// ── Retry helper — exponential backoff (S6-4) ─────────────────────────────────
+const RETRY_DELAYS_V2 = [200, 600, 1800]; // ms
+
+async function retryFetch(fn: () => Promise<Response>, maxAttempts = 3): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof Error && err.name === 'AbortError') throw err;
+      if (i < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, RETRY_DELAYS_V2[i]));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 // ── Base fetch ────────────────────────────────────────────────────────────────
 
@@ -10,14 +30,14 @@ export function useAuthFetch() {
   return useCallback(
     async (url: string, opts: RequestInit = {}) => {
       const doFetch = async (token: string | null) => {
-        return fetch(url, {
+        return retryFetch(() => fetch(url, {
           ...opts,
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(opts.headers || {}),
           },
-        });
+        }));
       };
 
       let res = await doFetch(accessToken);
@@ -39,24 +59,28 @@ export function useAuthFetch() {
             res = await doFetch(data.access_token);
           } else {
             clearAuth();
-            throw new Error('Session expired. Please login again.');
+            throw new Error('Sesja wygasła. Zaloguj się ponownie.');
           }
-        } catch (e: any) {
-          if (e.message?.includes('Session expired')) throw e;
+        } catch (e: unknown) {
+          const msg = (e as Error).message || '';
+          if (msg.includes('Sesja wygasła') || msg.includes('Session expired')) throw e as Error;
           clearAuth();
-          throw new Error('Session expired. Please login again.');
+          throw new Error('Sesja wygasła. Zaloguj się ponownie.');
         }
       }
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.detail || `HTTP ${res.status}`);
+        const errBody = await res.json().catch(() => ({}));
+        const msg = errBody?.detail || `Błąd API (HTTP ${res.status})`;
+        showToast('error', msg);
+        throw new Error(msg);
       }
       return res.json();
     },
     [accessToken, refreshToken, setAuth, clearAuth],
   );
 }
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

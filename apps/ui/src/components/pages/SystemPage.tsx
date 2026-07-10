@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Database, Activity, CheckCircle2, AlertTriangle,
   RefreshCw, Server, Trash2, Layers, HardDrive, Shield,
   Clock, FileText,
 } from 'lucide-react';
+import { SkeletonBlock, SkeletonCard } from '@/components/ui/SkeletonLoader';
 
 interface ApiStatus {
   ok: boolean;
@@ -23,6 +24,7 @@ interface SystemStats {
 export function SystemPage() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>({ ok: false, tenderCount: null, error: null, checkedAt: null });
   const [checking, setChecking] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [stats, setStats] = useState<SystemStats>({ tenders: null, estimates: null });
   const [cacheCleared, setCacheCleared] = useState(false);
 
@@ -56,8 +58,7 @@ export function SystemPage() {
   };
 
   useEffect(() => {
-    checkApi();
-    fetchStats();
+    Promise.all([checkApi(), fetchStats()]).finally(() => setInitialLoading(false));
   }, []);
 
   const clearCache = () => {
@@ -87,6 +88,19 @@ export function SystemPage() {
         <h1 className="text-2xl font-bold text-earth-50">System</h1>
         <p className="text-earth-400 mt-1 text-sm">Status API, informacje o systemie, zarządzanie danymi i kopiami zapasowymi</p>
       </div>
+
+      {/* Loading skeleton — initial mount */}
+      {initialLoading ? (
+        <div className="space-y-4">
+          <SkeletonBlock className="h-40 rounded-2xl" />
+          <div className="grid grid-cols-2 gap-4">
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={4} />
+          </div>
+          <SkeletonBlock className="h-28 rounded-2xl" />
+        </div>
+      ) : null}
+      {!initialLoading && (<React.Fragment>
 
       {/* Status systemu */}
       <div className="glass-card rounded-2xl p-5 border border-earth-800/60">
@@ -320,6 +334,7 @@ export function SystemPage() {
         <span className="font-mono">Terra.OS <span className="text-accent-primary">v1.0.0</span></span>
         <span>Next.js 15 · FastAPI · PostgreSQL</span>
       </div>
+      </React.Fragment>)}
     </motion.div>
   );
 }

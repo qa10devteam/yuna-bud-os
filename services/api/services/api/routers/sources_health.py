@@ -25,7 +25,7 @@ BZP_HEAD_URL = "https://ezamowienia.gov.pl"
 TED_HEAD_URL = "https://ted.europa.eu"
 BIP_HEAD_URL = "https://aplikacje.gov.pl"
 
-_TIMEOUT = 8.0
+_TIMEOUT = httpx.Timeout(connect=3.0, read=8.0, write=4.0, pool=2.0)
 _LATENCY_WARN_MS = 5000  # S24/S25: threshold for source_down notification
 
 
@@ -57,7 +57,7 @@ def _probe_head(name: str, url: str) -> SourceStatus:
     """HEAD ping — returns latency_ms and ok status."""
     t0 = time.monotonic()
     try:
-        resp = httpx.head(url, timeout=5.0, follow_redirects=True)
+        resp = httpx.head(url, timeout=httpx.Timeout(connect=3.0, read=5.0, write=3.0, pool=2.0), follow_redirects=True)
         latency = int((time.monotonic() - t0) * 1000)
         last_ok_at = datetime.now(tz=timezone.utc).isoformat()
         if resp.status_code in (200, 301, 302, 403):
