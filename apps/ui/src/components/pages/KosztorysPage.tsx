@@ -804,6 +804,7 @@ export function KosztorysPage() {
   // ── Load / create kosztorys when tender changes ────────────────────────────
   useEffect(() => {
     if (!tender) { setPozycje([]); setKosztorysId(null); return; }
+    const controller = new AbortController();
     setKosztLoading(true);
     // Spróbuj v2 najpierw
     authFetch(`/api/v2/kosztorys?tender_id=${tender.id}&limit=5`)
@@ -853,7 +854,8 @@ export function KosztorysPage() {
           })
           .catch(() => {});
       })
-      .finally(() => setKosztLoading(false));
+      .finally(() => { if (!controller.signal.aborted) setKosztLoading(false); });
+    return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tender?.id]);
 

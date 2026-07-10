@@ -303,7 +303,15 @@ export function PogodaPage() {
           <div className="grid grid-cols-7 gap-2">
             {loading
               ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
-              : firstRow.map(day => <DayCard key={day.date} day={day} size="normal" />)
+              : firstRow.length > 0
+                ? firstRow.map(day => <DayCard key={day.date} day={day} size="normal" />)
+                : (
+                  <div className="col-span-7 flex flex-col items-center justify-center py-10 text-center">
+                    <CloudRain className="w-10 h-10 text-earth-600 mb-3" />
+                    <p className="text-earth-400 text-sm font-medium">Brak danych pogodowych</p>
+                    <p className="text-earth-600 text-xs mt-1">Wybierz miasto powyżej</p>
+                  </div>
+                )
             }
           </div>
         </div>

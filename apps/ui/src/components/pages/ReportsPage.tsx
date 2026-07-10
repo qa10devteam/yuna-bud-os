@@ -116,6 +116,13 @@ export function ReportsPage() {
             </div>
           );
         })}
+        {reports.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FileText className="w-10 h-10 text-earth-600 mb-3" />
+            <p className="text-earth-400 text-sm font-medium">Brak raportów</p>
+            <p className="text-earth-600 text-xs mt-1">Wygeneruj pierwszy raport</p>
+          </div>
+        )}
       </motion.div>
 
       {/* Templates section */}

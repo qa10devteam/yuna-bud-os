@@ -110,6 +110,17 @@ export function ContractsPage() {
 
       {/* Contract cards */}
       <motion.div variants={item} className="space-y-3">
+        {contracts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-16 text-center"
+          >
+            <FileText className="w-10 h-10 text-earth-600 mb-3" />
+            <p className="text-earth-400 text-sm font-medium">Brak kontraktów</p>
+            <p className="text-earth-600 text-xs mt-1">Zmień filtr lub dodaj nowy kontrakt</p>
+          </motion.div>
+        )}
         {contracts.map(c => {
           const meta = STATUS_META[c.status];
           const cashPct = c.value_pln > 0 ? Math.round((c.paid_pln / c.value_pln) * 100) : 0;
