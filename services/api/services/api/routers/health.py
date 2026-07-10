@@ -39,6 +39,13 @@ class DetailedResponse(BaseModel):
     env: str
 
 
+class SystemHealthResponse(BaseModel):
+    status: str
+    uptime_s: float
+    version: str
+    subsystems: dict
+
+
 # Helper: check Redis
 
 def _check_redis() -> str:
@@ -72,7 +79,7 @@ async def health() -> HealthResponse:
     )
 
 
-@router.get("/api/v2/health")
+@router.get("/api/v2/health", response_model=HealthResponse)
 async def health_v2() -> dict:
     """V2 health check: returns {status: ok, version: 2.0, db: ok}."""
     db_status = "ok"
@@ -157,7 +164,7 @@ async def health_detailed() -> DetailedResponse:
 
 # ─── BPMN Sprint 6 — System health ─────────────────────────────────────────
 
-@router.get("/health/system")
+@router.get("/health/system", response_model=SystemHealthResponse)
 async def health_system() -> dict:
     """BPMN Faza 1 Sprint 6 — Full system health: DB, cache, ingest, alerts.
 

@@ -206,7 +206,7 @@ async def sources_health() -> SourcesHealthResponse:
     )
 
 
-@router.get("/api/v2/sources/health")
+@router.get("/api/v2/sources/health", response_model=SourcesHealthResponse)
 async def sources_health_v2() -> dict:
     """S24/S25: Extended sources health with latency_ms + last_ok_at per source.
 
