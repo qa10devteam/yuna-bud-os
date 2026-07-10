@@ -478,6 +478,29 @@ def deliver_alert(
 
     status = "sent" if ok else "failed"
     log_email_sent(conn, alert.tenant_id, to_email, subject, "tender_alert_digest", status)
+
+    # Sprint 11: enqueue to DLQ on failure
+    if not ok and not dry_run:
+        try:
+            from .alert_retry import enqueue_failed_alert
+            from sqlalchemy import create_engine
+            _eng = create_engine(f"postgresql+psycopg2://{os.getenv('DATABASE_URL', 'terraos@127.0.0.1/terraos')}")
+            with _eng.begin() as _conn:
+                enqueue_failed_alert(
+                    conn=_conn,
+                    tenant_id=alert.tenant_id,
+                    alert_id=alert.id,
+                    user_id=alert.user_id or "",
+                    to_email=to_email,
+                    subject=subject,
+                    html_body=html,
+                    text_body=text,
+                    error_msg="SMTP delivery failed after retries",
+                )
+            logger.info("Alert DLQ: enqueued failed alert %s for retry", alert.id)
+        except Exception as dlq_exc:
+            logger.warning("Alert DLQ enqueue failed (non-critical): %s", dlq_exc)
+
     return ok
 
 
