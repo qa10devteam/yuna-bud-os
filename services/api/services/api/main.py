@@ -118,6 +118,11 @@ try:
 except Exception as e:
     logging.getLogger(__name__).warning("scoring_config import error: %s", e)
 try:
+    from .routers import alert_config
+    _optional_routers.append(('alert_config', alert_config))
+except Exception as e:
+    logging.getLogger(__name__).warning("alert_config import error: %s", e)
+try:
     from .routers import intelligence
     _optional_routers.append(('intelligence', intelligence))
 except Exception as e:
@@ -325,3 +330,13 @@ if 'resources' in _opt_map:
 # F12: Scoring config
 if 'scoring_config' in _opt_map:
     app.include_router(_opt_map['scoring_config'].router)
+
+# S47 — offer history import
+try:
+    from .routers import import_offer_history as _import_offer_history_mod
+    app.include_router(_import_offer_history_mod.router)
+except ImportError as _e:
+    logging.getLogger(__name__).warning("import_offer_history router error: %s", _e)
+# S13: Alert config UI
+if 'alert_config' in _opt_map:
+    app.include_router(_opt_map['alert_config'].router)

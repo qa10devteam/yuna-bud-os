@@ -605,6 +605,31 @@ def _should_fire(alert: Alert) -> bool:
     return False
 
 
+def _load_smtp_from_db(conn_pg: Any, tenant_id_str: str | None) -> dict:
+    """S13: Load SMTP settings from email_configs table, fallback to env vars."""
+    row = None
+    if tenant_id_str:
+        try:
+            # email_configs is keyed by org_id (= tenant.id for default tenant)
+            with conn_pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT smtp_host, smtp_port, smtp_user, smtp_pass, from_email, from_name, enabled"
+                    " FROM email_configs WHERE org_id = %s LIMIT 1",
+                    (tenant_id_str,)
+                )
+                row = cur.fetchone()
+        except Exception as exc:
+            logger.debug("Could not load SMTP from DB: %s", exc)
+    return {
+        "smtp_host": (row["smtp_host"] if row and row.get("smtp_host") else None) or os.getenv("SMTP_HOST", ""),
+        "smtp_port": int((row["smtp_port"] if row and row.get("smtp_port") else None) or os.getenv("SMTP_PORT", "587")),
+        "smtp_user": (row["smtp_user"] if row and row.get("smtp_user") else None) or os.getenv("SMTP_USER", ""),
+        "smtp_pass": (row["smtp_pass"] if row and row.get("smtp_pass") else None) or os.getenv("SMTP_PASS", ""),
+        "from_email": (row["from_email"] if row and row.get("from_email") else None) or os.getenv("SMTP_FROM", "noreply@terra-os.qa10.io"),
+        "from_name": (row["from_name"] if row and row.get("from_name") else None) or os.getenv("SMTP_FROM_NAME", "Terra.OS"),
+    }
+
+
 def run_alert_runner(
     db_dsn: str = DEFAULT_DSN,
     tenant_id: str | None = None,
@@ -614,16 +639,19 @@ def run_alert_runner(
     """Main entry point — runs all eligible alerts.
 
     Sprint 12: One SMTP session for the whole dispatch run (batch mode).
+    S13: Prefer SMTP settings from DB (email_configs) over env vars.
     """
     conn = psycopg2.connect(db_dsn)
     stats = {"alerts_checked": 0, "alerts_fired": 0, "emails_sent": 0, "tenders_found": 0, "skipped": 0}
 
-    smtp_host = os.getenv("SMTP_HOST", "")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_pass = os.getenv("SMTP_PASS", "")
-    from_email = os.getenv("SMTP_FROM", "noreply@terra-os.qa10.io")
-    from_name = os.getenv("SMTP_FROM_NAME", "Terra.OS")
+    # S13: load SMTP preferring DB over env vars
+    _smtp = _load_smtp_from_db(conn, tenant_id)
+    smtp_host = _smtp["smtp_host"]
+    smtp_port = _smtp["smtp_port"]
+    smtp_user = _smtp["smtp_user"]
+    smtp_pass = _smtp["smtp_pass"]
+    from_email = _smtp["from_email"]
+    from_name = _smtp["from_name"]
 
     try:
         alerts = fetch_active_alerts(conn, tenant_id=tenant_id, frequency=frequency)
