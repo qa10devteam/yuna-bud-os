@@ -327,3 +327,64 @@ def delete_bookmark(bookmark_id: UUID, user: AuthUser, db: DB):
     db.commit()
     if getattr(result, "rowcount", 1) == 0:
         raise HTTPException(status_code=404, detail="Bookmark nie istnieje")
+
+
+# S38/S39: POST /{id}/watch — create a tender_alert from this bookmark
+
+@router.post("/{bookmark_id}/watch", status_code=status.HTTP_201_CREATED, summary="Utwórz alert z bookmarku")
+def watch_bookmark(bookmark_id: UUID, user: AuthUser, db: DB):
+    """S38/S39: Create a tender_alert using the bookmark as a query template."""
+    org_id = _require_org(user)
+
+    # Load the bookmark and its tender info
+    bm = db.execute(text("""
+        SELECT b.id, b.ht_id, b.tender_id, b.tags, b.notes,
+               ht.cpv_code AS ht_cpv, ht.province AS ht_province
+        FROM tender_bookmark b
+        LEFT JOIN historical_tenders ht ON ht.id = b.ht_id
+        WHERE b.id = :id AND b.tenant_id = :org_id
+    """), {"id": str(bookmark_id), "org_id": org_id}).mappings().one_or_none()
+
+    if not bm:
+        raise HTTPException(status_code=404, detail="Bookmark nie istnieje")
+
+    # Build alert name from bookmark id
+    alert_name = f"Watch bookmark {str(bookmark_id)[:8]}"
+
+    # Check for existing alert with same name
+    dup = db.execute(text(
+        "SELECT id FROM tender_alert WHERE tenant_id = :org_id AND name = :name"
+    ), {"org_id": org_id, "name": alert_name}).one_or_none()
+    if dup:
+        return {"id": str(dup.id), "status": "already_exists"}
+
+    # Build CPV and province filters from the linked tender
+    cpv_prefixes = []
+    if bm.get("ht_cpv"):
+        cpv_prefixes = [str(bm["ht_cpv"])[:5]]  # 5-digit CPV prefix
+
+    provinces = []
+    if bm.get("ht_province"):
+        provinces = [bm["ht_province"]]
+
+    keywords = list(bm.get("tags") or [])
+
+    row = db.execute(text("""
+        INSERT INTO tender_alert (
+            tenant_id, user_id, name, cpv_prefixes, provinces, keywords,
+            is_active, frequency, channel
+        ) VALUES (
+            :org_id, :user_id, :name, :cpv_prefixes, :provinces, :keywords,
+            true, 'daily', 'email'
+        )
+        RETURNING id, name, is_active, frequency, channel, created_at
+    """), {
+        "org_id": org_id,
+        "user_id": user.user_id,
+        "name": alert_name,
+        "cpv_prefixes": cpv_prefixes,
+        "provinces": provinces,
+        "keywords": keywords,
+    }).mappings().one()
+    db.commit()
+    return dict(row)
