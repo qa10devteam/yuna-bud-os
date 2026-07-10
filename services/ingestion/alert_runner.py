@@ -387,8 +387,12 @@ def send_smtp(
     smtp_pass: str = "",
     from_email: str = "noreply@terra-os.qa10.io",
     from_name: str = "Terra.OS",
+    max_retries: int = 3,
+    retry_delay: float = 1.0,
 ) -> bool:
-    """Send email via SMTP. Returns True on success."""
+    """Send email via SMTP with exponential backoff retry. Returns True on success."""
+    import time as _time
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = f"{from_name} <{from_email}>"
@@ -400,19 +404,30 @@ def send_smtp(
         logger.info("[EMAIL-DRY] To=%s | Subject=%s", to_email, subject)
         return True
 
-    try:
-        ctx = ssl.create_default_context()
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.ehlo()
-            server.starttls(context=ctx)
-            if smtp_user:
-                server.login(smtp_user, smtp_pass)
-            server.sendmail(from_email, to_email, msg.as_string())
-        logger.info("Email sent: to=%s subject=%s", to_email, subject)
-        return True
-    except Exception as exc:
-        logger.error("SMTP error: %s", exc)
-        return False
+    last_exc: Exception | None = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            ctx = ssl.create_default_context()
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.ehlo()
+                server.starttls(context=ctx)
+                if smtp_user:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, to_email, msg.as_string())
+            logger.info("Email sent: to=%s subject=%s (attempt %d)", to_email, subject, attempt)
+            return True
+        except Exception as exc:
+            last_exc = exc
+            wait = retry_delay * (2 ** (attempt - 1))  # 1s, 2s, 4s
+            logger.warning(
+                "SMTP attempt %d/%d failed: %s — retry in %.1fs",
+                attempt, max_retries, exc, wait,
+            )
+            if attempt < max_retries:
+                _time.sleep(wait)
+
+    logger.error("SMTP failed after %d attempts: %s", max_retries, last_exc)
+    return False
 
 
 def deliver_alert(
