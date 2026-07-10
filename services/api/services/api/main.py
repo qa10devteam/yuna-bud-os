@@ -144,6 +144,7 @@ from .middleware.validation import validate_request
 from .middleware.rate_limit import limiter
 from .middleware.tenant import TenantMiddleware, install_rls_on_engine
 from .middleware.csrf import CSRFMiddleware
+from .middleware.error_boundary import error_boundary_handler
 
 
 # ─── Lifespan ──────────────────────────────────────────────────────────────────
@@ -236,6 +237,9 @@ async def terra_error_handler(request: Request, exc: TerraError) -> JSONResponse
         status_code=exc.status_code,
         content={"error": {"code": exc.code, "message": exc.message, "details": exc.details}},
     )
+
+# S20/S21: Global error boundary for all unhandled exceptions
+app.add_exception_handler(Exception, error_boundary_handler)
 
 # slowapi rate limit exceeded handler
 try:
