@@ -13,18 +13,33 @@ from ..auth.deps import AuthUser
 from ..analytics.ahp import compute_ahp_score
 from ..analytics.bidding import optimal_markup as calc_optimal_markup
 from ..analytics.recommendation import generate_recommendation
+from ..cache import api_cache, invalidate
 
 router = APIRouter(prefix="/api/v2/analytics", tags=["analytics"])
 
 
+@router.post("/cache/invalidate")
+def invalidate_analytics_cache(user: AuthUser) -> dict:
+    """Inwaliduje cache analityki dla tenanta."""
+    prefix = f"analytics:{user.org_id}"
+    count = invalidate(prefix)
+    return {"ok": True, "invalidated": count}
+
+
 @router.get("/dashboard")
 def analytics_dashboard(user: AuthUser) -> dict:
-    """KPIs: pipeline_value, win_rate, active_bids, avg_margin."""
+    """KPIs: pipeline_value, win_rate, active_bids, avg_margin. Cache TTL=60s."""
+    if not user.org_id:
+        raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
+
+    cache_key = f"analytics:{user.org_id}:dashboard"
+    from ..cache import get as cache_get, set as cache_set
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return {**cached, "_cached": True}
+
     engine = get_engine()
     tenant_id = user.org_id
-
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
 
     with engine.connect() as conn:
         # Pipeline value (wszystkie aktywne przetargi)
@@ -68,7 +83,7 @@ def analytics_dashboard(user: AuthUser) -> dict:
     if decisions and decisions.total > 0:
         win_rate = float(decisions.won) / float(decisions.total)
 
-    return {
+    result = {
         "pipeline_value": float(pipeline.pipeline_value) if pipeline else 0.0,
         "active_bids": int(pipeline.active_bids) if pipeline else 0,
         "win_rate": round(win_rate, 4),
@@ -77,16 +92,24 @@ def analytics_dashboard(user: AuthUser) -> dict:
         "total_lost": int(decisions.lost) if decisions else 0,
         "avg_margin": round(float(avg_margin.avg_margin), 2) if avg_margin and avg_margin.avg_margin else None,
     }
+    cache_set(cache_key, result, ttl=60)
+    return result
 
 
 @router.get("/pipeline-funnel")
 def pipeline_funnel(user: AuthUser) -> dict:
-    """Ilości przetargów per status (lejek sprzedażowy)."""
+    """Ilości przetargów per status (lejek sprzedażowy). Cache TTL=30s."""
+    if not user.org_id:
+        raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
+
+    cache_key = f"analytics:{user.org_id}:funnel"
+    from ..cache import get as cache_get, set as cache_set
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return {**cached, "_cached": True}
+
     engine = get_engine()
     tenant_id = user.org_id
-
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
 
     with engine.connect() as conn:
         rows = conn.execute(
@@ -106,13 +129,15 @@ def pipeline_funnel(user: AuthUser) -> dict:
     ]
     counts = {r.status: int(r.cnt) for r in rows}
 
-    return {
+    result = {
         "funnel": [
             {"status": s, "count": counts.get(s, 0)}
             for s in STATUS_ORDER
         ],
         "total": sum(counts.values()),
     }
+    cache_set(cache_key, result, ttl=30)
+    return result
 
 
 @router.get("/win-rate-trend")
