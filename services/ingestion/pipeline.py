@@ -75,6 +75,8 @@ def run_ingest(
     date_from = date.today() - timedelta(days=days_back)
     date_to = date.today()
 
+    # S19: BZP + TED both receive the same days_back (default 7) for consistency
+
     # Step 1a: BZP fetch
     if use_fixtures:
         logger.info("OFFLINE mode — loading BZP fixtures")
