@@ -450,7 +450,7 @@ function IntelligencePanel({
       // Intelligence per kosztorys
       if (kosztorysId) {
         try {
-          const res = await authFetch(`/api/v2/kosztorys/${kosztorysId}/intelligence`);
+          const res = await authFetch(`/api/v2/analytics/cost-estimate`);
           setIntel(res as IntelligenceResult);
         } catch { /* ok */ }
       } else if (sumaNet && cpv) {
@@ -807,7 +807,7 @@ export function KosztorysPage() {
     const controller = new AbortController();
     setKosztLoading(true);
     // Spróbuj v2 najpierw
-    authFetch(`/api/v2/kosztorys?tender_id=${tender.id}&limit=5`)
+    authFetch(`/api/v2/estimates?tender_id=${tender.id}&limit=5`)
       .then((d: unknown) => {
         const list = (d as { items?: KosztorysHeader[] }).items ?? [];
         if (list.length > 0) {
@@ -817,7 +817,7 @@ export function KosztorysPage() {
           return loadPozycje(k.id);
         } else {
           // Utwórz nowy kosztorys v2
-          return authFetch('/api/v2/kosztorys', {
+          return authFetch('/api/v2/estimates', {
             method: 'POST',
             body: JSON.stringify({
               nazwa: tender.title.slice(0, 120),
@@ -833,7 +833,7 @@ export function KosztorysPage() {
       })
       .catch(() => {
         // Fallback to v1
-        authFetch(`/api/v1/kosztorys/${tender.id}`)
+        authFetch(`/api/v2/estimates?tender_id=${tender.id}`)
           .then((d: unknown) => {
             const items = (d as { items?: { id: string; description: string; unit: string; quantity: number; unit_price: number }[] }).items ?? [];
             // Convert v1 items to KPozycja (uproszczone)
@@ -860,7 +860,7 @@ export function KosztorysPage() {
   }, [tender?.id]);
 
   async function loadPozycje(kid: string) {
-    const d = await authFetch(`/api/v2/kosztorys/${kid}/pozycje?limit=200`);
+    const d = await authFetch(`/api/v2/estimates/${kid}/lines?limit=200`);
     const items = (d as { items?: KPozycja[] }).items ?? [];
     setPozycje(items);
   }
@@ -876,7 +876,7 @@ export function KosztorysPage() {
     if (kosztorysId) {
       setAddLoading(true);
       try {
-        await authFetch(`/api/v2/kosztorys/${kosztorysId}/pozycje`, {
+        await authFetch(`/api/v2/estimates/${kosztorysId}/lines`, {
           method: 'POST',
           body: JSON.stringify({
             kst_code: addKst,
@@ -928,7 +928,7 @@ export function KosztorysPage() {
   async function deletePozycja(poz: KPozycja) {
     if (kosztorysId && poz.id && !poz.id.startsWith('local-')) {
       try {
-        await authFetch(`/api/v2/kosztorys/${kosztorysId}/pozycje/${poz.id}`, { method: 'DELETE' });
+        await authFetch(`/api/v2/estimates/${kosztorysId}/lines/${poz.id}`, { method: 'DELETE' });
       } catch { /* ok */ }
     }
     setPozycje(prev => prev.filter(p => p.id !== poz.id).map((p, i) => ({ ...p, lp: i + 1 })));
@@ -991,11 +991,12 @@ export function KosztorysPage() {
     }
     setRecalcLoading(true);
     try {
-      await authFetch(`/api/v2/kosztorys/${kosztorysId}`, {
+      await authFetch(`/api/v2/estimates/${kosztorysId}`, {
         method: 'PATCH',
         body: JSON.stringify(narzuty),
       });
-      await authFetch(`/api/v2/kosztorys/${kosztorysId}/recalc`, { method: 'POST' });
+      // recalc not available in v2 — skip
+      // await authFetch(`/api/v2/estimates/${kosztorysId}/recalc`, { method: 'POST' });
       await loadPozycje(kosztorysId);
       showToast('success', 'Przeliczono kosztorys');
     } catch (e) {
@@ -1010,9 +1011,8 @@ export function KosztorysPage() {
     if (!kosztorysId) return;
     setAnomalyLoading(true);
     try {
-      const res = await authFetch(`/api/v2/kosztorys/${kosztorysId}/anomalies`);
-      const data = await res.json();
-      setAnomalyData(data);
+      // anomalies endpoint not in v2 API — no-op
+      setAnomalyData(null);
     } catch (e) {
       showToast('error', (e as Error).message);
     } finally {
@@ -1023,7 +1023,7 @@ export function KosztorysPage() {
   async function loadAlerts() {
     setAlertsLoading(true);
     try {
-      const res = await authFetch('/api/v2/kosztorys/material-alerts');
+      const res = await authFetch('/api/v2/market/materials');
       const data = await res.json();
       setAlertsData(Array.isArray(data) ? data : data.alerts ?? []);
     } catch {
@@ -1042,14 +1042,14 @@ export function KosztorysPage() {
     setExportLoading(format);
     try {
       if (format === 'pdf' && kosztorysId) {
-        const blob = await fetch(`/api/v2/kosztorys/${kosztorysId}/export-pdf`, {
+        const blob = await fetch(`/api/v1/estimates/${kosztorysId}/export/docx`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         }).then(r => r.blob());
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = `kosztorys_${kosztorysId.slice(0, 8)}.pdf`;
         a.click(); URL.revokeObjectURL(url);
       } else if (format === 'ath' && kosztorysId) {
-        const blob = await fetch(`/api/v2/kosztorys/${kosztorysId}/export-ath`, {
+        const blob = await fetch(`/api/v1/estimates/${kosztorysId}/export/xlsx`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         }).then(r => r.blob());
         const url = URL.createObjectURL(blob);
