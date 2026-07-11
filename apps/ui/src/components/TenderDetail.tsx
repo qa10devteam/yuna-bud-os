@@ -73,16 +73,33 @@ const MOCK_HISTORY = [
   { id: '3', action: 'Pobrano dokumentację SIWZ', ts: new Date(Date.now() - 2*86400000).toISOString() },
 ];
 
+interface AuditEntry {
+  id: string;
+  at: string;
+  actor: string;
+  action: string;
+  entity: string;
+  detail?: Record<string, unknown>;
+}
+
 export function TenderDetail({ tender, onClose }: TenderDetailProps) {
   const { accessToken } = useStore();
   const [tab, setTab] = useState<TabId>('overview');
   const [ahpScores, setAhpScores] = useState<Record<string, number>>({});
   const [decision, setDecision] = useState<'go' | 'nogo' | null>(null);
+  const [auditLog, setAuditLog] = useState<AuditEntry[] | null>(null);
   const [loading] = useState(false);
-  const [engineData, setEngineData] = useState<{ violations?: Array<{severity:string,message:string}>, risk?: string } | null>(null);
+  const [engineData, setEngineData] = useState<{
+    feasible?: boolean;
+    violations?: Array<{severity:string; message:string; axiom_code?:string}>;
+    risk?: { margin_p50?: number; margin_p10?: number; margin_p90?: number } | null;
+    explanation_md?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!tender || !accessToken) return;
+    setEngineData(null);
+    setAuditLog(null); // reset on tender change
     fetch(`/api/v1/tenders/${tender.id}/engine`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
@@ -90,6 +107,18 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
       .then(d => { if (d) setEngineData(d); })
       .catch(() => {});
   }, [tender?.id, accessToken]);
+
+  // Fetch audit log when history tab is opened
+  useEffect(() => {
+    if (tab !== 'history' || !tender || !accessToken) return;
+    if (auditLog !== null) return; // already loaded
+    fetch(`/api/v2/audit?tender_id=${tender.id}&limit=30`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setAuditLog(d?.items ?? MOCK_HISTORY.map(h => ({ id: h.id, at: h.ts, actor: 'system', action: h.action, entity: 'tender' }))); })
+      .catch(() => { setAuditLog(MOCK_HISTORY.map(h => ({ id: h.id, at: h.ts, actor: 'system', action: h.action, entity: 'tender' }))); });
+  }, [tab, tender?.id, accessToken, auditLog]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -213,8 +242,36 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
                         </GlassCard>
                       )}
                       <GlassCard className="p-3">
-                        <p className="text-xs text-earth-500 mb-2">Podsumowanie AI (placeholder)</p>
-                        <p className="text-sm text-earth-400 italic">Analiza AI przetargu zostanie wygenerowana po kliknięciu przycisku Analizuj w module Silnik.</p>
+                        <p className="text-xs text-earth-500 mb-2">Analiza Silnika</p>
+                        {engineData ? (
+                          <div className="space-y-2">
+                            {engineData.explanation_md ? (
+                              <p className="text-sm text-earth-300 whitespace-pre-line">
+                                {engineData.explanation_md.slice(0, 400)}{engineData.explanation_md.length > 400 ? '…' : ''}
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {(engineData.violations ?? []).slice(0, 3).map((v, i) => (
+                                  <span key={i} className={`text-xs px-2 py-0.5 rounded border ${
+                                    v.severity === 'block' ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                                    : v.severity === 'warn' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                    : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                                  }`}>{v.message}</span>
+                                ))}
+                                {(engineData.violations ?? []).length === 0 && (
+                                  <span className="text-xs text-emerald-400">✓ Brak naruszeń PZP</span>
+                                )}
+                              </div>
+                            )}
+                            {engineData.risk?.margin_p50 != null && (
+                              <p className="text-xs text-earth-500 mt-1">
+                                Marża P50: <span className="text-emerald-400 font-semibold">{(engineData.risk.margin_p50 * 100).toFixed(1)}%</span>
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-earth-400 italic">Otwórz moduł Silnik → Analizuj, aby wygenerować analizę ryzyka dla tego przetargu.</p>
+                        )}
                       </GlassCard>
                     </div>
                   )}
@@ -263,7 +320,18 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
                       {engineData?.risk && (
                         <div className="mt-2 p-3 rounded-xl bg-earth-800/40 border border-earth-700/40">
                           <p className="text-xs text-earth-500 font-semibold uppercase tracking-wide mb-1">Ogólna ocena ryzyka</p>
-                          <p className="text-sm text-earth-200">{engineData.risk}</p>
+                          {typeof engineData.risk === 'string' ? (
+                            <p className="text-sm text-earth-200">{engineData.risk}</p>
+                          ) : (
+                            <p className="text-sm text-earth-200">
+                              Marża P10/P50/P90: {' '}
+                              <span className="text-red-400">{engineData.risk.margin_p10 != null ? (engineData.risk.margin_p10*100).toFixed(1)+'%' : '—'}</span>
+                              {' / '}
+                              <span className="text-emerald-400">{engineData.risk.margin_p50 != null ? (engineData.risk.margin_p50*100).toFixed(1)+'%' : '—'}</span>
+                              {' / '}
+                              <span className="text-blue-400">{engineData.risk.margin_p90 != null ? (engineData.risk.margin_p90*100).toFixed(1)+'%' : '—'}</span>
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -311,18 +379,32 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
 
                   {tab === 'history' && (
                     <div className="space-y-3">
-                      {MOCK_HISTORY.map((h, i) => (
-                        <div key={h.id} className="flex gap-3">
-                          <div className="flex flex-col items-center">
-                            <div className="w-2 h-2 rounded-full bg-accent-primary mt-1.5 shrink-0" />
-                            {i < MOCK_HISTORY.length - 1 && <div className="w-px flex-1 bg-earth-800 mt-1" />}
-                          </div>
-                          <div className="pb-3">
-                            <p className="text-sm text-earth-200">{h.action}</p>
-                            <p className="text-xs text-earth-600">{new Date(h.ts).toLocaleDateString('pl-PL')}</p>
-                          </div>
+                      {auditLog === null ? (
+                        <div className="flex items-center gap-2 text-earth-500 text-sm py-4">
+                          <div className="w-4 h-4 border-2 border-earth-600 border-t-accent-primary rounded-full animate-spin" />
+                          Ładowanie historii…
                         </div>
-                      ))}
+                      ) : auditLog.length === 0 ? (
+                        <p className="text-sm text-earth-500 text-center py-6">Brak wpisów historii dla tego przetargu.</p>
+                      ) : (
+                        auditLog.map((h, i) => (
+                          <div key={h.id} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <div className="w-2 h-2 rounded-full bg-accent-primary mt-1.5 shrink-0" />
+                              {i < auditLog.length - 1 && <div className="w-px flex-1 bg-earth-800 mt-1" />}
+                            </div>
+                            <div className="pb-3 min-w-0">
+                              <p className="text-sm text-earth-200 break-words">{h.action}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs text-earth-600">{new Date(h.at).toLocaleString('pl-PL')}</p>
+                                {h.actor && h.actor !== 'system' && (
+                                  <span className="text-xs text-earth-500 truncate max-w-[120px]">{h.actor}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </>

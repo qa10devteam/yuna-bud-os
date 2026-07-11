@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   RefreshCw, ChevronDown, X, ExternalLink, MapPin, Calendar,
@@ -43,7 +44,8 @@ interface TenderItem {
 interface TenderFeedResponse {
   items: TenderItem[];
   total: number;
-  cursor: string | null;
+  cursor?: string | null;
+  next_cursor?: string | null;
 }
 
 interface IntelKPI {
@@ -1159,6 +1161,9 @@ function DetailPanel({
 export function ZwiadPage() {
   const { accessToken } = useStore();
   const authFetch = useAuthFetch();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Feed state
   const [tenders, setTenders] = useState<TenderItem[]>([]);
@@ -1181,15 +1186,37 @@ export function ZwiadPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const POLL_INTERVAL = 30_000;
 
-  // Filters
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterVoivodeship, setFilterVoivodeship] = useState('');
-  const [filterSource, setFilterSource] = useState('');
-  const [filterCpv, setFilterCpv] = useState('');
-  const [filterMinValue, setFilterMinValue] = useState('');
-  const [filterMaxValue, setFilterMaxValue] = useState('');
-  const [sortBy, setSortBy] = useState('match_score');
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  // Filters — URL-persistent via searchParams (S5)
+  const filterStatus = searchParams.get('status') ?? '';
+  const filterVoivodeship = searchParams.get('voivodeship') ?? '';
+  const filterSource = searchParams.get('source') ?? '';
+  const filterCpv = searchParams.get('cpv') ?? '';
+  const filterMinValue = searchParams.get('min_value') ?? '';
+  const filterMaxValue = searchParams.get('max_value') ?? '';
+  const sortBy = searchParams.get('sort') ?? 'match_score';
+  const [filtersExpanded, setFiltersExpanded] = useState(
+    !!(searchParams.get('cpv') || searchParams.get('min_value') || searchParams.get('max_value'))
+  );
+
+  // Helper: update single URL param without full reload
+  const setFilter = useCallback((key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) { params.set(key, value); } else { params.delete(key); }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, router, pathname]);
+
+  const setFilterStatus = useCallback((v: string) => setFilter('status', v), [setFilter]);
+  const setFilterVoivodeship = useCallback((v: string) => setFilter('voivodeship', v), [setFilter]);
+  const setFilterSource = useCallback((v: string) => setFilter('source', v), [setFilter]);
+  const setFilterCpv = useCallback((v: string) => setFilter('cpv', v), [setFilter]);
+  const setFilterMinValue = useCallback((v: string) => setFilter('min_value', v), [setFilter]);
+  const setFilterMaxValue = useCallback((v: string) => setFilter('max_value', v), [setFilter]);
+  const setSortBy = useCallback((v: string) => setFilter('sort', v), [setFilter]);
+
+  // Reset all filters
+  const resetFilters = useCallback(() => {
+    router.replace(pathname, { scroll: false });
+  }, [router, pathname]);
 
   const feedEndRef = useRef<HTMLDivElement>(null);
 
@@ -1242,7 +1269,7 @@ export function ZwiadPage() {
         if (filterMaxValue) params.set('max_value', filterMaxValue);
         if (sortBy) params.set('sort', sortBy);
 
-        const data = (await authFetch(`/api/v1/tenders?${params}`)) as TenderFeedResponse;
+        const data = (await authFetch(`/api/v2/tenders?${params}`)) as TenderFeedResponse;
         const items = data?.items ?? [];
 
         if (reset) {
@@ -1251,7 +1278,7 @@ export function ZwiadPage() {
           setTenders(prev => [...prev, ...items]);
         }
         setTotal(data?.total ?? 0);
-        setCursor(data?.cursor ?? null);
+        setCursor(data?.next_cursor ?? data?.cursor ?? null);
         setLastRefreshed(new Date());
       } catch (e: unknown) {
         setFeedError((e as Error).message);
@@ -1585,15 +1612,7 @@ export function ZwiadPage() {
 
                 {/* Clear all */}
                 <button
-                  onClick={() => {
-                    setFilterStatus('');
-                    setFilterVoivodeship('');
-                    setFilterSource('');
-                    setFilterCpv('');
-                    setFilterMinValue('');
-                    setFilterMaxValue('');
-                    setSortBy('match_score');
-                  }}
+                  onClick={resetFilters}
                   className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs text-earth-500 hover:text-red-400 bg-earth-800 border border-earth-700/60 hover:border-red-500/30 transition-colors"
                 >
                   <X size={11} />
