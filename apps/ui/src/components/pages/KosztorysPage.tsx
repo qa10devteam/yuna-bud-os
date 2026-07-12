@@ -860,8 +860,23 @@ export function KosztorysPage() {
   }, [tender?.id]);
 
   async function loadPozycje(kid: string) {
-    const d = await authFetch(`/api/v2/estimates/${kid}/lines?limit=200`);
-    const items = (d as { items?: KPozycja[] }).items ?? [];
+    // GET /api/v2/estimates/{id} returns full estimate with lines[]
+    const d = await authFetch(`/api/v2/estimates/${kid}`);
+    const raw = (d as { lines?: Array<Record<string, unknown>> }).lines ?? [];
+    // Map backend fields → KPozycja (backend: description/unit/labor_pln → opis/jednostka/r_jcena)
+    const items: KPozycja[] = raw.map((it, idx) => ({
+      id: it.id as string,
+      lp: idx + 1,
+      kst_code: (it.kst_code as string) ?? '',
+      opis: (it.description as string) ?? '',
+      jednostka: (it.unit as string) ?? 'szt',
+      ilosc: (it.quantity as number) ?? 1,
+      r_jcena: (it.labor_pln as number) ?? 0,
+      m_jcena: (it.material_pln as number) ?? 0,
+      s_jcena: (it.equipment_pln as number) ?? 0,
+      jcena_netto: (it.unit_price as number) ?? ((it.labor_pln as number ?? 0) + (it.material_pln as number ?? 0) + (it.equipment_pln as number ?? 0)),
+      wartosc_netto: (it.line_total_pln as number) ?? ((it.unit_price as number ?? 0) * (it.quantity as number ?? 1)),
+    }));
     setPozycje(items);
   }
 
@@ -876,18 +891,18 @@ export function KosztorysPage() {
     if (kosztorysId) {
       setAddLoading(true);
       try {
+        // Backend uses PATCH /lines with description/unit/labor_pln/material_pln/equipment_pln
         await authFetch(`/api/v2/estimates/${kosztorysId}/lines`, {
-          method: 'POST',
-          body: JSON.stringify({
-            kst_code: addKst,
-            opis: addOpis,
-            jednostka: addJm,
-            ilosc,
-            r_jcena,
-            m_jcena,
-            s_jcena,
-            lp: (pozycje.at(-1)?.lp ?? 0) + 1,
-          }),
+          method: 'PATCH',
+          body: JSON.stringify([{
+            description: addOpis,
+            unit: addJm,
+            quantity: ilosc,
+            unit_price: r_jcena + m_jcena + s_jcena,
+            labor_pln: r_jcena,
+            material_pln: m_jcena,
+            equipment_pln: s_jcena,
+          }]),
         });
         await loadPozycje(kosztorysId);
       } catch (e) {
@@ -991,9 +1006,14 @@ export function KosztorysPage() {
     }
     setRecalcLoading(true);
     try {
+      // PUT /api/v2/estimates/{id} — overhead_pct/profit_pct/params dla narzutów
       await authFetch(`/api/v2/estimates/${kosztorysId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(narzuty),
+        method: 'PUT',
+        body: JSON.stringify({
+          overhead_pct: narzuty.ko_r_pct,
+          profit_pct: narzuty.z_pct,
+          params: { ko_r_pct: narzuty.ko_r_pct, ko_s_pct: narzuty.ko_s_pct, kz_pct: narzuty.kz_pct, z_pct: narzuty.z_pct },
+        }),
       });
       // recalc not available in v2 — skip
       // await authFetch(`/api/v2/estimates/${kosztorysId}/recalc`, { method: 'POST' });
