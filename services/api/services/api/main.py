@@ -164,6 +164,11 @@ try:
     _optional_routers.append(('m7_backend', m7_backend))
 except Exception as e:
     logging.getLogger(__name__).warning("m7_backend router: %s", e)
+try:
+    from .routers import m7_advanced
+    _optional_routers.append(('m7_advanced', m7_advanced))
+except Exception as e:
+    logging.getLogger(__name__).warning("m7_advanced router: %s", e)
 
 from .auth import router as auth_router
 
@@ -512,6 +517,8 @@ if 'chat_v2' in _opt_map:
     app.include_router(_opt_map['chat_v2'].router)
 if 'm7_backend' in _opt_map:
     app.include_router(_opt_map['m7_backend'].router)
+if 'm7_advanced' in _opt_map:
+    app.include_router(_opt_map['m7_advanced'].router)
 
 # ── v1 compat aliases — frontend używa /api/v1/tenders ──────────────────────
 from fastapi import Request as _Request
