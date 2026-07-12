@@ -137,6 +137,34 @@ try:
     _optional_routers.append(('automations', automations))
 except Exception as e:
     logging.getLogger(__name__).warning("automations router import error: %s", e)
+
+# ─── M7 Intelligence Layer routers ────────────────────────────────────────────
+try:
+    from .routers import semantic_search
+    _optional_routers.append(('semantic_search', semantic_search))
+except Exception as e:
+    logging.getLogger(__name__).warning("semantic_search router: %s", e)
+try:
+    from .routers import mv_scoring
+    _optional_routers.append(('mv_scoring', mv_scoring))
+except Exception as e:
+    logging.getLogger(__name__).warning("mv_scoring router: %s", e)
+try:
+    from .routers import agent_pipeline
+    _optional_routers.append(('agent_pipeline', agent_pipeline))
+except Exception as e:
+    logging.getLogger(__name__).warning("agent_pipeline router: %s", e)
+try:
+    from .routers import chat_v2
+    _optional_routers.append(('chat_v2', chat_v2))
+except Exception as e:
+    logging.getLogger(__name__).warning("chat_v2 router: %s", e)
+try:
+    from .routers import m7_backend
+    _optional_routers.append(('m7_backend', m7_backend))
+except Exception as e:
+    logging.getLogger(__name__).warning("m7_backend router: %s", e)
+
 from .auth import router as auth_router
 
 # ─── Middleware helpers ────────────────────────────────────────────────────────
@@ -472,6 +500,18 @@ try:
     app.include_router(_gantt_mod.router)
 except ImportError as _e:
     logging.getLogger(__name__).warning("gantt v2 router error: %s", _e)
+
+# ─── M7 Intelligence Layer ────────────────────────────────────────────────────
+if 'semantic_search' in _opt_map:
+    app.include_router(_opt_map['semantic_search'].router)
+if 'mv_scoring' in _opt_map:
+    app.include_router(_opt_map['mv_scoring'].router)
+if 'agent_pipeline' in _opt_map:
+    app.include_router(_opt_map['agent_pipeline'].router)
+if 'chat_v2' in _opt_map:
+    app.include_router(_opt_map['chat_v2'].router)
+if 'm7_backend' in _opt_map:
+    app.include_router(_opt_map['m7_backend'].router)
 
 # ── v1 compat aliases — frontend używa /api/v1/tenders ──────────────────────
 from fastapi import Request as _Request

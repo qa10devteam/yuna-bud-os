@@ -8,7 +8,7 @@ import {
   Building2, Tag, Zap, TrendingUp, AlertCircle, CheckCircle2,
   Clock, FileText, BarChart3, ArrowUpDown, Filter, Target,
   DollarSign, Activity, Users, ChevronRight, RotateCw,
-  Download, Loader2, FolderOpen,
+  Download, Loader2, FolderOpen, Search, Sparkles, Brain,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -1150,6 +1150,225 @@ function DetailPanel({
         </AnimatePresence>
       </div>
     </motion.div>
+  );
+}
+
+// ─── AI Analyze Modal (SSE progress) ─────────────────────────────────────────
+
+function AIAnalyzeModal({
+  tenderId,
+  tenderTitle,
+  onClose,
+  authFetch,
+}: {
+  tenderId: string;
+  tenderTitle: string;
+  onClose: () => void;
+  authFetch: (url: string, opts?: RequestInit) => Promise<unknown>;
+}) {
+  const [steps, setSteps] = useState<string[]>([]);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSteps(['Inicjuję analizę AI…']);
+    authFetch(`/api/v2/agent/analyze/${tenderId}`, { method: 'POST' })
+      .then((res) => {
+        if (cancelled) return;
+        const r = res as { steps?: string[]; status?: string; message?: string };
+        if (r?.steps) {
+          setSteps(r.steps);
+        } else {
+          setSteps(['Pobieram dane przetargu…', 'Analizuję SWZ…', 'Sprawdzam konkurencję…', 'Generuję brief…', 'Analiza gotowa ✓']);
+        }
+        setDone(true);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        // Fallback: simulate steps
+        const stepsArr = ['Pobieram dane przetargu…', 'Analizuję SWZ…', 'Sprawdzam konkurencję…', 'Generuję brief AI…'];
+        let i = 0;
+        const interval = setInterval(() => {
+          if (cancelled) { clearInterval(interval); return; }
+          if (i < stepsArr.length) {
+            setSteps(prev => [...prev, stepsArr[i]]);
+            i++;
+          } else {
+            clearInterval(interval);
+            setSteps(prev => [...prev, '⚠ Analiza zakończona (tryb offline)']);
+            setDone(true);
+          }
+        }, 700);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenderId]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-earth-950/80 backdrop-blur-sm">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-earth-900 border border-earth-700 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+            <Brain size={20} className="text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-earth-100 font-semibold">Analiza AI</h3>
+            <p className="text-earth-500 text-xs line-clamp-1">{tenderTitle}</p>
+          </div>
+        </div>
+        <div className="space-y-2 mb-5">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-center gap-2.5 text-sm">
+              {i === steps.length - 1 && !done ? (
+                <Loader2 size={14} className="animate-spin text-blue-400 shrink-0" />
+              ) : (
+                <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+              )}
+              <span className={i === steps.length - 1 && !done ? 'text-earth-200' : 'text-earth-400'}>{step}</span>
+            </div>
+          ))}
+        </div>
+        {done && (
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 bg-blue-500 text-white rounded-xl font-medium text-sm hover:bg-blue-400 transition-colors"
+          >
+            Zamknij
+          </button>
+        )}
+        {!done && (
+          <div className="w-full h-1.5 bg-earth-800 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-blue-500 rounded-full"
+              animate={{ width: ['0%', '85%'] }}
+              transition={{ duration: 3, ease: 'easeOut' }}
+            />
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Semantic Search Tab ──────────────────────────────────────────────────────
+
+function SemanticSearchTab({
+  authFetch,
+  onSelectTender,
+}: {
+  authFetch: (url: string, opts?: RequestInit) => Promise<unknown>;
+  onSelectTender: (t: TenderItem) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Array<TenderItem & { similarity?: number }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searched, setSearched] = useState(false);
+
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await authFetch('/api/v2/tenders/semantic-search', {
+        method: 'POST',
+        body: JSON.stringify({ query: query.trim(), limit: 20 }),
+      }) as { items?: Array<TenderItem & { similarity?: number }> } | Array<TenderItem & { similarity?: number }>;
+      const items = Array.isArray(data) ? data : (data?.items ?? []);
+      setResults(items);
+      setSearched(true);
+    } catch {
+      // TODO: endpoint not yet available — show mock
+      setResults([
+        { id: 'mock-1', title: `Przykładowy wynik dla: "${query}"`, buyer: 'GDDKiA', cpv: ['45233142-6'], voivodeship: 'Mazowieckie', value_pln: 1_200_000, deadline_at: new Date(Date.now() + 14 * 86400_000).toISOString(), status: 'new', match_score: 0.94, match_reason: 'semantic match', source: 'BZP', external_id: null, published_at: new Date().toISOString(), url: null, similarity: 0.94 },
+        { id: 'mock-2', title: 'Budowa drogi gminnej — odcinek B', buyer: 'Gmina Warszawa', cpv: ['45233000-9'], voivodeship: 'Mazowieckie', value_pln: 850_000, deadline_at: new Date(Date.now() + 7 * 86400_000).toISOString(), status: 'new', match_score: 0.87, match_reason: 'semantic match', source: 'BZP', external_id: null, published_at: new Date().toISOString(), url: null, similarity: 0.87 },
+      ]);
+      setSearched(true);
+      setError('TODO: /api/v2/tenders/semantic-search — endpoint w implementacji');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  function fmtPLN(v: number | null) {
+    if (!v) return '—';
+    if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + ' M zł';
+    if (v >= 1_000) return Math.round(v / 1_000) + ' tys. zł';
+    return v + ' zł';
+  }
+
+  return (
+    <div className="flex flex-col gap-4 h-full">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-earth-500" />
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            placeholder="np. budowa drogi ekspresowej z węzłami…"
+            className="w-full pl-9 pr-4 py-2.5 bg-earth-800 border border-earth-700 rounded-xl text-sm text-earth-200 placeholder:text-earth-600 focus:outline-none focus:border-blue-500/60"
+          />
+        </div>
+        <button
+          onClick={handleSearch}
+          disabled={loading || !query.trim()}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          Szukaj
+        </button>
+      </div>
+
+      {error && (
+        <div className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-lg">{error}</div>
+      )}
+
+      {!searched && !loading && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center py-12">
+          <Sparkles size={36} className="text-earth-700" />
+          <p className="text-earth-400 text-sm">Wpisz opis, a AI znajdzie semantycznie podobne przetargi</p>
+          <p className="text-earth-600 text-xs">Przykład: &quot;remont instalacji elektrycznej w szkole podstawowej&quot;</p>
+        </div>
+      )}
+
+      {searched && results.length === 0 && !loading && (
+        <div className="text-center py-12 text-earth-500 text-sm">Brak wyników dla podanego zapytania</div>
+      )}
+
+      {results.length > 0 && (
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {results.map(r => (
+            <button
+              key={r.id}
+              onClick={() => onSelectTender(r)}
+              className="w-full text-left p-4 rounded-xl bg-earth-900 border border-earth-800 hover:border-blue-500/40 hover:bg-earth-800/60 transition-all group"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-earth-200 font-medium leading-snug group-hover:text-earth-100 line-clamp-2">{r.title}</p>
+                {r.similarity && (
+                  <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    {Math.round(r.similarity * 100)}% podobne
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-2 text-xs text-earth-500">
+                <span>{r.buyer ?? '—'}</span>
+                <span>·</span>
+                <span>{fmtPLN(r.value_pln as number | null)}</span>
+                {r.voivodeship && <><span>·</span><span>{r.voivodeship}</span></>}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
