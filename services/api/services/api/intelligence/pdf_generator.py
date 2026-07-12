@@ -216,7 +216,7 @@ KOSZTORYS_HTML = r"""<!DOCTYPE html>
 </div>
 
 <div class="footer">
-  Terra.OS — Platforma Inteligencji Przetargowej | Wygenerowano: {{ today }}
+  YU-NA — Platforma Inteligencji Przetargowej | Wygenerowano: {{ today }}
   {% if header.tender_id %} | Przetarg: {{ header.tender_id[:8] }}...{% endif %}
 </div>
 

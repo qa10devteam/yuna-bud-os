@@ -15,7 +15,7 @@ interface ErrorPageProps {
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     // Log to console so it shows in CI / server logs
-    console.error('[Terra.OS] Unhandled render error:', error);
+    console.error('[YU-NA] Unhandled render error:', error);
   }, [error]);
 
   return (

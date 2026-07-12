@@ -38,7 +38,7 @@ def _fetch_gus_variable(var_id: str, years: list[int]) -> list[dict]:
                     resp = client.get(
                         f"{GUS_BDL_BASE}/data/by-variable/{var_id}",
                         params={"year": year, "unitLevel": 0, "lang": "pl", "format": "json"},
-                        headers={"X-ClientId": "terra-os-app"},
+                        headers={"X-ClientId": "yu-na-app"},
                     )
                     resp.raise_for_status()
                     data = resp.json()

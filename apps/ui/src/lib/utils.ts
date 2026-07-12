@@ -1,4 +1,4 @@
-// ─── Shared utilities for Terra.OS ────────────────────────────────────────────
+// ─── Shared utilities for YU-NA ────────────────────────────────────────────
 // Single source of truth — import from here, never redefine locally.
 
 /** Format number as Polish PLN: 1 200 000 zł */

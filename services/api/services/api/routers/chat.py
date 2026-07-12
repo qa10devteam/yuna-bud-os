@@ -223,7 +223,7 @@ def _stream_chat(
     yield sse("done", result)
 
 
-# ─── Ogólny czat asystenta Terra.OS ───────────────────────────────────────────
+# ─── Ogólny czat asystenta YU-NA ───────────────────────────────────────────
 
 class GeneralChatRequest(BaseModel):
     message: str
@@ -233,7 +233,7 @@ class GeneralChatRequest(BaseModel):
 
 @router.post("/chat")
 def general_chat(body: GeneralChatRequest):
-    """Ogólny asystent AXON — LLM-driven z fallbackiem na reguły."""
+    """Ogólny asystent budos — LLM-driven z fallbackiem na reguły."""
     from fastapi.responses import StreamingResponse as SR
 
     def stream():
@@ -271,7 +271,7 @@ def general_chat(body: GeneralChatRequest):
 
         if any(w in msg for w in ['przetarg', 'ofert', 'kosztorys', 'wycen']):
             answer = (
-                "W systemie AXON|TERRA masz dostep do przetargow z BZP. "
+                "W systemie budos masz dostep do przetargow z BZP. "
                 "Uzyj modulu **Zwiad** aby przefiltrowac liste, kliknij przetarg aby pobrac dokumentacje, "
                 "nastepnie **Kosztorys** aby porownac warianty doc/owner, a **Silnik** aby ocenic ryzyko Monte Carlo."
             )
@@ -284,12 +284,12 @@ def general_chat(body: GeneralChatRequest):
             )
         elif any(w in msg for w in ['pomoc', 'jak', 'help', 'co to', 'co umiesz']):
             answer = (
-                "AXON|TERRA - system wsparcia decyzji dla wykonawcow robot budowlanych. "
+                "budos - system wsparcia decyzji dla wykonawcow robot budowlanych. "
                 "**Flow:** Zwiad (lista BZP) -> Kosztorys (2 warianty) -> Silnik (ryzyko) -> Decyzja (GO/NO-GO)."
             )
         else:
             answer = (
-                "Jestem asystentem AXON|TERRA. Pomagam w analizie przetargow budowlanych, "
+                "Jestem asystentem budos. Pomagam w analizie przetargow budowlanych, "
                 "kosztorysowaniu i ocenie ryzyka. "
                 "Zadaj konkretne pytanie np. 'jak dziala kosztorys?' lub 'co to jest marza P50?'"
             )

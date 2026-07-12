@@ -1,4 +1,4 @@
-// Terra.OS Design Tokens — Earth palette
+// YU-NA Design Tokens — Earth palette
 export const tokens = {
   colors: {
     // Primary — deep earth

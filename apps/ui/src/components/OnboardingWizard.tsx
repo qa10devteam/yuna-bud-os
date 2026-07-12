@@ -100,7 +100,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-earth-800/60 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-earth-100">Konfiguracja Terra.OS</h2>
+            <h2 className="text-base font-bold text-earth-100">Konfiguracja YU-NA</h2>
             <p className="text-xs text-earth-500 mt-0.5">Krok {step + 1} z {steps.length}</p>
           </div>
           <button onClick={onComplete} className="p-1.5 rounded-lg hover:bg-earth-800 text-earth-600 hover:text-earth-300 transition-colors">

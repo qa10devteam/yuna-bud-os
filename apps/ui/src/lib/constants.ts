@@ -1,4 +1,4 @@
-// ─── Shared constants for Terra.OS ────────────────────────────────────────────
+// ─── Shared constants for YU-NA ────────────────────────────────────────────
 // Single source of truth — import from here, never redefine locally.
 
 export const STATUS_LABELS: Record<string, string> = {

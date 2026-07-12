@@ -1,7 +1,7 @@
 """Faza 70 — OWASP Top 10 security audit file.
 
 This file serves two purposes:
-1. Documents the security posture of Terra.OS against OWASP Top 10 2021
+1. Documents the security posture of YU-NA against OWASP Top 10 2021
 2. Provides runtime validators for string inputs
 
 See also: security.py for RLS helpers and sanitization utilities.

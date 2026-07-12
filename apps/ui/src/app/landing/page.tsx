@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Terra.OS — Wygrywaj przetargi budowlane 3x szybciej',
+  title: 'YU-NA — Wygrywaj przetargi budowlane 3x szybciej',
   description:
     'Platforma do zarządzania przetargami budowlanymi. AI analiza ryzyka SWZ, automatyczny BZP sync, silnik kalkulacji.',
 };
@@ -37,7 +37,7 @@ const features = [
 const testimonials = [
   {
     quote:
-      'Terra.OS skróciło czas przygotowania oferty z 3 dni do 4 godzin. Wygrywamy 40% więcej przetargów.',
+      'YU-NA skróciła czas przygotowania oferty z 3 dni do 4 godzin. Wygrywamy 40% więcej przetargów.',
     name: 'Marek Kowalski',
     role: 'Dyrektor ds. ofertowania',
     company: 'BudMaster Sp. z o.o.',
@@ -64,7 +64,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0f1117]/90 backdrop-blur border-b border-[#1e2130]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-bold text-[#c8a96e]">Terra.OS</span>
+          <span className="text-xl font-bold text-[#c8a96e]">YU-NA</span>
           <div className="flex items-center gap-4">
             <Link href="/landing#pricing" className="text-[#8b9eb0] hover:text-white text-sm transition-colors">
               Cennik
@@ -86,7 +86,7 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 px-6 text-center">
         <div className="max-w-4xl mx-auto">
           <div className="inline-block bg-[#1a1d26] border border-[#c8a96e]/30 text-[#c8a96e] text-xs font-semibold px-3 py-1 rounded-full mb-6 uppercase tracking-wider">
-            50+ firm budowlanych zaufało Terra.OS
+            50+ firm budowlanych zaufało YU-NA
           </div>
           <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6">
             Wygrywaj przetargi budowlane{' '}
@@ -121,7 +121,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-6">
             Analiza przetargu zajmuje <span className="text-red-400">3 godziny</span>.
-            Terra.OS robi to w <span className="text-[#4caf7d]">3 minuty</span>.
+            YU-NA robi to w <span className="text-[#4caf7d]">3 minuty</span>.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
             {[
@@ -247,13 +247,13 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[#1e2130] py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[#8b9eb0] text-sm">
-          <span className="font-bold text-[#c8a96e]">Terra.OS</span>
+          <span className="font-bold text-[#c8a96e]">YU-NA</span>
           <div className="flex gap-6">
             <Link href="/docs" className="hover:text-white transition-colors">Dokumentacja</Link>
             <Link href="/pricing" className="hover:text-white transition-colors">Cennik</Link>
             <a href="mailto:support@terra.os" className="hover:text-white transition-colors">Kontakt</a>
           </div>
-          <span>© 2026 Terra.OS. Wszelkie prawa zastrzeżone.</span>
+          <span>© 2026 YU-NA. Wszelkie prawa zastrzeżone.</span>
         </div>
       </footer>
     </div>

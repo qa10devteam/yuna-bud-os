@@ -1,4 +1,4 @@
-"""Terra.OS background tasks — Celery workers.
+"""YU-NA background tasks — Celery workers.
 
 Faza 5: task definitions for BZP sync, document processing, analysis.
 """

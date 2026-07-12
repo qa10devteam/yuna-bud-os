@@ -21,12 +21,12 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _DEFAULT_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost:8001/v1")
-_DEFAULT_MODEL = os.environ.get("VLLM_MODEL", "axon")
+_DEFAULT_MODEL = os.environ.get("VLLM_MODEL", "budos")
 _DEFAULT_API_KEY = os.environ.get("VLLM_API_KEY", "token-terra")
 
-# System prompt that defines the model as Terra.OS operator
+# System prompt that defines the model as YU-NA operator
 TERRA_SYSTEM_PROMPT = """\
-Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych.
+Jesteś budos — inteligentnym asystentem platformy YU-NA do analizy przetargów budowlanych.
 
 Twoje kompetencje:
 - Analiza dokumentacji przetargowej (SWZ, przedmiary, umowy)

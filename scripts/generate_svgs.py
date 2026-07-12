@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate high-contrast PNGs and convert them to SVG for Terra.OS.
+Generate high-contrast PNGs and convert them to SVG for YU-NA.
 Uses ImageMagick and Potrace.
 """
 import os

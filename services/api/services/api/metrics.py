@@ -1,4 +1,4 @@
-"""Prometheus custom metrics for Terra.OS API (Tasks 112-115)."""
+"""Prometheus custom metrics for YU-NA API (Tasks 112-115)."""
 from __future__ import annotations
 
 from prometheus_client import Counter, Histogram, Gauge

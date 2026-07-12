@@ -29,7 +29,7 @@ class WebhookFireBody(BaseModel):
 
 
 class SlackTestBody(BaseModel):
-    message: str = 'Terra.OS test'
+    message: str = 'YU-NA test'
 
 
 class PipedriveSyncBody(BaseModel):

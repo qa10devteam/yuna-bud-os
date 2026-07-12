@@ -32,21 +32,21 @@ webhook_router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
 
 TEMPLATES: dict[str, dict[str, str]] = {
     "tender_status_changed": {
-        "subject": "[Terra.OS] Zmiana statusu przetargu: {tender_title}",
+        "subject": "[YU-NA] Zmiana statusu przetargu: {tender_title}",
         "body": """
 <html><body>
-<h2 style="color:#1e40af">Terra.OS — Zmiana statusu</h2>
+<h2 style="color:#1e40af">YU-NA — Zmiana statusu</h2>
 <p>Przetarg <strong>{tender_title}</strong> zmienił status na: <strong>{new_status}</strong></p>
 <p><a href="{tender_url}" style="color:#3b82f6">Przejdź do przetargu →</a></p>
-<hr><p style="font-size:12px;color:#6b7280">Terra.OS - System Zarządzania Przetargami</p>
+<hr><p style="font-size:12px;color:#6b7280">YU-NA - System Zarządzania Przetargami</p>
 </body></html>
 """,
     },
     "new_comment": {
-        "subject": "[Terra.OS] Nowy komentarz: {tender_title}",
+        "subject": "[YU-NA] Nowy komentarz: {tender_title}",
         "body": """
 <html><body>
-<h2 style="color:#1e40af">Terra.OS — Nowy komentarz</h2>
+<h2 style="color:#1e40af">YU-NA — Nowy komentarz</h2>
 <p><strong>{author}</strong> skomentował przetarg <strong>{tender_title}</strong>:</p>
 <blockquote style="border-left:3px solid #3b82f6;padding:8px;color:#374151">{comment_body}</blockquote>
 <p><a href="{tender_url}">Przejdź do przetargu →</a></p>
@@ -54,10 +54,10 @@ TEMPLATES: dict[str, dict[str, str]] = {
 """,
     },
     "mention": {
-        "subject": "[Terra.OS] Wspomniano Cię w komentarzu",
+        "subject": "[YU-NA] Wspomniano Cię w komentarzu",
         "body": """
 <html><body>
-<h2 style="color:#1e40af">Terra.OS — @wzmianka</h2>
+<h2 style="color:#1e40af">YU-NA — @wzmianka</h2>
 <p><strong>{author}</strong> wspomniał Cię w przetargu <strong>{tender_title}</strong>:</p>
 <blockquote style="border-left:3px solid #3b82f6;padding:8px">{comment_body}</blockquote>
 <p><a href="{tender_url}">Przejdź do przetargu →</a></p>
@@ -65,10 +65,10 @@ TEMPLATES: dict[str, dict[str, str]] = {
 """,
     },
     "deadline_reminder": {
-        "subject": "[Terra.OS] Przypomnienie: termin za {days_left} dni — {tender_title}",
+        "subject": "[YU-NA] Przypomnienie: termin za {days_left} dni — {tender_title}",
         "body": """
 <html><body>
-<h2 style="color:#dc2626">⚠ Terra.OS — Zbliżający się termin</h2>
+<h2 style="color:#dc2626">⚠ YU-NA — Zbliżający się termin</h2>
 <p>Przetarg <strong>{tender_title}</strong> ma termin składania ofert za <strong>{days_left} dni</strong>.</p>
 <p>Termin: <strong>{deadline}</strong></p>
 <p><a href="{tender_url}">Przejdź do przetargu →</a></p>
@@ -84,7 +84,7 @@ class EmailConfigCreate(BaseModel):
     smtp_user: str | None = None
     smtp_pass: str | None = None
     from_email: str | None = None
-    from_name: str = "Terra.OS"
+    from_name: str = "YU-NA"
     enabled: bool = True
 
 
@@ -231,7 +231,7 @@ def send_email(req: SendEmailRequest, background_tasks: BackgroundTasks, user: A
             _send_email_bg,
             log_id,
             cfg.smtp_host, cfg.smtp_port, cfg.smtp_user, cfg.smtp_pass,
-            cfg.from_email or "noreply@terra-os.local",
+            cfg.from_email or "noreply@yu-na.local",
             cfg.from_name,
             req.to_email, subject, body,
         )

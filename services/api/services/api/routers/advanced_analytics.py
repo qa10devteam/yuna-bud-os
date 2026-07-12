@@ -468,7 +468,7 @@ def get_report(
         "report_id": f"RPT-{tender_id[:8].upper()}",
         "tender_id": tender_id,
         "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
-        "generated_by": "Terra.OS Analytics Engine v1.0",
+        "generated_by": "YU-NA Analytics Engine v1.0",
         
         "executive_summary": {
             "recommendation": "GO" if ahp_score >= 65 else "CONSIDER",

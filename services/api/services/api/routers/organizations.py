@@ -265,7 +265,7 @@ def invite_member(body: InviteRequest, user: AuthUser, db: DB):
     db.commit()
 
     # Wyslij email (nie blokujemy jesli sie nie uda)
-    base_url = "https://terra-os.pl"
+    base_url = "https://yu-na.pl"
     invite_url = f"{base_url}/dolacz?token={invite_token}"
     try:
         send_invite_email(

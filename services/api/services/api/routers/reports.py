@@ -60,7 +60,7 @@ def monthly_report_pdf(user: AuthUser, db: DB, year: int = 2026, month: int = 7)
         from reportlab.pdfgen import canvas as rl_canvas
         buf = io.BytesIO()
         c = rl_canvas.Canvas(buf)
-        c.drawString(100, 750, f'Terra.OS Monthly Report {year}-{month:02d}')
+        c.drawString(100, 750, f'YU-NA Monthly Report {year}-{month:02d}')
         c.drawString(100, 720, f'Generated for tenant: {user.org_id}')
         c.save()
         buf.seek(0)
@@ -70,7 +70,7 @@ def monthly_report_pdf(user: AuthUser, db: DB, year: int = 2026, month: int = 7)
             headers={'Content-Disposition': f'attachment; filename="report_{year}_{month:02d}.pdf"'},
         )
     except ImportError:
-        html = f'<h1>Terra.OS Monthly Report {year}-{month:02d}</h1><p>Tenant: {user.org_id}</p>'
+        html = f'<h1>YU-NA Monthly Report {year}-{month:02d}</h1><p>Tenant: {user.org_id}</p>'
         return Response(content=html, media_type='text/html')
 
 

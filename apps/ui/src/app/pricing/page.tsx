@@ -5,6 +5,6 @@ export default function PricingRoute() {
 }
 
 export const metadata = {
-  title: 'Cennik — Terra.OS',
-  description: 'Plany subskrypcji Terra.OS dla firm budowlanych',
+  title: 'Cennik — YU-NA',
+  description: 'Plany subskrypcji YU-NA dla firm budowlanych',
 };

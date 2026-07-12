@@ -21,7 +21,7 @@ class SmtpConfig(BaseModel):
     smtp_user: str | None = None
     smtp_pass: str | None = None
     from_email: str | None = None
-    from_name: str = "Terra.OS"
+    from_name: str = "YU-NA"
     enabled: bool = True
 
 
@@ -44,7 +44,7 @@ def get_smtp_config(user: AuthUser) -> Any:
         smtp_user=row.smtp_user,
         smtp_pass="***" if row.smtp_pass else None,  # mask password
         from_email=row.from_email,
-        from_name=row.from_name or "Terra.OS",
+        from_name=row.from_name or "YU-NA",
         enabled=row.enabled if row.enabled is not None else True,
     )
 

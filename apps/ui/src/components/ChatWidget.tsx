@@ -34,7 +34,7 @@ export function ChatWidget() {
     {
       id: 'welcome',
       role: 'assistant',
-      text: 'Cześć! Jestem asystentem Terra.OS. Możesz zapytać mnie o przetargi, kosztorysy, analizę ryzyka lub jak korzystać z systemu.',
+      text: 'Cześć! Jestem asystentem YU-NA. Możesz zapytać mnie o przetargi, kosztorysy, analizę ryzyka lub jak korzystać z systemu.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -172,7 +172,7 @@ export function ChatWidget() {
                 <Brain className="w-4 h-4 text-accent-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-earth-100 text-sm font-semibold">Asystent Terra.OS</p>
+                <p className="text-earth-100 text-sm font-semibold">Asystent budos</p>
                 <p className="text-earth-600 text-xs">
                   {loading ? (
                     <span className="text-accent-primary">Pisze…</span>

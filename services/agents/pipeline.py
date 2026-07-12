@@ -197,7 +197,7 @@ def node_plan(state: PipelineState) -> PipelineState:
             r = c.post("/api/v1/plans", json={
                 "contract_id": contract_id,
                 "day": "2026-07-01",
-                "cautions_md": "Plan wygenerowany przez pipeline Terra.OS.",
+                "cautions_md": "Plan wygenerowany przez pipeline YU-NA.",
             })
             r.raise_for_status()
         return {**state, "steps": steps, "plan_id": r.json().get("id", "")}
@@ -290,7 +290,7 @@ def build_pipeline() -> StateGraph:
 
 
 def run_pipeline(initial_state: PipelineState | None = None) -> PipelineState:
-    """Run the full Terra.OS pipeline. Returns final state."""
+    """Run the full YU-NA pipeline. Returns final state."""
     graph = build_pipeline().compile()
     state = initial_state or PipelineState(steps=[])
     result = graph.invoke(state)

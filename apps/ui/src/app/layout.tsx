@@ -22,13 +22,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Terra.OS — System Zarządzania Przetargami i Budową',
+  title: 'YU-NA — System Zarządzania Przetargami i Budową',
   description: 'Platforma do zarządzania przetargami budowlanymi. AI analiza ryzyka SWZ, automatyczny BZP sync, silnik kalkulacji.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Terra.OS',
+    title: 'YU-NA',
   },
   icons: {
     icon: '/favicon.ico',

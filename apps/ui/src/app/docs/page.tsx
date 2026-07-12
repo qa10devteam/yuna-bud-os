@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Dokumentacja — Terra.OS',
-  description: 'Dokumentacja Terra.OS — szybki start, moduły, API reference, FAQ',
+  title: 'Dokumentacja — YU-NA',
+  description: 'Dokumentacja YU-NA — szybki start, moduły, API reference, FAQ',
 };
 
 export default function DocsPage() {
@@ -9,10 +9,10 @@ export default function DocsPage() {
       <div className="max-w-4xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
-          <div className="text-[#c8a96e] text-sm font-semibold uppercase tracking-wider mb-2">Terra.OS</div>
+          <div className="text-[#c8a96e] text-sm font-semibold uppercase tracking-wider mb-2">YU-NA</div>
           <h1 className="text-4xl font-bold text-white mb-4">Dokumentacja</h1>
           <p className="text-[#8b9eb0] text-lg">
-            Wszystko, czego potrzebujesz, aby zacząć zarządzać przetargami w Terra.OS.
+            Wszystko, czego potrzebujesz, aby zacząć zarządzać przetargami w YU-NA.
           </p>
         </div>
 
@@ -113,7 +113,7 @@ export default function DocsPage() {
           </h2>
           <div className="bg-[#141720] border border-[#2a2d3a] rounded-xl p-6">
             <p className="text-[#8b9eb0] mb-4">
-              Terra.OS udostępnia pełne REST API. Interaktywna dokumentacja Swagger UI dostępna pod:
+              YU-NA udostępnia pełne REST API. Interaktywna dokumentacja Swagger UI dostępna pod:
             </p>
             <a
               href="http://localhost:8000/docs"
@@ -156,7 +156,7 @@ export default function DocsPage() {
           <div className="space-y-4">
             {[
               {
-                q: 'Czy mogę używać Terra.OS bez połączenia z Internetem?',
+                q: 'Czy mogę używać YU-NA bez połączenia z Internetem?',
                 a: 'Tak, część modułów (Kosztorys, Silnik, Pipeline) działa offline. BZP sync i analiza AI wymagają połączenia z Internetem.',
               },
               {

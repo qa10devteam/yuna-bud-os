@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Terra.OS — Alert Dispatcher runner script.
+"""YU-NA — Alert Dispatcher runner script.
 
 Uruchamia check_new_tenders_for_alerts() z alertami z ostatniej godziny.
 
@@ -54,7 +54,7 @@ DEFAULT_DSN = (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Terra.OS Alert Dispatcher")
+    parser = argparse.ArgumentParser(description="YU-NA Alert Dispatcher")
     parser.add_argument(
         "--since-minutes", type=int, default=60,
         help="Okno czasowe wstecz w minutach (domyślnie 60)",

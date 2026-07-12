@@ -198,7 +198,7 @@ def mcp_handler(req: McpRequest) -> dict:
             result = {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "terra-os-mcp", "version": "1.0.0"},
+                "serverInfo": {"name": "yu-na-mcp", "version": "1.0.0"},
             }
         else:
             error = {"code": -32601, "message": f"Method not found: {req.method}"}
@@ -216,9 +216,9 @@ def mcp_handler(req: McpRequest) -> dict:
 @mcp_router.get("/info")
 def mcp_info() -> dict:
     return {
-        "name": "terra-os-mcp",
+        "name": "yu-na-mcp",
         "version": "1.0.0",
-        "description": "Terra.OS MCP Server — AI tools for tender management",
+        "description": "YU-NA MCP Server — AI tools for tender management",
         "tools": [t["name"] for t in MCP_TOOLS],
         "endpoint": "/api/v1/mcp",
     }
@@ -279,7 +279,7 @@ def chat_v2(req: ChatV2Request, user: AuthUser) -> dict:
         if tender_context:
             messages.append({
                 "role": "system",
-                "content": f"Jesteś asystentem w systemie zarządzania przetargami Terra.OS.\n\nKontekst przetargu:\n{tender_context}"
+                "content": f"Jesteś asystentem w systemie zarządzania przetargami YU-NA.\n\nKontekst przetargu:\n{tender_context}"
             })
         messages += req.history
         messages.append({"role": "user", "content": req.message})
@@ -324,7 +324,7 @@ def chat_v2(req: ChatV2Request, user: AuthUser) -> dict:
 def playground_info(user: AuthUser) -> dict:
     """API Playground — lista dostępnych endpointów do testowania."""
     return {
-        "message": "Terra.OS API Playground",
+        "message": "YU-NA API Playground",
         "docs_url": "/docs",
         "endpoints": [
             {"method": "GET", "path": "/api/v2/tenders", "description": "Lista przetargów"},

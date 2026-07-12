@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate SVG assets for Terra.OS"""
+"""Generate SVG assets for YU-NA"""
 import os
 import json
 

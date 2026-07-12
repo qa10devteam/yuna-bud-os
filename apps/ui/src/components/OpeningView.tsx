@@ -58,7 +58,7 @@ export function OpeningView({ onStart }: OpeningViewProps) {
           >
             <img
               src="/assets/logo/logo.svg"
-              alt="Terra.OS"
+              alt="YU-NA"
               className="w-56 h-auto mx-auto drop-shadow-2xl"
             />
           </motion.div>

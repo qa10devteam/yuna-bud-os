@@ -1,10 +1,10 @@
-"""Typed exceptions for Terra.OS."""
+"""Typed exceptions for YU-NA."""
 from __future__ import annotations
 from typing import Optional
 
 
 class TerraError(Exception):
-    """Base exception for all Terra.OS errors."""
+    """Base exception for all YU-NA errors."""
     code: str = "internal"
     status_code: int = 500
 

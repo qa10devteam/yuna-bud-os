@@ -1,4 +1,4 @@
-"""FastAPI application — Terra.OS local API (127.0.0.1 only)."""
+"""FastAPI application — YU-NA local API (127.0.0.1 only)."""
 from __future__ import annotations
 
 import os
@@ -170,9 +170,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # ─── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="Terra.OS API",
+    title="YU-NA API",
     version="0.1.0",
-    description="Terra.OS — platforma decyzyjna dla wykonawców robót budowlanych (przetargi publiczne)",
+    description="YU-NA — platforma decyzyjna dla wykonawców robót budowlanych (przetargi publiczne)",
     lifespan=lifespan,
     docs_url="/docs" if os.getenv("ENVIRONMENT", "dev") == "dev" else None,
     redoc_url=None,

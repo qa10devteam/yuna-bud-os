@@ -72,7 +72,7 @@ export default function DemoPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: 'demo@terra-os.pl',
+            email: 'demo@yu-na.pl',
             password: 'demo2026!',
             name: 'Jan Kowalski',
           }),
@@ -83,7 +83,7 @@ export default function DemoPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: 'demo@terra-os.pl',
+            email: 'demo@yu-na.pl',
             password: 'demo2026!',
           }),
         });
@@ -144,8 +144,8 @@ export default function DemoPage() {
     <>
       {/* Demo banner */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/90 text-earth-950 text-center py-1.5 text-xs font-bold tracking-wide backdrop-blur-sm">
-        🚀 ŚRODOWISKO DEMO — eksploruj wszystkie funkcjonalności Terra.OS
-        <a href="https://terra-os.pl" className="ml-3 underline font-semibold hover:text-earth-800">
+        🚀 ŚRODOWISKO DEMO — eksploruj wszystkie funkcjonalności YU-NA
+        <a href="https://yu-na.pl" className="ml-3 underline font-semibold hover:text-earth-800">
           Zamów dostęp →
         </a>
       </div>

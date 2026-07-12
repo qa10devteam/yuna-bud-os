@@ -1,6 +1,6 @@
 """Faza 78 — Demo mode router.
 
-Provides seed demo data endpoints for showcasing Terra.OS without real data.
+Provides seed demo data endpoints for showcasing YU-NA without real data.
 """
 from __future__ import annotations
 

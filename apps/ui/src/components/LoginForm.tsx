@@ -179,7 +179,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         </div>
 
         <p className="text-center text-earth-600 text-xs mt-4">
-          Terra.OS © 2026 — System zarządzania przetargami budowlanymi
+          YU-NA © 2026 — System zarządzania przetargami budowlanymi
         </p>
       </div>
     </div>

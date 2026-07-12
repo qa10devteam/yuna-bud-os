@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate clean, hand-crafted SVGs for Terra.OS assets.
+Generate clean, hand-crafted SVGs for YU-NA assets.
 Directly writes SVG XML for perfect control over vectors.
 """
 import os

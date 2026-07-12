@@ -39,7 +39,7 @@ def _fetch_variable(var_id: str, var_name: str, year: int = 2024) -> list[dict]:
                     "lang": "pl",
                     "format": "json",
                 },
-                headers={"X-ClientId": "terra-os-app"},
+                headers={"X-ClientId": "yu-na-app"},
             )
             resp.raise_for_status()
             data = resp.json()

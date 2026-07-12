@@ -1216,7 +1216,7 @@ def get_kosztorys_material_risk(kosztorys_id: str, user: AuthUser) -> dict:
             resp = _httpx.get(
                 "https://bdl.stat.gov.pl/api/v1/data/by-variable/282893",
                 params={"year": 2024, "unitLevel": 0, "format": "json"},
-                headers={"X-ClientId": "terra-os-app"},
+                headers={"X-ClientId": "yu-na-app"},
                 timeout=5,
             )
             if resp.status_code == 200:

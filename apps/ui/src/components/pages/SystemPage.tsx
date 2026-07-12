@@ -334,7 +334,7 @@ export function SystemPage() {
 
       {/* Stopka z wersją */}
       <div className="flex items-center justify-between pt-2 pb-4 text-xs text-earth-600">
-        <span className="font-mono">Terra.OS <span className="text-accent-primary">v1.0.0</span></span>
+        <span className="font-mono">YU-NA <span className="text-accent-primary">v1.0.0</span></span>
         <span>Next.js 15 · FastAPI · PostgreSQL</span>
       </div>
       </React.Fragment>)}

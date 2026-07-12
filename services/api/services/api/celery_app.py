@@ -1,4 +1,4 @@
-"""Celery application — Terra.OS background jobs.
+"""Celery application — YU-NA background jobs.
 
 Faza 5: Background Jobs infrastructure.
 """

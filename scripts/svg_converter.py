@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Terra.OS SVG Converter — Converts raster images to optimized SVG.
+YU-NA SVG Converter — Converts raster images to optimized SVG.
 Dependencies: Pillow (pip install Pillow)
 Optional: potrace (apt install potrace), svgo (npm i -g svgo)
 """
@@ -91,7 +91,7 @@ def generate_svg_from_data(data, output_path):
     return output_path
 
 if __name__ == '__main__':
-    p = argparse.ArgumentParser(description='Terra.OS SVG Converter')
+    p = argparse.ArgumentParser(description='YU-NA SVG Converter')
     p.add_argument('input', help='Input image')
     p.add_argument('-o', '--output', help='Output SVG')
     p.add_argument('--generate', help='JSON data file for SVG generation')

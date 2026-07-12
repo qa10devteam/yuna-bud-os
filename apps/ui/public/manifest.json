@@ -1,6 +1,6 @@
 {
-  "name": "Terra.OS — Zarządzanie Przetargami",
-  "short_name": "Terra.OS",
+  "name": "YU-NA — Zarządzanie Przetargami",
+  "short_name": "YU-NA",
   "description": "Platforma do zarządzania przetargami budowlanymi. AI analiza ryzyka, kalkulacje KNR, BZP sync.",
   "start_url": "/",
   "display": "standalone",
@@ -65,7 +65,7 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Dashboard Terra.OS"
+      "label": "Dashboard YU-NA"
     }
   ],
   "shortcuts": [
