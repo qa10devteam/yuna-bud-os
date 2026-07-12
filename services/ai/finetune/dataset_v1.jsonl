@@ -1,0 +1,86 @@
+[
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Jak działa moduł Zwiad?"},
+      {"role": "assistant", "content": "Moduł **Zwiad** to główne okno rozpoznania rynku przetargów. Agreguje dane z BZP (Biuletyn Zamówień Publicznych) i TED (Tenders Electronic Daily).\n\n**Kluczowe funkcje:**\n- Filtrowanie po CPV, województwie, wartości, źródle\n- Sortowanie: deadline, wartość, data dodania, match_score\n- Kliknięcie wiersza otwiera szczegóły z przyciskiem 'Pobierz dokumentację'\n- URL z filtrami jest trwały — można go wysłać współpracownikowi\n\nAktualnie w systemie masz 669 aktywnych przetargów budowlanych."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Co oznacza score 0.78 przy przetargu?"},
+      {"role": "assistant", "content": "**Match score 0.78** oznacza 78% dopasowania przetargu do profilu Twojej firmy.\n\nScore kalkulowany jest z:\n- **CPV match** — zgodność kodów CPV z Twoimi kompetencjami\n- **Lokalizacja** — odległość od bazy operacyjnej\n- **Wartość** — czy mieści się w Twoim przedziale kontraktów\n- **Zasoby** — dostępność sprzętu i kadry na dany termin\n- **Historia** — wygrywane przetargi o podobnym profilu\n\nScore >0.7 to kandydat do analizy w module **Silnik**. Poniżej 0.5 system sugeruje pominięcie."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Zidentyfikuj ryzyka w tym fragmencie SWZ: 'Kara umowna za opóźnienie wynosi 0.5% wynagrodzenia brutto za każdy dzień zwłoki. Brak możliwości waloryzacji wynagrodzenia. Wykonawca odpowiada solidarnie z podwykonawcami.'"},
+      {"role": "assistant", "content": "Zidentyfikowane ryzyka:\n\n1. **HIGH** — Kara 0.5%/dzień przekracza bezpieczny próg (0.2-0.3%/dzień). Przy kontrakcie 1M PLN to 5000 PLN/dzień. Przy 30 dniach opóźnienia = 150 000 PLN.\n\n2. **HIGH** — Brak waloryzacji w obecnym otoczeniu inflacyjnym (materiały budowlane +8-15% r/r) to krytyczne ryzyko marżowe. Kontrakt >6 miesięcy bez waloryzacji = czerwona flaga.\n\n3. **MEDIUM** — Solidarna odpowiedzialność za podwykonawców zwiększa ekspozycję na ryzyko operacyjne. Wymaga: wetting podwykonawców + zabezpieczenia w subkontraktach.\n\n**Rekomendacja:** NEGOCJUJ — żądaj obniżenia kary do 0.2%/dzień i dodania klauzuli waloryzacyjnej opartej o GUS/SEKOCENBUD."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Podnieś narzut do 15%"},
+      {"role": "assistant", "content": "{\"op\": \"set_param\", \"target\": \"kp_pct\", \"value\": \"15.0\"}"}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Ustaw zysk na 10% i robociznę na 45 zł/rg"},
+      {"role": "assistant", "content": "{\"op\": \"batch\", \"edits\": [{\"op\": \"set_param\", \"target\": \"zysk_pct\", \"value\": \"10.0\"}, {\"op\": \"set_param\", \"target\": \"robocizna_zl_rg\", \"value\": \"45.0\"}]}"}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Czy ten przetarg jest wykonalny? Wartość 2.5M PLN, termin 45 dni, wymagane 3 koparki gąsienicowe, lokalizacja Podkarpackie."},
+      {"role": "assistant", "content": "**Ocena wykonalności:**\n\n| Kryterium | Status | Uwagi |\n|-----------|--------|-------|\n| Wartość | OK | 2.5M mieści się w przedziale kontraktów |\n| Termin | RYZYKO | 45 dni to agresywny termin dla tej wartości |\n| Zasoby | BLOKER | 3 koparki gąsienicowe — sprawdź dostępność w harmonogramie |\n| Lokalizacja | RYZYKO | Podkarpackie — koszt mobilizacji + logistyka |\n\n**Naruszenia reguł:**\n- L1 (twarda): brak — nie ma blokera formalnego\n- L2 (Monte Carlo): P50 marża ~6.2%, P10 marża -2.1% — ryzyko ujemnej marży w pesymistycznym scenariuszu\n\n**Rekomendacja:** GO pod warunkiem potwierdzenia dostępności 3 koparek gąsienicowych. Bez nich — NO-GO."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Jakie są aktualne stawki robocizny dla murarz w Śląskim?"},
+      {"role": "assistant", "content": "**Stawki robocizny — murarz, woj. śląskie (Q2 2026):**\n\n| Źródło | Stawka [zł/rg] |\n|--------|----------------|\n| SEKOCENBUD średnia | 38.50 |\n| Intercenbud mediana | 41.20 |\n| Rynek (ogłoszenia) | 35-48 |\n\n**Rekomendacja do kosztorysu:**\n- Wariant bezpieczny: **41.20 zł/rg** (mediana Intercenbud)\n- Wariant konkurencyjny: **38.50 zł/rg** (średnia SEKOCENBUD)\n\nUwaga: stawki rosną ~5% kw/kw — przy kontrakcie >6 miesięcy dodaj bufor waloryzacyjny."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Porównaj wariant doc i owner dla tego kosztorysu"},
+      {"role": "assistant", "content": "**Porównanie wariantów kosztorysowych:**\n\n| Parametr | Wariant DOC (dokumentacja) | Wariant OWNER (własny) |\n|----------|---------------------------|------------------------|\n| Baza cen | Ceny z przedmiaru zamawiającego | Stawki rynkowe (Intercenbud/SEKOCENBUD) |\n| KP% | Wg specyfikacji | Konfigurowalny (domyślnie 12%) |\n| Zysk% | Wg specyfikacji | Konfigurowalny (domyślnie 8%) |\n| Robocizna | Z kosztorysu ofertowego | Twoje stawki regionalne |\n\n**Kiedy co stosować:**\n- **DOC** — gdy zamawiający podaje pełny kosztorys ofertowy (ryczałt z przedmiarem)\n- **OWNER** — gdy chcesz poznać realny koszt z Twoimi stawkami\n\n**Delta** (DOC - OWNER) mówi ile masz faktycznie marginesu lub ile dokładasz."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Sklasyfikuj ten dokument: plik PDF z tabelą pozycji, ilościami w m3 i m2, kodami KNR"},
+      {"role": "assistant", "content": "{\"kind\": \"przedmiar\", \"confidence\": 0.95, \"indicators\": [\"tabela pozycji z jednostkami m3/m2\", \"kody KNR\", \"brak cen jednostkowych — typowe dla przedmiaru do wyceny\"]}"}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Co to jest P10/P50/P90 w module Silnik?"},
+      {"role": "assistant", "content": "**Percentyle Monte Carlo w module Silnik:**\n\n- **P10** — scenariusz pesymistyczny (10% szans że będzie gorzej). Jeśli P10 marża jest ujemna — jest realne ryzyko straty.\n- **P50** — scenariusz bazowy (mediana). Najbardziej prawdopodobny wynik.\n- **P90** — scenariusz optymistyczny (90% szans że będzie gorzej, czyli tylko 10% że lepiej).\n\n**Symulacja** bazuje na 2000 próbkach losujących:\n- Zmienność cen materiałów (±15%)\n- Ryzyko opóźnień (rozkład log-normalny)\n- Wahania kursów (dla importu)\n- Dostępność zasobów\n\n**Decyzja:**\n- P10 > 0% → bezpieczne GO\n- P10 < 0%, P50 > 5% → GO z buforem\n- P50 < 3% → NEGOCJUJ lub NO-GO"}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Wygeneruj podsumowanie przetargu: Przebudowa drogi gminnej w miejscowości Koźle, CPV 45233120-6, wartość szacunkowa 1.2M PLN, termin składania ofert 2026-07-25, wymagane doświadczenie min 2 roboty drogowe >800k w ostatnich 5 lat"},
+      {"role": "assistant", "content": "## Podsumowanie przetargu\n\n**Przebudowa drogi gminnej w m. Koźle**\n\n| Parametr | Wartość |\n|----------|--------|\n| CPV | 45233120-6 (Roboty drogowe) |\n| Wartość szacunkowa | **1 200 000 PLN** |\n| Deadline ofert | **2026-07-25** (13 dni) |\n| Warunek doświadczenia | min. 2 roboty drogowe >800k PLN / 5 lat |\n\n**Quick assessment:**\n- Termin składania: wystarczający na przygotowanie oferty\n- Warunek doświadczenia: standard dla tej wartości\n- CPV 45233120-6: roboty w zakresie budowy dróg — sprawdź podkategorie (nawierzchnia, odwodnienie)\n\n**Następny krok:** Pobierz SWZ → sprawdź wymagania dot. wadium i zabezpieczenia → uruchom Silnik feasibility."}
+    ]
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "Jesteś AXON — inteligentnym asystentem platformy Terra.OS do analizy przetargów budowlanych."},
+      {"role": "user", "content": "Jak zmienić parametry scoringu?"},
+      {"role": "assistant", "content": "Parametry scoringu konfigururjesz w module **Ustawienia** → zakładka **Scoring**.\n\n**Dostępne parametry:**\n- **Wagi CPV** — priorytet kodów CPV (np. 45233 = drogi: waga 1.0, 45310 = elektryka: waga 0.3)\n- **Promień lokalizacji** — max odległość od bazy [km]\n- **Przedział wartości** — min/max wartość kontraktu [PLN]\n- **Min. match_score** — próg wyświetlania w Zwiadzie (domyślnie 0.3)\n\nZmiany zapisujesz przyciskiem 'Zapisz konfigurację' — nowe przetargi zostaną automatycznie przescorowane w ciągu 5 minut.\n\nEndpoint API: `PATCH /api/v2/scoring/config`"}
+    ]
+  }
+]

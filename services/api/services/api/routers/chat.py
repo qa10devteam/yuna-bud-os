@@ -20,7 +20,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from terra_db.session import get_engine
-from services.ai.clients import StubClient
+from services.ai.vllm_client import get_llm_client, VLLMClient, TERRA_SYSTEM_PROMPT
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 
@@ -94,10 +94,10 @@ def _parse_edit_intent(message: str, current_params: dict) -> dict[str, Any]:
     if m:
         return {"op": "set_param", "target": "robocizna_zl_rg", "value": m.group(1).replace(",", ".")}
 
-    # Fallback: ask StubClient
-    llm = StubClient()
+    # Fallback: use LLM client
+    llm = get_llm_client()
     prompt = (
-        f"Przetłumacz polecenie na JSON: {message}\n"
+        f"Przetlumacz polecenie na JSON: {message}\n"
         "Format: {\"op\": \"set_param\", \"target\": \"kp_pct|zysk_pct|robocizna_zl_rg\", \"value\": \"N\"}"
     )
     try:
@@ -233,61 +233,65 @@ class GeneralChatRequest(BaseModel):
 
 @router.post("/chat")
 def general_chat(body: GeneralChatRequest):
-    """Ogólny asystent Terra.OS — odpowiada po polsku na pytania o przetargi."""
+    """Ogólny asystent AXON — LLM-driven z fallbackiem na reguły."""
     from fastapi.responses import StreamingResponse as SR
-    import json as _json
 
     def stream():
         def sse(event, data):
-            return f"event: {event}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
+            return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
+        # Build context-enriched prompt
+        user_prompt = body.message
+        if body.tender_id:
+            user_prompt = f"[Kontekst: aktywny przetarg ID={body.tender_id}]\n{body.message}"
+        if body.context:
+            user_prompt = f"[Kontekst dodatkowy: {body.context}]\n{user_prompt}"
+
+        llm = get_llm_client()
+
+        # Try streaming if VLLMClient available
+        if isinstance(llm, VLLMClient):
+            try:
+                for chunk in llm.generate_stream(user_prompt):
+                    yield sse("token", {"text": chunk})
+                yield sse("done", {"ok": True})
+                return
+            except Exception as e:
+                # Fallback to non-streaming or rules
+                try:
+                    answer = llm.generate(user_prompt)
+                    yield sse("token", {"text": answer})
+                    yield sse("done", {"ok": True})
+                    return
+                except Exception:
+                    pass  # Fall through to rule-based
+
+        # Rule-based fallback (StubClient or server unreachable)
         msg = body.message.lower()
 
         if any(w in msg for w in ['przetarg', 'ofert', 'kosztorys', 'wycen']):
             answer = (
-                "W systemie Terra.OS masz dostęp do przetargów z BZP. "
-                "Użyj modułu **Zwiad** aby przefiltrować listę, kliknij przetarg aby pobrać dokumentację, "
-                "następnie **Kosztorys** aby porównać warianty doc/owner, a **Silnik** aby ocenić ryzyko Monte Carlo."
+                "W systemie AXON|TERRA masz dostep do przetargow z BZP. "
+                "Uzyj modulu **Zwiad** aby przefiltrowac liste, kliknij przetarg aby pobrac dokumentacje, "
+                "nastepnie **Kosztorys** aby porownac warianty doc/owner, a **Silnik** aby ocenic ryzyko Monte Carlo."
             )
         elif any(w in msg for w in ['ryzyko', 'silnik', 'analiz', 'monte']):
             answer = (
-                "Silnik decyzyjny analizuje wykonalność na 3 poziomach: "
-                "**L1** – reguły twarde (blokery), "
-                "**L2** – ryzyko Monte Carlo (2000 próbek, marże P10/P50/P90), "
-                "**L3** – wyjaśnienie decyzji. "
-                "Przejdź do modułu Silnik i kliknij 'Uruchom analizę'."
-            )
-        elif any(w in msg for w in ['narzut', 'kp', 'zysk', 'marż', 'robocizn']):
-            answer = (
-                "Parametry kosztorysu do modyfikacji: "
-                "**KP%** (koszty pośrednie/narzut), **zysk%**, **robocizna [zł/rg]**, **calibration_coeff**. "
-                "Wejdź w Kosztorys wybranego przetargu — po prawej stronie znajdziesz panel edycji parametrów."
-            )
-        elif any(w in msg for w in ['dokument', 'siwz', 'przedmiar', 'pobierz']):
-            answer = (
-                "Aby pobrać dokumentację przetargową: wybierz przetarg w module **Zwiad**, "
-                "kliknij na wiersz przetargu — pojawi się panel szczegółów z przyciskiem 'Pobierz dokumentację'. "
-                "System uruchomi OCR i parsowanie przedmiaru automatycznie."
-            )
-        elif any(w in msg for w in ['decyzja', 'go', 'nogo', 'złóż', 'oferta']):
-            answer = (
-                "Moduł **Decyzja** agreguje wyniki: kosztorys (delta doc/owner), "
-                "silnik ryzyka (P10/P50/P90) i naruszenia reguł. "
-                "System sugeruje GO / NO-GO / NEGOCJUJ. "
-                "Kliknięcie 'Złóż ofertę' zmienia status przetargu na decided_go."
+                "Silnik decyzyjny analizuje wykonalnosc na 3 poziomach: "
+                "**L1** - reguly twarde (blokery), "
+                "**L2** - ryzyko Monte Carlo (2000 probek, marze P10/P50/P90), "
+                "**L3** - wyjasnienie decyzji."
             )
         elif any(w in msg for w in ['pomoc', 'jak', 'help', 'co to', 'co umiesz']):
             answer = (
-                "Terra.OS — system wsparcia decyzji dla wykonawców robót budowlanych. "
-                "**Flow:** Zwiad (lista BZP) → dokumentacja → Kosztorys (2 warianty) → Silnik (ryzyko) → Decyzja (GO/NO-GO). "
-                "Możesz mnie zapytać o: przetargi, kosztorysy, ryzyko, parametry wyceny, dokumentację."
+                "AXON|TERRA - system wsparcia decyzji dla wykonawcow robot budowlanych. "
+                "**Flow:** Zwiad (lista BZP) -> Kosztorys (2 warianty) -> Silnik (ryzyko) -> Decyzja (GO/NO-GO)."
             )
         else:
             answer = (
-                f"Pytasz o: {body.message!r}. "
-                "Jestem asystentem Terra.OS — pomagam w analizie przetargów budowlanych, "
+                "Jestem asystentem AXON|TERRA. Pomagam w analizie przetargow budowlanych, "
                 "kosztorysowaniu i ocenie ryzyka. "
-                "Zadaj konkretne pytanie np. 'jak działa kosztorys?' lub 'co to jest marża P50?'"
+                "Zadaj konkretne pytanie np. 'jak dziala kosztorys?' lub 'co to jest marza P50?'"
             )
 
         yield sse("token", {"text": answer})

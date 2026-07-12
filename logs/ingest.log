@@ -855,3 +855,113 @@ connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authenti
 2026-07-08 15:34:13,795 [INFO] services.ingestion.deduplicator: Deduplication done: 1 pairs found, 1 new, 0 skipped
 2026-07-08 15:34:13,796 [INFO] ingestion.pipeline: Dedup: 1 new duplicate pairs
 2026-07-08 15:34:13,808 [INFO] daily_ingest: Ingest complete: fetched=6817, created=1138, updated=0, dropped=2231, errors=0
+2026-07-12 05:00:08,117 [INFO] daily_ingest: Starting daily ingest (days_back=7, ted=True, bip=False, bip_region=None)
+2026-07-12 05:00:10,548 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-05T00%3A00%3A00&PublicationDateTo=2026-07-05T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:12,373 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-05T12%3A00%3A00&PublicationDateTo=2026-07-05T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:14,868 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-06T00%3A00%3A00&PublicationDateTo=2026-07-06T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:19,009 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-06T12%3A00%3A00&PublicationDateTo=2026-07-06T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:20,465 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-07T00%3A00%3A00&PublicationDateTo=2026-07-07T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:24,192 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-07T12%3A00%3A00&PublicationDateTo=2026-07-07T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:26,641 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-08T00%3A00%3A00&PublicationDateTo=2026-07-08T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:28,088 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-08T12%3A00%3A00&PublicationDateTo=2026-07-08T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:29,459 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-09T00%3A00%3A00&PublicationDateTo=2026-07-09T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:30,869 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-09T12%3A00%3A00&PublicationDateTo=2026-07-09T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:31,781 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:32,640 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T12%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:32,984 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-11T00%3A00%3A00&PublicationDateTo=2026-07-11T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:33,253 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-11T12%3A00%3A00&PublicationDateTo=2026-07-11T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:33,460 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-12T00%3A00%3A00&PublicationDateTo=2026-07-12T11%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:33,489 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?pageSize=500&pageNumber=0&NoticeType=ContractNotice&PublicationDateFrom=2026-07-12T12%3A00%3A00&PublicationDateTo=2026-07-12T23%3A59%3A59 "HTTP/1.1 200 OK"
+2026-07-12 05:00:33,489 [INFO] ingestion.bzp_connector: BZP fetch complete: 3504 unique notices over 8 days
+2026-07-12 05:00:33,489 [INFO] ingestion.pipeline: BZP fetched 3504 raw notices
+2026-07-12 05:00:33,686 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-12 05:00:35,739 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-12 05:00:36,109 [INFO] httpx: HTTP Request: POST https://api.ted.europa.eu/v3/notices/search "HTTP/1.1 200 OK"
+2026-07-12 05:00:36,293 [INFO] ingestion.ted_connector: TED fetch complete: 262 unique notices (20260705 to 20260712)
+2026-07-12 05:00:36,293 [INFO] ingestion.pipeline: TED fetched 262 raw notices
+2026-07-12 05:00:37,930 [INFO] ingestion.pipeline: Ingest for tenant_id=ec3d1e16-2139-48c2-93b5-ffe0defd606d
+2026-07-12 05:00:37,946 [INFO] ingestion.pipeline: Filter: 583 passed, 1329 dropped
+2026-07-12 05:00:39,652 [INFO] ingestion.pipeline: Ingest done: IngestResult(fetched=3766, norm=1912, passed=583, dropped=1329, created=574, updated=9, errors=0, bip=0, dedup=0)
+2026-07-12 05:00:39,673 [INFO] services.ingestion.deduplicator: Loaded 660 tenders for deduplication
+2026-07-12 05:00:39,698 [INFO] services.ingestion.deduplicator: Searching for duplicate pairs (title sim >= 0.55)...
+2026-07-12 05:00:41,178 [INFO] services.ingestion.deduplicator: Candidate pairs from pg_trgm: 1
+2026-07-12 05:00:41,179 [INFO] services.ingestion.deduplicator: Confirmed duplicate pairs: 0
+2026-07-12 05:00:41,179 [INFO] services.ingestion.deduplicator: Deduplication done: 0 pairs found, 0 new, 0 skipped
+2026-07-12 05:00:41,180 [INFO] ingestion.pipeline: Dedup: 0 new duplicate pairs
+2026-07-12 05:00:41,986 [INFO] services.ingestion.deduplicator: Cross-source candidate pairs (trgm >= 0.65, deadline ±14 d): 0
+2026-07-12 05:00:41,986 [INFO] services.ingestion.deduplicator: Cross-source dedup done: 0 pairs found, 0 marked, 0 skipped
+2026-07-12 05:00:41,987 [INFO] ingestion.pipeline: Cross-source dedup (BZP↔TED): 0 pairs marked, 0 skipped
+2026-07-12 05:00:41,990 [INFO] ingestion.pipeline: Auto-fetch SWZ: 10 high-score tenders
+2026-07-12 05:00:43,568 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337929%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:43,663 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-11T00%3A00%3A00&PublicationDateTo=2026-07-11T23%3A59%3A59&noticeNumber=2026%2FBZP+00337929&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:43,664 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337929: https://platformazakupowa.pl/transakcja/1341743
+2026-07-12 05:00:43,664 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337929 (bzp=2026/BZP 00337929)
+2026-07-12 05:00:43,667 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu ff6202b6-67ed-4d32-a58e-950bf73c27ef
+2026-07-12 05:00:43,667 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla ff6202b6-67ed-4d32-a58e-950bf73c27ef: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:44,976 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337906%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:45,057 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-11T00%3A00%3A00&PublicationDateTo=2026-07-11T23%3A59%3A59&noticeNumber=2026%2FBZP+00337906&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:45,058 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337906: https://platformazakupowa.pl/transakcja/1342647
+2026-07-12 05:00:45,058 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337906 (bzp=2026/BZP 00337906)
+2026-07-12 05:00:45,061 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu 1e10d05f-6693-4efc-96fb-0e51b41dd8a6
+2026-07-12 05:00:45,061 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla 1e10d05f-6693-4efc-96fb-0e51b41dd8a6: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:46,382 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337880%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:46,488 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337880&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:46,489 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337880: https://dusznikizdroj.ezamawiajacy.pl
+2026-07-12 05:00:46,489 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337880 (bzp=2026/BZP 00337880)
+2026-07-12 05:00:46,491 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu 5f060404-dbcd-44ce-a831-91c461d5a654
+2026-07-12 05:00:46,491 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla 5f060404-dbcd-44ce-a831-91c461d5a654: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:47,680 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337835%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:47,788 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337835&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:47,789 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337835: https://zamekkrolewskinawawelu.ezamawiajacy.pl/pn/WAWEL/demand/305071/notice/public/details
+2026-07-12 05:00:47,789 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337835 (bzp=2026/BZP 00337835)
+2026-07-12 05:00:47,791 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu 35a16c94-557e-4195-bc69-08e0ccd4814e
+2026-07-12 05:00:47,791 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla 35a16c94-557e-4195-bc69-08e0ccd4814e: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:49,123 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337812%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:50,924 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337812&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:50,924 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337812: https://piwniczna.ezamawiajacy.pl/pn/piwniczna/demand/305258/notice/public/details
+2026-07-12 05:00:50,927 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337812 (bzp=2026/BZP 00337812)
+2026-07-12 05:00:50,930 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu d628b616-6843-4f87-8b7b-d8ffc46b6558
+2026-07-12 05:00:50,930 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla d628b616-6843-4f87-8b7b-d8ffc46b6558: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:53,168 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337802%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:53,250 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337802&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:53,252 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337802: https://ignatianum.eb2b.com.pl
+2026-07-12 05:00:53,252 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337802 (bzp=2026/BZP 00337802)
+2026-07-12 05:00:53,254 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu 0d2e080c-f3bc-4b2d-8d27-55a6c166ba77
+2026-07-12 05:00:53,254 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla 0d2e080c-f3bc-4b2d-8d27-55a6c166ba77: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:54,430 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337780%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:55,800 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337780&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:55,824 [INFO] services.ingestion.bzp_document_scraper: SWZ URL dla 2026/BZP 00337780: https://umsosnowiec.logintrade.net/zapytania_email,235644,b6179342dc0cb7be2ed2319562a46116.html
+2026-07-12 05:00:55,824 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 2 dokumentów dla 2026/BZP 00337780 (bzp=2026/BZP 00337780)
+2026-07-12 05:00:55,826 [INFO] services.ingestion.bzp_document_scraper: Zapisano 2 dokumentów dla przetargu 0a0ecdf6-d7c2-4889-a803-169f1e80cf05
+2026-07-12 05:00:55,826 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla 0a0ecdf6-d7c2-4889-a803-169f1e80cf05: docs=2 downloaded=0 errors=0
+2026-07-12 05:00:57,585 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337744%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:00:58,702 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337744&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:00:58,703 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 1 dokumentów dla 2026/BZP 00337744 (bzp=2026/BZP 00337744)
+2026-07-12 05:00:58,705 [INFO] services.ingestion.bzp_document_scraper: Zapisano 1 dokumentów dla przetargu d249e279-b3a4-4934-869a-89211d132aaa
+2026-07-12 05:00:58,705 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla d249e279-b3a4-4934-869a-89211d132aaa: docs=1 downloaded=0 errors=0
+2026-07-12 05:00:59,891 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337652%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:01:00,775 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337652&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:01:00,797 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 1 dokumentów dla 2026/BZP 00337652 (bzp=2026/BZP 00337652)
+2026-07-12 05:01:00,800 [INFO] services.ingestion.bzp_document_scraper: Zapisano 1 dokumentów dla przetargu a24a9e1f-e8cc-4b3b-9b92-650c2475d75c
+2026-07-12 05:01:00,800 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla a24a9e1f-e8cc-4b3b-9b92-650c2475d75c: docs=1 downloaded=0 errors=0
+2026-07-12 05:01:01,935 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/Board/GetNoticePdf?noticeNumber=2026%2FBZP%2000337651%2F01 "HTTP/1.1 200 OK"
+2026-07-12 05:01:02,015 [INFO] httpx: HTTP Request: GET https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=2026-07-10T00%3A00%3A00&PublicationDateTo=2026-07-10T23%3A59%3A59&noticeNumber=2026%2FBZP+00337651&pageSize=1&pageNumber=0 "HTTP/1.1 200 OK"
+2026-07-12 05:01:02,015 [INFO] services.ingestion.bzp_document_scraper: Znaleziono 1 dokumentów dla 2026/BZP 00337651 (bzp=2026/BZP 00337651)
+2026-07-12 05:01:02,018 [INFO] services.ingestion.bzp_document_scraper: Zapisano 1 dokumentów dla przetargu f0def6d9-4a2e-43e1-9a22-2fad1131242f
+2026-07-12 05:01:02,018 [INFO] services.ingestion.bzp_document_scraper: Fetch zakończony dla f0def6d9-4a2e-43e1-9a22-2fad1131242f: docs=1 downloaded=0 errors=0
+2026-07-12 05:01:02,018 [INFO] ingestion.pipeline: Auto-fetch SWZ done: 10/10 OK
+2026-07-12 05:01:02,025 [WARNING] ingestion.pipeline: MV refresh failed: (psycopg2.errors.ObjectNotInPrerequisiteState) cannot refresh materialized view "public.mv_dashboard_stats" concurrently
+HINT:  Create a unique index with no WHERE clause on one or more columns of the materialized view.
+
+[SQL: REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_stats]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-12 05:01:02,026 [INFO] services.api.services.api.integrations.n8n_client: n8n trigger_webhook skip (N8N_WEBHOOK_URL not set): event=TenderCreated tenant=ec3d1e16-2139-48c2-93b5-ffe0defd606d
+2026-07-12 05:01:02,034 [INFO] daily_ingest: Ingest complete: fetched=3766, created=574, updated=9, dropped=1329, errors=0
+2026-07-12 05:01:02,034 [INFO] daily_ingest: Starting alert dispatcher (post-ingest)...
+2026-07-12 05:01:02,040 [INFO] ingestion.alert_dispatcher: Alert dispatcher: szukam przetargów od 2026-07-11T04:01:02.040095+00:00 (ostatnie 1500 min)
+2026-07-12 05:01:02,047 [INFO] ingestion.alert_dispatcher: Aktywnych alertów: 1
+2026-07-12 05:01:02,049 [INFO] ingestion.alert_dispatcher: Alert 'Roboty budowlane CPV45': 1 nowych przetargów → wysyłam digest
+2026-07-12 05:01:02,049 [INFO] ingestion.alert_dispatcher: SMTP_HOST nie skonfigurowany — zapisuję alert 'Roboty budowlane CPV45' do fallback JSON
+2026-07-12 05:01:02,050 [INFO] ingestion.alert_dispatcher: [FALLBACK] Alert 'Roboty budowlane CPV45' → mateusz@qa10.io (1 przetargów) zapisano do /tmp/terra_alerts_pending.json
+2026-07-12 05:01:02,052 [INFO] ingestion.alert_dispatcher: Alert dispatcher zakończony: {'alerts_checked': 1, 'alerts_fired': 1, 'emails_sent': 1, 'tenders_found': 1, 'skipped': 0, 'since_minutes': 1500}
+2026-07-12 05:01:02,052 [INFO] daily_ingest: Alert dispatcher done: checked=1 fired=1 emails=1 tenders=1
