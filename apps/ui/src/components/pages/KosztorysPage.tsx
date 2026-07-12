@@ -12,6 +12,7 @@ import {
   RotateCcw, SlidersHorizontal, Info, PanelRightOpen, PanelRightClose,
   BookOpen, CheckCircle2, Package, Database, Columns2, FileDown,
   BarChart2, Target, Shield, RefreshCw, Wrench, ChevronDown, ChevronUp, AlertTriangle,
+  Upload, Bot,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useAuthFetch } from '@/lib/api-v2';
@@ -781,6 +782,13 @@ export function KosztorysPage() {
   // ── Recalc ─────────────────────────────────────────────────────────────────
   const [recalcLoading, setRecalcLoading] = useState(false);
 
+  // ── ATH Import ─────────────────────────────────────────────────────────────
+  const athFileInputRef = useRef<HTMLInputElement>(null);
+  const [athImportLoading, setAthImportLoading] = useState(false);
+
+  // ── AI Wycena ──────────────────────────────────────────────────────────────
+  const [aiWycenaLoading, setAiWycenaLoading] = useState(false);
+
   // ── Computed sums ──────────────────────────────────────────────────────────
   const sumaR     = pozycje.reduce((s, p) => s + (p.r_total ?? 0), 0);
   const sumaM     = pozycje.reduce((s, p) => s + (p.m_total ?? 0), 0);
@@ -1118,6 +1126,52 @@ export function KosztorysPage() {
     !tenderSearch || t.title.toLowerCase().includes(tenderSearch.toLowerCase()) || t.buyer.toLowerCase().includes(tenderSearch.toLowerCase())
   );
 
+  // ── ATH Import handler ─────────────────────────────────────────────────────
+  async function handleAthImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !tender) return;
+    setAthImportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/v1/kosztorys/${tender.id}/import/ath`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`Import failed: ${res.status}`);
+      showToast('success', `Zaimportowano plik ATH: ${file.name}`);
+      if (kosztorysId) await loadPozycje(kosztorysId);
+    } catch (err) {
+      showToast('error', (err as Error).message);
+    } finally {
+      setAthImportLoading(false);
+      if (athFileInputRef.current) athFileInputRef.current.value = '';
+    }
+  }
+
+  // ── AI Wycena handler ──────────────────────────────────────────────────────
+  async function handleAiWycena() {
+    if (!kosztorysId) {
+      showToast('error', 'Brak aktywnego kosztorysu');
+      return;
+    }
+    setAiWycenaLoading(true);
+    try {
+      await authFetch(`/api/v2/estimates/${kosztorysId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Wycenij automatycznie wszystkie pozycje na podstawie rynkowych cen KNR' }),
+      });
+      showToast('success', 'AI Wycena zakończona pomyślnie');
+      await loadPozycje(kosztorysId);
+    } catch (err) {
+      showToast('error', (err as Error).message);
+    } finally {
+      setAiWycenaLoading(false);
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -1288,6 +1342,32 @@ export function KosztorysPage() {
                 >
                   {exportLoading === 'xlsx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
                   CSV
+                </button>
+                {/* Hidden file input for ATH import */}
+                <input
+                  ref={athFileInputRef}
+                  type="file"
+                  accept=".xml,.ath"
+                  className="hidden"
+                  onChange={handleAthImport}
+                />
+                <button
+                  onClick={() => athFileInputRef.current?.click()}
+                  disabled={athImportLoading || !tender}
+                  title="Importuj plik ATH"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-600/10 border border-orange-600/20 text-orange-400 text-xs hover:bg-orange-600/20 transition-colors disabled:opacity-50"
+                >
+                  {athImportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  Import ATH
+                </button>
+                <button
+                  onClick={handleAiWycena}
+                  disabled={aiWycenaLoading || !kosztorysId}
+                  title="Automatyczna wycena AI na podstawie cen KNR"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-600/10 border border-violet-600/20 text-violet-400 text-xs hover:bg-violet-600/20 transition-colors disabled:opacity-50"
+                >
+                  {aiWycenaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bot className="w-3.5 h-3.5" />}
+                  AI Wycena
                 </button>
               </div>
             </div>

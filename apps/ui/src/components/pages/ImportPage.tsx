@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Upload, ChevronRight, ChevronLeft, Check, AlertTriangle, Loader2, FileSpreadsheet } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Upload, ChevronRight, ChevronLeft, Check, AlertTriangle, Loader2, FileSpreadsheet, Clock, FileText } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { showToast } from '@/components/Toast';
 import { useStore } from '@/store/useStore';
@@ -10,6 +10,15 @@ type Step = 0 | 1 | 2 | 3;
 
 interface ParsedRow {
   [key: string]: string;
+}
+
+interface ImportJob {
+  id: string | number;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | string;
+  processed: number;
+  total: number;
+  filename?: string;
+  created_at?: string;
 }
 
 const TARGET_FIELDS = [
@@ -25,12 +34,31 @@ function parseCSV(text: string): { headers: string[]; rows: ParsedRow[] } {
   const lines = text.split('\n').filter(l => l.trim());
   if (lines.length === 0) return { headers: [], rows: [] };
   const sep = lines[0].includes(';') ? ';' : ',';
-  const headers = lines[0].split(sep).map(h => h.trim().replace(/^["']|["']$/g, ''));
+  const headers = lines[0].split(sep).map(h => h.trim().replace(/^[\"']|[\"']$/g, ''));
   const rows = lines.slice(1, 6).map(line => {
-    const vals = line.split(sep).map(v => v.trim().replace(/^["']|["']$/g, ''));
+    const vals = line.split(sep).map(v => v.trim().replace(/^[\"']|[\"']$/g, ''));
     return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? '']));
   });
   return { headers, rows };
+}
+
+function formatDate(iso?: string): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
+}
+
+function statusLabel(status: string): { text: string; cls: string } {
+  switch (status) {
+    case 'completed': return { text: 'Zakończony', cls: 'text-emerald-400' };
+    case 'processing': return { text: 'W trakcie', cls: 'text-yellow-400' };
+    case 'pending':    return { text: 'Oczekuje', cls: 'text-earth-400' };
+    case 'failed':     return { text: 'Błąd', cls: 'text-red-400' };
+    default:           return { text: status, cls: 'text-earth-500' };
+  }
 }
 
 export function ImportPage() {
@@ -43,9 +71,84 @@ export function ImportPage() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // Progress polling state
+  const [activeJob, setActiveJob] = useState<ImportJob | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Import history
+  const [importHistory, setImportHistory] = useState<ImportJob[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const dropRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // ── Fetch import history ───────────────────────────────────────────────────
+  const loadHistory = useCallback(async () => {
+    if (!accessToken) return;
+    setHistoryLoading(true);
+    try {
+      const res = await fetch('/api/v1/excel/imports', {
+        headers: { Authorization: 'Bearer ' + accessToken },
+      });
+      if (res.ok) {
+        const data: ImportJob[] = await res.json();
+        setImportHistory(data.slice(0, 5));
+      }
+    } catch {
+      // history is best-effort; do not block UI
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  // ── Polling ────────────────────────────────────────────────────────────────
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const pollImports = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const res = await fetch('/api/v1/excel/imports', {
+        headers: { Authorization: 'Bearer ' + accessToken },
+      });
+      if (!res.ok) return;
+      const jobs: ImportJob[] = await res.json();
+      if (jobs.length === 0) return;
+      const latest = jobs[0];
+      setActiveJob(latest);
+
+      if (latest.status === 'completed') {
+        stopPolling();
+        setDone(true);
+        setStep(3);
+        setLoading(false);
+        showToast('success', 'Import zakończony pomyślnie!');
+        loadHistory();
+      } else if (latest.status === 'failed') {
+        stopPolling();
+        setLoading(false);
+        setImportError('Import zakończył się błędem po stronie serwera.');
+        showToast('error', 'Błąd importu danych');
+      }
+    } catch {
+      // poll failure is transient — keep trying
+    }
+  }, [accessToken, stopPolling, loadHistory]);
+
+  // cleanup on unmount
+  useEffect(() => () => stopPolling(), [stopPolling]);
+
+  // ── File handling ──────────────────────────────────────────────────────────
   function handleFile(f: File) {
     setFile(f);
     const reader = new FileReader();
@@ -53,7 +156,6 @@ export function ImportPage() {
       const text = e.target?.result as string;
       const parsed = parseCSV(text);
       setCsvData(parsed);
-      // Auto-map headers
       const autoMap: Record<string, string> = {};
       for (const tf of TARGET_FIELDS) {
         const match = parsed.headers.find(h =>
@@ -89,28 +191,54 @@ export function ImportPage() {
     if (errs.length === 0) setStep(2);
   }
 
+  // ── Submit ─────────────────────────────────────────────────────────────────
   async function submitImport() {
     setLoading(true);
+    setImportError(null);
+    setActiveJob(null);
+
     try {
-      await new Promise(r => setTimeout(r, 1500));
-      if (accessToken && file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        await fetch('/api/v1/excel/import/tenders', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + accessToken },
-          body: formData,
-        }).catch(() => {});
+      if (!accessToken || !file) {
+        throw new Error('Brak tokenu autoryzacji lub pliku');
       }
-      setDone(true);
-      setStep(3);
-      showToast('success', 'Import zakończony pomyślnie!');
-    } catch {
-      showToast('error', 'Błąd importu danych');
-    } finally {
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/v1/excel/import/tenders', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + accessToken },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.detail) detail = body.detail;
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
+
+      // Start polling every 2 s for live progress
+      stopPolling();
+      pollTimerRef.current = setInterval(pollImports, 2000);
+      // Immediate first poll
+      pollImports();
+
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Błąd importu danych';
+      setImportError(msg);
+      showToast('error', msg);
       setLoading(false);
     }
   }
+
+  // ── Progress % ─────────────────────────────────────────────────────────────
+  const progressPct =
+    activeJob && activeJob.total > 0
+      ? Math.min(100, Math.round((activeJob.processed / activeJob.total) * 100))
+      : null;
 
   const STEPS = ['Upload', 'Mapowanie', 'Walidacja', 'Import'];
 
@@ -122,7 +250,7 @@ export function ImportPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 max-w-2xl">
-        {/* Progress */}
+        {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6">
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -135,6 +263,7 @@ export function ImportPage() {
           ))}
         </div>
 
+        {/* ── Step 0: Upload ── */}
         {step === 0 && (
           <div
             ref={dropRef}
@@ -151,6 +280,7 @@ export function ImportPage() {
           </div>
         )}
 
+        {/* ── Step 1: Mapping ── */}
         {step === 1 && csvData && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-earth-200">Mapowanie kolumn</h3>
@@ -209,6 +339,7 @@ export function ImportPage() {
           </div>
         )}
 
+        {/* ── Step 2: Validation + Import ── */}
         {step === 2 && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-earth-200">Wyniki walidacji</h3>
@@ -232,7 +363,18 @@ export function ImportPage() {
                 ))}
               </GlassCard>
             )}
-            {errors.length === 0 && (
+
+            {/* Import error */}
+            {importError && (
+              <GlassCard className="p-4 border-red-500/20">
+                <div className="flex items-start gap-2 text-xs text-red-300">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-400" />
+                  <span>{importError}</span>
+                </div>
+              </GlassCard>
+            )}
+
+            {errors.length === 0 && !importError && (
               <GlassCard className="p-4">
                 <div className="flex items-center gap-2 text-emerald-400 mb-2">
                   <Check className="w-4 h-4" />
@@ -243,20 +385,45 @@ export function ImportPage() {
                 </p>
               </GlassCard>
             )}
+
+            {/* Live progress bar */}
+            {loading && (
+              <GlassCard className="p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-earth-300">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-primary" />
+                  <span>
+                    {activeJob
+                      ? `Przetwarzanie… ${activeJob.processed} / ${activeJob.total > 0 ? activeJob.total : '?'} rekordów`
+                      : 'Wysyłanie pliku…'}
+                  </span>
+                </div>
+                <div className="w-full bg-earth-800 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-accent-primary h-2 rounded-full transition-all duration-500"
+                    style={{ width: progressPct !== null ? `${progressPct}%` : '100%', opacity: progressPct !== null ? 1 : 0.4 }}
+                  />
+                </div>
+                {progressPct !== null && (
+                  <p className="text-xs text-earth-500 text-right">{progressPct}%</p>
+                )}
+              </GlassCard>
+            )}
+
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)} className="flex items-center gap-1.5 px-4 py-2 text-sm text-earth-500 hover:text-earth-300">
+              <button onClick={() => setStep(1)} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 text-sm text-earth-500 hover:text-earth-300 disabled:opacity-40">
                 <ChevronLeft className="w-4 h-4" /> Wstecz
               </button>
               {errors.length === 0 && (
                 <button onClick={submitImport} disabled={loading} className="flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-earth-950 rounded-xl text-sm font-semibold hover:bg-emerald-400 transition-colors disabled:opacity-50">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  Importuj dane
+                  {loading ? 'Importowanie…' : importError ? 'Spróbuj ponownie' : 'Importuj dane'}
                 </button>
               )}
             </div>
           </div>
         )}
 
+        {/* ── Step 3: Done ── */}
         {step === 3 && done && (
           <div className="text-center py-8">
             <div className="w-16 h-16 rounded-full bg-accent-primary/15 border border-accent-primary/30 flex items-center justify-center mx-auto mb-4">
@@ -264,11 +431,65 @@ export function ImportPage() {
             </div>
             <h3 className="text-base font-bold text-earth-100 mb-2">Import zakończony!</h3>
             <p className="text-sm text-earth-500">Dane historyczne zostały zaimportowane. AI będzie mogło teraz uczyć się wzorców przetargów.</p>
-            <button onClick={() => { setStep(0); setFile(null); setCsvData(null); setDone(false); }} className="mt-4 px-5 py-2 bg-earth-800 text-earth-300 rounded-xl text-sm hover:bg-earth-700 transition-colors">
+            {activeJob && activeJob.total > 0 && (
+              <p className="text-xs text-earth-600 mt-1">Zaimportowano {activeJob.processed} z {activeJob.total} rekordów.</p>
+            )}
+            <button
+              onClick={() => {
+                setStep(0); setFile(null); setCsvData(null);
+                setDone(false); setActiveJob(null); setImportError(null);
+              }}
+              className="mt-4 px-5 py-2 bg-earth-800 text-earth-300 rounded-xl text-sm hover:bg-earth-700 transition-colors"
+            >
               Importuj kolejny plik
             </button>
           </div>
         )}
+
+        {/* ── Import History ── */}
+        <div className="mt-8 space-y-3">
+          <h3 className="text-xs font-semibold text-earth-500 uppercase tracking-wide flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5" /> Ostatnie importy
+          </h3>
+          {historyLoading ? (
+            <p className="text-xs text-earth-600 flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" /> Ładowanie historii…
+            </p>
+          ) : importHistory.length === 0 ? (
+            <p className="text-xs text-earth-700">Brak historii importów.</p>
+          ) : (
+            <GlassCard className="p-0 overflow-hidden">
+              <table className="text-xs w-full">
+                <thead>
+                  <tr className="border-b border-earth-800/60">
+                    <th className="px-3 py-2 text-left text-earth-600 font-normal">Plik</th>
+                    <th className="px-3 py-2 text-left text-earth-600 font-normal">Data</th>
+                    <th className="px-3 py-2 text-right text-earth-600 font-normal">Rekordy</th>
+                    <th className="px-3 py-2 text-left text-earth-600 font-normal">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importHistory.map((job, i) => {
+                    const { text, cls } = statusLabel(job.status);
+                    return (
+                      <tr key={job.id ?? i} className="border-b border-earth-800/20 last:border-0">
+                        <td className="px-3 py-2 text-earth-300 flex items-center gap-1.5">
+                          <FileText className="w-3 h-3 text-earth-600 shrink-0" />
+                          <span className="truncate max-w-[140px]">{job.filename ?? '—'}</span>
+                        </td>
+                        <td className="px-3 py-2 text-earth-500 whitespace-nowrap">{formatDate(job.created_at)}</td>
+                        <td className="px-3 py-2 text-earth-400 text-right">
+                          {job.total > 0 ? `${job.processed} / ${job.total}` : job.processed > 0 ? job.processed : '—'}
+                        </td>
+                        <td className={`px-3 py-2 font-medium ${cls}`}>{text}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </GlassCard>
+          )}
+        </div>
       </div>
     </div>
   );

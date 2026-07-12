@@ -5,29 +5,23 @@ import { useAuthFetch } from '@/lib/api-v2';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   CheckCircle2, XCircle, Loader2, AlertTriangle,
-  Calendar, TrendingUp, Info, RefreshCw, ClipboardList,
+  Calendar, Info, RefreshCw, ClipboardList,
 } from 'lucide-react';
 
 // ── Typy ──────────────────────────────────────────────────────────────────────
-interface TenderItem {
+interface RfqItem {
   id: string;
   title: string;
-  buyer: string;
-  value_pln: string | number;
-  deadline_at: string;
   status: string;
-  match_score: number | null;
+  tender_id: string | null;
+  created_at: string;
+  deadline_at: string | null;
+  responses_count: number;
 }
 
 type Decision = 'decided_go' | 'decided_nogo';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function fmtPLN(v: string | number | null | undefined) {
-  if (v === null || v === undefined) return '—';
-  const n = typeof v === 'string' ? parseFloat(v) : v;
-  if (isNaN(n)) return '—';
-  return n.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
-}
 function fmtDate(s: string | null | undefined) {
   if (!s) return '—';
   return new Date(s).toLocaleDateString('pl-PL');
@@ -37,7 +31,7 @@ function fmtDate(s: string | null | undefined) {
 function ConfirmDialog({
   tender, decision, onConfirm, onCancel, loading,
 }: {
-  tender: TenderItem;
+  tender: RfqItem;
   decision: Decision;
   onConfirm: () => void;
   onCancel: () => void;
@@ -71,9 +65,6 @@ function ConfirmDialog({
         <p className="text-earth-200 text-sm font-medium line-clamp-2 mb-4">{tender.title}</p>
 
         <div className="flex items-center gap-3 p-3 rounded-xl bg-earth-800/40 mb-5">
-          <TrendingUp className="w-4 h-4 text-earth-500 shrink-0" />
-          <span className="text-earth-300 text-sm font-medium">{fmtPLN(tender.value_pln)}</span>
-          <span className="w-px h-4 bg-earth-700" />
           <Calendar className="w-4 h-4 text-earth-500 shrink-0" />
           <span className="text-earth-400 text-sm">Termin: {fmtDate(tender.deadline_at)}</span>
         </div>
@@ -138,10 +129,10 @@ function SkeletonRow() {
 
 // ── Komponent główny ──────────────────────────────────────────────────────────
 export function RfqPage() {
-  const [tenders, setTenders] = useState<TenderItem[]>([]);
+  const [tenders, setTenders] = useState<RfqItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ tender: TenderItem; decision: Decision } | null>(null);
+  const [confirm, setConfirm] = useState<{ tender: RfqItem; decision: Decision } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [justDecided, setJustDecided] = useState<Record<string, Decision>>({});
 
@@ -150,10 +141,9 @@ export function RfqPage() {
   const fetchTenders = useCallback(() => {
     setLoading(true);
     setError(null);
-    authFetch('/api/v1/tenders?status=analyzing&limit=20')
-      .then(r => { if (!r.ok) throw new Error(`Błąd ${r.status}`); return r.json(); })
-      .then(data => { setTenders(data.items ?? []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+    authFetch('/api/v2/rfq')
+      .then((data: RfqItem[]) => { setTenders(data ?? []); setLoading(false); })
+      .catch((e: Error) => { setError(e.message); setLoading(false); });
   }, [authFetch]);
 
   useEffect(() => { fetchTenders(); }, [fetchTenders]);
@@ -162,7 +152,7 @@ export function RfqPage() {
     if (!confirm) return;
     setConfirming(true);
     try {
-      await authFetch(`/api/v1/tenders/${confirm.tender.id}`, {
+      await authFetch(`/api/v2/rfq/${confirm.tender.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: confirm.decision }),
@@ -260,11 +250,6 @@ export function RfqPage() {
                 const decided = justDecided[t.id];
                 const isGo   = decided === 'decided_go';
                 const isNogo = decided === 'decided_nogo';
-                const score  = t.match_score !== null ? Math.round(t.match_score * 100) : null;
-                const scoreColor = score === null ? '#71717a'
-                  : score >= 70 ? '#10b981'
-                  : score >= 40 ? '#F59E0B'
-                  : '#EF4444';
 
                 return (
                   <motion.div
@@ -282,28 +267,20 @@ export function RfqPage() {
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        {/* Tytuł + nabywca */}
+                        {/* Tytuł */}
                         <p className="text-earth-100 font-semibold text-sm line-clamp-2 mb-1">{t.title}</p>
-                        <p className="text-earth-500 text-xs mb-3 truncate">{t.buyer}</p>
+                        <p className="text-earth-500 text-xs mb-3 truncate">Status: {t.status}</p>
 
-                        {/* Meta: wartość, termin, dopasowanie */}
+                        {/* Meta: termin, odpowiedzi */}
                         <div className="flex items-center gap-4 flex-wrap">
-                          <span className="flex items-center gap-1.5 text-sm text-earth-300 font-medium">
-                            <TrendingUp className="w-3.5 h-3.5 text-earth-500" />
-                            {fmtPLN(t.value_pln)}
-                          </span>
                           <span className="flex items-center gap-1.5 text-xs text-earth-500">
                             <Calendar className="w-3.5 h-3.5" />
                             Termin: {fmtDate(t.deadline_at)}
                           </span>
-                          {score !== null && (
-                            <span
-                              className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                              style={{ color: scoreColor, backgroundColor: scoreColor + '20' }}
-                            >
-                              Dopasowanie {score}%
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1.5 text-xs text-earth-400">
+                            <ClipboardList className="w-3.5 h-3.5" />
+                            Odpowiedzi: {t.responses_count}
+                          </span>
                         </div>
                       </div>
 

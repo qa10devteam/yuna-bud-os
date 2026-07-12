@@ -536,11 +536,11 @@ function OptymalizacjaTab() {
     setError(null);
     setResult(null);
     try {
-      const res = await authFetch('/api/v1/logistics/optimize', {
+      const data = await authFetch('/api/v1/logistics/optimize', {
         method: 'POST',
         body: JSON.stringify({ day_range: [from, to] }),
       });
-      setResult(res);
+      setResult(data);
       showToast('success', 'Optymalizacja zakończona');
     } catch (e: unknown) {
       const msg = (e as Error).message || 'Błąd optymalizacji';
@@ -1047,9 +1047,7 @@ function HarmonogramTab() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch('/api/v1/contracts');
-      if (!res.ok) throw new Error('HTTP ' + String(res.status));
-      const raw: Contract[] | ContractsResponse = await res.json();
+      const raw: Contract[] | ContractsResponse = await authFetch('/api/v1/contracts');
       const list: Contract[] = Array.isArray(raw)
         ? raw
         : (raw as ContractsResponse).items

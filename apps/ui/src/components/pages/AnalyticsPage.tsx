@@ -43,6 +43,13 @@ interface RiskResult {
   ai_enhanced: boolean;
 }
 
+interface WinData {
+  win_rate: number;
+  total_bids: number;
+  wins: number;
+  trend: Array<{ month: string; rate: number }>;
+}
+
 // ── Default criteria ───────────────────────────────────────────────────────────
 const DEFAULT_CRITERIA: AHPCriterion[] = [
   { id: 'technical_fit',   label: 'Fit techniczny',      weight: 0.25 },
@@ -67,6 +74,7 @@ const TABS = [
   { id: 'bidding',  label: 'Optymalna oferta', icon: Target },
   { id: 'risk',     label: 'Ryzyko SWZ',       icon: AlertTriangle },
   { id: 'dashboard',label: 'Dashboard',         icon: BarChart3 },
+  { id: 'win',      label: 'Win Rate',          icon: TrendingUp },
 ] as const;
 type Tab = typeof TABS[number]['id'];
 
@@ -110,6 +118,9 @@ export function AnalyticsPage() {
 
   // Dashboard state
   const [dashData, setDashData] = useState<Record<string, unknown> | null>(null);
+
+  // Win state
+  const [winData, setWinData] = useState<WinData | null>(null);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -186,6 +197,18 @@ export function AnalyticsPage() {
     }
   }
 
+  async function loadWin() {
+    setLoading(true);
+    try {
+      const d = await fetch('/api/v2/analytics/win-probability', {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json());
+      setWinData(d);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <motion.div
@@ -213,7 +236,7 @@ export function AnalyticsPage() {
             return (
               <button
                 key={t.id}
-                onClick={() => { setTab(t.id); if (t.id === 'dashboard') loadDashboard(); }}
+                onClick={() => { setTab(t.id); if (t.id === 'dashboard') loadDashboard(); if (t.id === 'win') loadWin(); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   tab === t.id
                     ? 'bg-accent-primary/15 text-accent-primary'
@@ -524,6 +547,72 @@ export function AnalyticsPage() {
                             />
                           </div>
                           <span className="text-earth-300 font-bold w-6 text-right">{f.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+        )}
+
+        {/* ── Win Rate Tab ── */}
+        {tab === 'win' && (
+          <div className="max-w-2xl space-y-4">
+            {!winData ? (
+              <div className="text-center py-16 text-earth-500">
+                <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">{loading ? 'Ładowanie danych…' : 'Brak danych'}</p>
+              </div>
+            ) : (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Win Rate', value: `${winData.win_rate.toFixed(1)}%`, color: 'text-accent-primary' },
+                    { label: 'Łączne oferty', value: String(winData.total_bids), color: 'text-earth-200' },
+                    { label: 'Wygrane', value: String(winData.wins), color: 'text-emerald-400' },
+                  ].map(kpi => (
+                    <div key={kpi.label} className="bg-earth-900/60 border border-earth-800 rounded-xl p-4">
+                      <div className="text-xs text-earth-500 mb-1">{kpi.label}</div>
+                      <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Win Rate progress bar */}
+                <div className="bg-earth-900/60 border border-earth-800 rounded-xl p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-earth-400">Skuteczność ofertowania</span>
+                    <span className="text-xs text-accent-primary font-bold">{winData.win_rate.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full bg-earth-800 rounded-full h-3">
+                    <div
+                      className="bg-accent-primary h-3 rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, winData.win_rate)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Trend bar chart */}
+                {winData.trend.length > 0 && (
+                  <div className="bg-earth-900/60 border border-earth-800 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <TrendingUp className="w-4 h-4 text-accent-primary" />
+                      <span className="text-sm font-semibold text-earth-200">Trend Win Rate</span>
+                    </div>
+                    <div className="space-y-2">
+                      {winData.trend.map(pt => (
+                        <div key={pt.month} className="flex items-center gap-3 text-xs">
+                          <span className="text-earth-400 w-16 shrink-0">{pt.month}</span>
+                          <div className="flex-1 bg-earth-800 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-accent-primary/70 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, pt.rate)}%` }}
+                            />
+                          </div>
+                          <span className="text-earth-300 font-semibold w-12 text-right">{pt.rate.toFixed(1)}%</span>
                         </div>
                       ))}
                     </div>
