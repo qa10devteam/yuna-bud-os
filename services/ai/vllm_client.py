@@ -20,8 +20,8 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost:8000/v1")
-_DEFAULT_MODEL = os.environ.get("VLLM_MODEL", "Qwen/Qwen2.5-20B-Instruct-AWQ")
+_DEFAULT_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost:8001/v1")
+_DEFAULT_MODEL = os.environ.get("VLLM_MODEL", "axon")
 _DEFAULT_API_KEY = os.environ.get("VLLM_API_KEY", "token-terra")
 
 # System prompt that defines the model as Terra.OS operator
