@@ -200,6 +200,11 @@ try:
 except Exception as e:
     logging.getLogger(__name__).warning("metrics router: %s", e)
 try:
+    from .routers import bzp_sync
+    _optional_routers.append(('bzp_sync', bzp_sync))
+except Exception as e:
+    logging.getLogger(__name__).warning("bzp_sync router: %s", e)
+try:
     from .routers import chat_v2
     _optional_routers.append(('chat_v2', chat_v2))
 except Exception as e:
@@ -247,7 +252,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         install_rls_on_engine(get_engine())
     except Exception:
         pass
+    # Faza 8.02: BZP Auto-sync scheduler
+    _scheduler = None
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from services.agents.bzp_sync import sync_bzp_batch
+        _scheduler = AsyncIOScheduler()
+        _scheduler.add_job(sync_bzp_batch, "interval", minutes=15, id="bzp_sync", replace_existing=True)
+        _scheduler.start()
+        logging.getLogger(__name__).info("BZP auto-sync scheduler started (every 15 min)")
+    except Exception as e:
+        logging.getLogger(__name__).warning("BZP scheduler not started: %s", e)
     yield
+    if _scheduler:
+        try:
+            _scheduler.shutdown(wait=False)
+        except Exception:
+            pass
 
 
 # ─── App ───────────────────────────────────────────────────────────────────────
@@ -589,6 +610,8 @@ if 'audit_v2' in _opt_map:
     app.include_router(_opt_map['audit_v2'].router)
 if 'metrics' in _opt_map:
     app.include_router(_opt_map['metrics'].router)
+if 'bzp_sync' in _opt_map:
+    app.include_router(_opt_map['bzp_sync'].router)
 
 # ── v1 compat aliases — frontend używa /api/v1/tenders ──────────────────────
 from fastapi import Request as _Request
