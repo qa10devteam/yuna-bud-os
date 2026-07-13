@@ -33,7 +33,16 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 
+# Import ScraperMetrics from scraper_base (relative, consistent with other connectors)
+from .scraper_base import ScraperMetrics
+
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Rate-limiting constant
+# ---------------------------------------------------------------------------
+
+RATE_DELAY = 0.3  # seconds between requests in batch loops
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -142,21 +151,93 @@ TENDER_ITEM_PATTERNS = [
 
 
 # ---------------------------------------------------------------------------
-# HTTP client
+# Module-level shared HTTP client
 # ---------------------------------------------------------------------------
 
+_HTTP_CLIENT: httpx.Client | None = None
+
+
+def _get_client() -> httpx.Client:
+    """Return (and lazily create) the module-level shared httpx.Client."""
+    global _HTTP_CLIENT
+    if _HTTP_CLIENT is None or _HTTP_CLIENT.is_closed:
+        _HTTP_CLIENT = httpx.Client(
+            timeout=httpx.Timeout(connect=8.0, read=30.0, write=10.0, pool=5.0),
+            limits=httpx.Limits(
+                max_connections=8,
+                max_keepalive_connections=4,
+                keepalive_expiry=60,
+            ),
+            headers={
+                "User-Agent": "TerraOS/1.0 (+https://terra.os)",
+                "Accept": "*/*",
+                "Accept-Language": "pl,en;q=0.5",
+                "Referer": "https://www.gov.pl/web/bip/spis-podmiotow",
+                "Origin": "https://www.gov.pl",
+            },
+            follow_redirects=True,
+        )
+    return _HTTP_CLIENT
+
+
 def _make_client() -> httpx.Client:
+    """Create a fresh per-thread httpx.Client (used in ThreadPoolExecutor workers).
+
+    Each worker in the thread pool owns its own client so there is no
+    cross-thread connection-pool contention.  The module-level client
+    (_get_client) is used only from the main thread.
+    """
     return httpx.Client(
-        timeout=15.0,
-        follow_redirects=True,
+        timeout=httpx.Timeout(connect=8.0, read=30.0, write=10.0, pool=5.0),
+        limits=httpx.Limits(
+            max_connections=8,
+            max_keepalive_connections=4,
+            keepalive_expiry=60,
+        ),
         headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8",
+            "User-Agent": "TerraOS/1.0 (+https://terra.os)",
+            "Accept": "*/*",
             "Accept-Language": "pl,en;q=0.5",
             "Referer": "https://www.gov.pl/web/bip/spis-podmiotow",
             "Origin": "https://www.gov.pl",
         },
+        follow_redirects=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# Retry helper
+# ---------------------------------------------------------------------------
+
+def _retry_get(
+    client: httpx.Client,
+    url: str,
+    max_attempts: int = 3,
+    base_delay: float = 1.5,
+    **kwargs,
+) -> httpx.Response | None:
+    """GET with simple retry / exponential back-off.
+
+    - 404 / 410 are returned as-is (no retry).
+    - ConnectError / TimeoutException → retry up to max_attempts.
+    - Any other HTTPStatusError on the final attempt is re-raised.
+    """
+    for attempt in range(1, max_attempts + 1):
+        try:
+            r = client.get(url, **kwargs)
+            r.raise_for_status()
+            return r
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (404, 410):
+                return e.response
+            if attempt == max_attempts:
+                raise
+            time.sleep(base_delay * attempt)
+        except (httpx.ConnectError, httpx.TimeoutException):
+            if attempt == max_attempts:
+                raise
+            time.sleep(base_delay * attempt)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -166,12 +247,17 @@ def _make_client() -> httpx.Client:
 def fetch_subjects(client: httpx.Client, parent_id: int) -> list[dict]:
     """Fetch all subjects (SUBJECT type) under a group, using browser endpoint."""
     try:
+        t0 = time.monotonic()
         resp = client.get(
             GOV_BIP_API,
             params={"archive": "false", "parentId": parent_id},
             timeout=45.0,  # Large groups (1664 gminy) need more time
         )
         resp.raise_for_status()
+        logger.debug(
+            "source=bip site_discover parentId=%d status=%d latency=%.0fms",
+            parent_id, resp.status_code, (time.monotonic() - t0) * 1000,
+        )
         data = resp.json()
         items = data.get("list", [])
         # Separate groups vs subjects
@@ -184,10 +270,10 @@ def fetch_subjects(client: httpx.Client, parent_id: int) -> list[dict]:
                     sub = fetch_subjects(client, g["id"])
                     subjects.extend(sub)
                 except Exception as e:
-                    logger.warning("Failed to fetch group %s: %s", g.get("name"), e)
+                    logger.warning("source=bip Failed to fetch group %s: %s", g.get("name"), e)
         return subjects
     except Exception as e:
-        logger.error("Failed to fetch subjects for parentId=%d: %s", parent_id, e)
+        logger.error("source=bip Failed to fetch subjects for parentId=%d: %s", parent_id, e)
         return []
 
 
@@ -198,9 +284,9 @@ def build_site_index(
     max_sites: int = 0,
 ) -> list[BIPSite]:
     """Build index of BIP sites from gov.pl API."""
-    logger.info("Fetching subjects from group %d...", group_id)
+    logger.info("source=bip site_discover Fetching subjects from group %d...", group_id)
     subjects = fetch_subjects(client, group_id)
-    logger.info("Found %d subjects", len(subjects))
+    logger.info("source=bip site_discover Found %d subjects", len(subjects))
     
     sites: list[BIPSite] = []
     for subj in subjects:
@@ -230,7 +316,7 @@ def build_site_index(
         if max_sites and len(sites) >= max_sites:
             break
     
-    logger.info("Index: %d sites (filter=%s)", len(sites), region_filter or "all")
+    logger.info("source=bip site_discover Index: %d sites (filter=%s)", len(sites), region_filter or "all")
     return sites
 
 
@@ -343,7 +429,8 @@ def fetch_bip_url(client: httpx.Client, site: BIPSite) -> str:
                         final = f"{p.scheme}://{p.netloc}{final}"
                     return final
                 return str(resp.url) if hasattr(resp, 'url') else url
-        except Exception:
+        except Exception as e:
+            logger.debug("source=bip fetch_bip_url candidate=%s: %s", url, e)
             continue
     
     return ""
@@ -367,9 +454,10 @@ def discover_rss(client: httpx.Client, bip_url: str) -> str:
                     # Verify it's actually XML with items
                     resp2 = client.get(feed_url)
                     if "<item" in resp2.text or "<entry" in resp2.text:
-                        logger.info("Found RSS feed: %s", feed_url)
+                        logger.info("source=bip rss_fetch Found RSS feed: %s", feed_url)
                         return feed_url
-        except Exception:
+        except Exception as e:
+            logger.debug("source=bip discover_rss pattern=%s: %s", feed_url, e)
             continue
     
     # Try to find RSS from homepage <link> tags
@@ -393,10 +481,10 @@ def discover_rss(client: httpx.Client, bip_url: str) -> str:
                         r = client.get(url)
                         if "<item" in r.text or "<entry" in r.text:
                             return url
-                    except Exception:
-                        pass
-    except Exception:
-        pass
+                    except Exception as e:
+                        logger.debug("source=bip discover_rss feed_link=%s: %s", url, e)
+    except Exception as e:
+        logger.debug("source=bip discover_rss homepage=%s: %s", base, e)
     
     return ""
 
@@ -409,9 +497,14 @@ def parse_rss(client: httpx.Client, rss_url: str) -> list[BIPTender]:
     """Parse RSS/Atom feed into tender items."""
     tenders: list[BIPTender] = []
     try:
-        resp = client.get(rss_url)
-        if resp.status_code != 200:
+        t0 = time.monotonic()
+        resp = _retry_get(client, rss_url)
+        if resp is None or resp.status_code != 200:
             return []
+        logger.debug(
+            "source=bip rss_fetch url=%s status=%d latency=%.0fms",
+            rss_url, resp.status_code, (time.monotonic() - t0) * 1000,
+        )
         
         root = ET.fromstring(resp.text)
         
@@ -468,7 +561,7 @@ def parse_rss(client: httpx.Client, rss_url: str) -> list[BIPTender]:
                     description=desc,
                 ))
     except Exception as e:
-        logger.warning("Failed to parse RSS %s: %s", rss_url, e)
+        logger.warning("source=bip rss_fetch Failed to parse RSS %s: %s", rss_url, e)
     
     return tenders
 
@@ -501,9 +594,14 @@ def _parse_date(s: str) -> Optional[date]:
 def find_procurement_page(client: httpx.Client, bip_url: str) -> str:
     """Find the procurement listing page by following navigation links."""
     try:
+        t0 = time.monotonic()
         resp = client.get(bip_url)
         if resp.status_code != 200:
             return ""
+        logger.debug(
+            "source=bip html_scrape find_procurement_page url=%s latency=%.0fms",
+            bip_url, (time.monotonic() - t0) * 1000,
+        )
         html = resp.text
         
         links = re.findall(r'href="([^"]{1,300})"[^>]*>\s*([^<]{2,100})', html)
@@ -514,7 +612,7 @@ def find_procurement_page(client: httpx.Client, bip_url: str) -> str:
         
         return ""
     except Exception as e:
-        logger.debug("Failed to find procurement page on %s: %s", bip_url, e)
+        logger.debug("source=bip html_scrape Failed to find procurement page on %s: %s", bip_url, e)
         return ""
 
 
@@ -562,7 +660,8 @@ def find_sub_procurement_pages(client: httpx.Client, page_url: str) -> list[str]
             sub_pages.append(url)
         
         return sub_pages
-    except Exception:
+    except Exception as e:
+        logger.debug("source=bip html_scrape find_sub_procurement_pages url=%s: %s", page_url, e)
         return []
 
 
@@ -570,9 +669,14 @@ def scrape_listing_page(client: httpx.Client, page_url: str) -> list[BIPTender]:
     """Scrape a procurement listing page for individual tenders."""
     tenders: list[BIPTender] = []
     try:
+        t0 = time.monotonic()
         resp = client.get(page_url)
         if resp.status_code != 200:
             return []
+        logger.debug(
+            "source=bip html_scrape scrape_listing_page url=%s latency=%.0fms",
+            page_url, (time.monotonic() - t0) * 1000,
+        )
         html = resp.text
         
         # Strategy: find <a> links that look like individual tenders
@@ -642,9 +746,9 @@ def scrape_listing_page(client: httpx.Client, page_url: str) -> list[BIPTender]:
             if date_match:
                 tender.published = _parse_date(date_match.group(1))
         
-        logger.info("Scraped %d tenders from %s", len(tenders), page_url)
+        logger.info("source=bip html_scrape Scraped %d tenders from %s", len(tenders), page_url)
     except Exception as e:
-        logger.warning("Failed to scrape listing %s: %s", page_url, e)
+        logger.warning("source=bip html_scrape Failed to scrape listing %s: %s", page_url, e)
     
     return tenders
 
@@ -665,6 +769,10 @@ def store_tenders(
     stored = 0
     with engine.begin() as conn:
         for t in tenders:
+            logger.debug(
+                "source=bip tender_upsert site=%s external_id=%s title=%.60s",
+                site.name, t.external_id, t.title,
+            )
             # Skip if already exists (by external_id)
             exists = conn.execute(
                 sql_text(
@@ -756,7 +864,7 @@ def _scrape_site(args: tuple) -> tuple[BIPSite, list[BIPTender]]:
                 sub_pages = find_sub_procurement_pages(client, site.procurement_page)
                 for sub_url in sub_pages[:5]:
                     tenders.extend(scrape_listing_page(client, sub_url))
-                    time.sleep(0.2)
+                    time.sleep(RATE_DELAY)
     
     # Filter by date + annotate
     tenders = [t for t in tenders if t.published is None or t.published >= cutoff]
@@ -779,7 +887,10 @@ def run_bip_scraper(
     workers: int = 10,
 ) -> dict:
     """Main entry point for BIP scraping pipeline."""
-    client = _make_client()
+    # Initialise per-run metrics
+    _metrics = ScraperMetrics("bip")
+
+    client = _get_client()
     stats = {"sites_checked": 0, "rss_found": 0, "html_scraped": 0, "tenders_found": 0, "tenders_stored": 0}
 
     # S17: Check site_index_built_at from tenant table (TTL = SITE_INDEX_TTL_DAYS days)
@@ -806,10 +917,13 @@ def run_bip_scraper(
     # Load or build site index
     sites = load_site_index()
     if not sites or force_rebuild:
-        logger.info("Building BIP site index from API (force_rebuild=%s)...", force_rebuild)
+        logger.info("source=bip site_discover Building BIP site index from API (force_rebuild=%s)...", force_rebuild)
+        t0 = time.monotonic()
         sites = build_site_index(client, GROUP_GMINY, region_filter=region, max_sites=max_sites)
         powiaty = build_site_index(client, GROUP_POWIATY, region_filter=region, max_sites=max_sites)
         sites.extend(powiaty)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        _metrics.record_request(ok=True, latency_ms=elapsed_ms)
         # S17: Update site_index_built_at in tenant table after rebuild
         if engine and tenant_id:
             try:
@@ -828,12 +942,12 @@ def run_bip_scraper(
     if max_sites:
         sites = sites[:max_sites]
     
-    logger.info("Processing %d BIP sites (workers=%d)...", len(sites), workers)
+    logger.info("source=bip Processing %d BIP sites (workers=%d)...", len(sites), workers)
     
     # Phase 1: parallel discovery (BIP URL + procurement page)
     to_discover = [s for s in sites if not s.bip_url]
     if to_discover:
-        logger.info("Discovering BIP URLs for %d sites...", len(to_discover))
+        logger.info("source=bip site_discover Discovering BIP URLs for %d sites...", len(to_discover))
         with ThreadPoolExecutor(max_workers=workers) as pool:
             discovered = list(pool.map(_discover_site, to_discover))
         # Merge back
@@ -841,11 +955,12 @@ def run_bip_scraper(
         sites = [discovered_map.get(s.subject_id, s) for s in sites]
     
     found_bip = sum(1 for s in sites if s.bip_url)
-    logger.info("BIP URLs resolved: %d/%d", found_bip, len(sites))
+    logger.info("source=bip site_discover BIP URLs resolved: %d/%d", found_bip, len(sites))
     
     if discover_only:
         save_site_index(sites)
         stats["sites_checked"] = len(sites)
+        logger.info("source=bip metrics %s", _metrics.to_dict())
         return stats
     
     # Phase 2: parallel scraping
@@ -871,22 +986,34 @@ def run_bip_scraper(
                 sites[i] = site_result
                 break
     
+    # Record per-site scrape metrics
+    _metrics.record_items(fetched=stats["tenders_found"])
+
     # Save updated index
     save_site_index(sites)
     
     
     # Store to DB
     if engine and tenant_id and all_tenders and not discover_only:
-        stats["tenders_stored"] = store_tenders(engine, all_tenders, tenant_id, sites[0] if sites else BIPSite(0, "", ""))
+        t0 = time.monotonic()
+        try:
+            stats["tenders_stored"] = store_tenders(engine, all_tenders, tenant_id, sites[0] if sites else BIPSite(0, "", ""))
+            _metrics.record_request(ok=True, latency_ms=(time.monotonic() - t0) * 1000)
+            _metrics.record_items(saved=stats["tenders_stored"])
+        except Exception as e:
+            _metrics.record_request(ok=False, latency_ms=(time.monotonic() - t0) * 1000)
+            logger.error("source=bip tender_upsert store_tenders failed: %s", e)
+            raise
     
     logger.info(
-        "BIP scraper done: %d sites, %d RSS feeds, %d HTML pages, %d tenders found, %d stored",
+        "source=bip BIP scraper done: %d sites, %d RSS feeds, %d HTML pages, %d tenders found, %d stored",
         stats["sites_checked"],
         stats["rss_found"],
         stats["html_scraped"],
         stats["tenders_found"],
         stats["tenders_stored"],
     )
+    logger.info("source=bip metrics %s", _metrics.to_dict())
     return stats
 
 
@@ -1013,10 +1140,15 @@ def _scrape_seed_site(
     """Scrape a known seed BIP site for tenders newer than cutoff date."""
     tenders: list[BIPTender] = []
     try:
-        resp = client.get(listing_url, timeout=12.0)
-        if resp.status_code != 200:
-            logger.debug("Seed %s HTTP %d", name, resp.status_code)
+        t0 = time.monotonic()
+        resp = _retry_get(client, listing_url, timeout=httpx.Timeout(connect=8.0, read=12.0, write=10.0, pool=5.0))
+        if resp is None or resp.status_code != 200:
+            logger.debug("source=bip html_scrape Seed %s HTTP %s", name, resp.status_code if resp else "None")
             return []
+        logger.debug(
+            "source=bip html_scrape seed=%s latency=%.0fms",
+            name, (time.monotonic() - t0) * 1000,
+        )
         html = resp.text
 
         # Find individual tender links
@@ -1082,9 +1214,9 @@ def _scrape_seed_site(
                 region=region,
             ))
 
-        logger.info("Seed %s: %d tenders from %s", name, len(tenders), listing_url)
+        logger.info("source=bip html_scrape Seed %s: %d tenders from %s", name, len(tenders), listing_url)
     except Exception as e:
-        logger.warning("Seed site %s failed: %s", name, e)
+        logger.warning("source=bip html_scrape Seed site %s failed: %s", name, e)
     return tenders
 
 
@@ -1136,7 +1268,7 @@ def fetch_bip_announcements(
     cutoff = date.today() - timedelta(days=days_back)
     all_tenders: list[BIPTender] = []
 
-    client = _make_client()
+    client = _get_client()
 
     try:
         # Strategy 1: Seed sites (fast, reliable)
@@ -1150,7 +1282,7 @@ def fetch_bip_announcements(
                     if s[3].lower() in (region.lower(), region_display.lower())
                 ]
 
-            logger.info("Scraping %d BIP seed sites...", len(seed_sites))
+            logger.info("source=bip html_scrape Scraping %d BIP seed sites...", len(seed_sites))
             if workers > 1:
                 from concurrent.futures import ThreadPoolExecutor as _TPE
                 def _do_seed(args):
@@ -1168,7 +1300,7 @@ def fetch_bip_announcements(
 
         # Strategy 2: Gov.pl API discovery (slower)
         if include_gov_api and max_gov_sites > 0:
-            logger.info("Discovering BIP sites via gov.pl API (max=%d)...", max_gov_sites)
+            logger.info("source=bip site_discover Discovering BIP sites via gov.pl API (max=%d)...", max_gov_sites)
             sites = build_site_index(
                 client,
                 GROUP_GMINY,
@@ -1186,10 +1318,11 @@ def fetch_bip_announcements(
                 else:
                     for site_result, batch in map(_scrape_site, scrape_args):
                         all_tenders.extend(batch)
-                logger.info("Gov.pl API discovery: %d sites, %d tenders", len(sites), len(all_tenders))
+                logger.info("source=bip site_discover Gov.pl API discovery: %d sites, %d tenders", len(sites), len(all_tenders))
 
     finally:
-        client.close()
+        # Module-level client is intentionally kept alive; nothing to close here.
+        pass
 
     # Deduplicate by URL
     seen_urls: set[str] = set()
@@ -1200,7 +1333,7 @@ def fetch_bip_announcements(
             deduped.append(t)
 
     logger.info(
-        "fetch_bip_announcements: %d raw → %d unique tenders (cutoff=%s)",
+        "source=bip fetch_bip_announcements: %d raw → %d unique tenders (cutoff=%s)",
         len(all_tenders), len(deduped), cutoff,
     )
     return deduped
