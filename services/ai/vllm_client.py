@@ -26,46 +26,58 @@ class VLLMClient:
         self.base_url = VLLM_BASE_URL
         self.model = VLLM_MODEL
         self.api_key = VLLM_API_KEY
+        self._http_client = httpx.Client(
+            timeout=httpx.Timeout(connect=5.0, read=90.0, write=10.0, pool=5.0),
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+        )
 
-    def generate(self, prompt: str, system: str = TERRA_SYSTEM_PROMPT, max_tokens: int = 1024) -> str:
+    def generate(
+        self,
+        prompt: str,
+        system: str = TERRA_SYSTEM_PROMPT,
+        max_tokens: int = 1024,
+        *,
+        json_mode: bool = False,
+    ) -> str:
         """Generate a single response."""
-        with httpx.Client(timeout=60.0) as client:
-            resp = client.post(
-                f"{self.base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "max_tokens": max_tokens,
-                    "temperature": 0.7,
-                },
-            )
-            resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+        body: dict = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": max_tokens,
+            "temperature": 0.3 if json_mode else 0.7,
+        }
+        if json_mode:
+            body["response_format"] = {"type": "json_object"}
+        resp = self._http_client.post(
+            f"{self.base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json=body,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
 
     def generate_stream(self, prompt: str, system: str = TERRA_SYSTEM_PROMPT, max_tokens: int = 1024) -> Generator[str, None, None]:
         """Stream tokens via SSE."""
         import json as _json
 
-        with httpx.Client(timeout=120.0) as client:
-            with client.stream(
-                "POST",
-                f"{self.base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "max_tokens": max_tokens,
-                    "temperature": 0.7,
-                    "stream": True,
-                },
-            ) as resp:
+        with self._http_client.stream(
+            "POST",
+            f"{self.base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": max_tokens,
+                "temperature": 0.7,
+                "stream": True,
+            },
+        ) as resp:
                 for line in resp.iter_lines():
                     if not line.startswith("data: "):
                         continue
