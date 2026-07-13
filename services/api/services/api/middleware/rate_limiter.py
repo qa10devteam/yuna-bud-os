@@ -15,11 +15,22 @@ from fastapi.responses import JSONResponse
 _buckets: dict = defaultdict(lambda: deque(maxlen=120))
 
 
+_WHITELIST_IPS = {"127.0.0.1", "::1", "localhost"}
+
+
 async def rate_limit_middleware(request: Request, call_next):
-    """Sliding-window 100 req/min per org_id (or IP for anonymous)."""
+    """Sliding-window 100 req/min per org_id (or IP for anonymous).
+    Localhost and internal IPs are whitelisted.
+    """
+    client_ip = request.client.host if request.client else None
+
+    # Whitelist localhost / internal traffic
+    if client_ip in _WHITELIST_IPS:
+        return await call_next(request)
+
     uid = (
         getattr(getattr(request.state, "user", None), "org_id", None)
-        or (request.client.host if request.client else None)
+        or client_ip
         or "anon"
     )
     now = time.time()
