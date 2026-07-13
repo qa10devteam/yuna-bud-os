@@ -180,6 +180,11 @@ try:
 except Exception as e:
     logging.getLogger(__name__).warning("multimodal router: %s", e)
 try:
+    from .routers import scoring_v2
+    _optional_routers.append(('scoring_v2', scoring_v2))
+except Exception as e:
+    logging.getLogger(__name__).warning("scoring_v2 router: %s", e)
+try:
     from .routers import chat_v2
     _optional_routers.append(('chat_v2', chat_v2))
 except Exception as e:
@@ -561,6 +566,8 @@ if 'proactive' in _opt_map:
     app.include_router(_opt_map['proactive'].router)
 if 'multimodal' in _opt_map:
     app.include_router(_opt_map['multimodal'].router)
+if 'scoring_v2' in _opt_map:
+    app.include_router(_opt_map['scoring_v2'].router)
 
 # ── v1 compat aliases — frontend używa /api/v1/tenders ──────────────────────
 from fastapi import Request as _Request
