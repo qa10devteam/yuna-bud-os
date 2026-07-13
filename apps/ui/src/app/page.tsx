@@ -28,6 +28,7 @@ import { ResourcesPage } from '@/components/pages/ResourcesPage';
 import { ContractsPage } from '@/components/pages/ContractsPage';
 import { TeamPage } from '@/components/pages/TeamPage';
 import { ReportsPage } from '@/components/pages/ReportsPage';
+import { ICBPage } from '@/components/pages/ICBPage';
 import { Sidebar } from '@/components/Sidebar';
 import { MarketBar } from '@/components/widgets/MarketBar';
 import { ChatWidget } from '@/components/ChatWidget';
@@ -65,6 +66,7 @@ function ActivePage() {
     case 'contracts':     return <ContractsPage />;
     case 'team':          return <TeamPage />;
     case 'reports':       return <ReportsPage />;
+    case 'icb':           return <ICBPage />;
     default:              return <DashboardPage />;
   }
 }

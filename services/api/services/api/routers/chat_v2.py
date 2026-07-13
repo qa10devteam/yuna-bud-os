@@ -120,6 +120,28 @@ def _tool_material_risk(engine) -> str:
         return f"Błąd analizy ryzyka: {e}"
 
 
+def _tool_icb_cena(query: str) -> str:
+    """ICB price lookup tool: 'icb_cena' — Sprawdź aktualną cenę materiału lub roboty budowlanej z InterCenBud."""
+    try:
+        from ..intelligence.icb_service import search_icb, get_latest_quarter
+        rok, nr = get_latest_quarter()
+        results = search_icb(query, kwartalrok=rok, kwartalnr=nr, limit=3)
+        if not results:
+            return f"Nie znaleziono cen ICB dla: {query}"
+        lines = [f"Ceny ICB ({rok}-Q{nr}) dla '{query}':"]
+        for r in results:
+            nazwa = r.get('nazwa') or r.get('name', '?')
+            symbol = r.get('symbol', '')
+            cena = r.get('cena_netto') or r.get('price', 0)
+            jednostka = r.get('jednostka') or r.get('unit', 'szt')
+            kategoria = r.get('category', '')
+            lines.append(f"- {nazwa} [{symbol}]: {float(cena):.2f} PLN/{jednostka} (kat: {kategoria})")
+        return "\n".join(lines)
+    except Exception as e:
+        logger.warning("icb_cena tool failed: %s", e)
+        return f"Błąd wyszukiwania ICB: {e}"
+
+
 def _build_context(engine, session_data: dict) -> str:
     """Build context string from session metadata."""
     parts = []
@@ -190,7 +212,11 @@ def send_message(session_id: str, body: SendMessageRequest) -> StreamingResponse
         q = body.message
         for w in ["jaka jest cena", "ile kosztuje", "cennik", "cena", "materiał"]:
             q = q.lower().replace(w, "").strip()
-        tool_result = _tool_icb_prices(engine, q if len(q) > 2 else body.message)
+        search_q = q if len(q) > 2 else body.message
+        # Use icb_cena tool (search_icb-based) with fallback to direct DB query
+        tool_result = _tool_icb_cena(search_q)
+        if tool_result.startswith("Błąd") or "Nie znaleziono" in tool_result:
+            tool_result = _tool_icb_prices(engine, search_q)
     elif any(kw in msg_lower for kw in ["ryzyko", "zmienność", "volatile", "drożeje", "wzrost cen"]):
         tool_result = _tool_material_risk(engine)
 

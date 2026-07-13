@@ -13,7 +13,7 @@ import type {
 
 // ── Module names used in navigation ────────────────────────────────────────
 
-export type ModuleName = 'dashboard' | 'zwiad' | 'kosztorys' | 'silnik' | 'decyzja' | 'logistyka' | 'oferta' | 'rfq' | 'pipeline' | 'system' | 'pogoda' | 'analytics' | 'market-intel' | 'competitors' | 'bookmarks' | 'buyer-crm' | 'notifications' | 'export' | 'settings' | 'automations' | 'resources' | 'contracts' | 'team' | 'reports';
+export type ModuleName = 'dashboard' | 'zwiad' | 'kosztorys' | 'silnik' | 'decyzja' | 'logistyka' | 'oferta' | 'rfq' | 'pipeline' | 'system' | 'pogoda' | 'analytics' | 'market-intel' | 'competitors' | 'bookmarks' | 'buyer-crm' | 'notifications' | 'export' | 'settings' | 'automations' | 'resources' | 'contracts' | 'team' | 'reports' | 'icb';
 
 // ── Auth types ──────────────────────────────────────────────────────────────
 

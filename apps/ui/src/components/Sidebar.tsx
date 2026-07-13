@@ -31,6 +31,7 @@ import {
   Hammer,
   Wrench,
   Zap,
+  PackageSearch,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -70,6 +71,7 @@ const moduleGroups: ModuleGroup[] = [
     items: [
       { id: 'dashboard',     icon: LayoutDashboard, name: 'Dashboard',     desc: 'Panel główny' },
       { id: 'analytics',     icon: BarChart3,       name: 'Analityka',     desc: 'AHP, Friedman, Ryzyko' },
+      { id: 'icb',           icon: PackageSearch,   name: 'InterCenBud',   desc: 'Ceny i prognozy materiałów' },
       { id: 'market-intel',  icon: TrendingUp,      name: 'Rynek',         desc: 'Trendy, CPV, benchmarki' },
       { id: 'competitors',   icon: Users,           name: 'Konkurenci',    desc: 'Obserwowani wykonawcy' },
       { id: 'bookmarks',     icon: BookmarkIcon,    name: 'Zakładki',      desc: 'Kanban + alerty' },

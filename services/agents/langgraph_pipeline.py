@@ -40,6 +40,7 @@ class AgentState(TypedDict, total=False):
     decision_brief: str
     go_decision: str        # GO / NO-GO / CONSIDER
     icb_pricing: dict       # InterCenBud pricing data
+    icb_estimate: dict      # ICB quick estimate from node_icb_estimate
 
 
 # ---------------------------------------------------------------------------
@@ -321,6 +322,48 @@ def node_score_tender(state: AgentState) -> AgentState:
         logger.warning("score_tender: UPDATE tender failed: %s", exc)
 
     return {**state, "steps": steps, "score": total_score, "score_breakdown": breakdown}
+
+
+# ---------------------------------------------------------------------------
+# NODE 3b: icb_estimate — quick ICB cost estimate from tender title
+# ---------------------------------------------------------------------------
+
+def node_icb_estimate(state: AgentState) -> AgentState:
+    """Estymuj koszt realizacji z ICB + dodaj do kontekstu."""
+    steps = list(state.get('steps', []))
+    steps.append('icb_estimate')
+    tender = state.get('tender_data', {})
+
+    try:
+        from services.api.services.api.intelligence.icb_service import (
+            search_icb, get_latest_quarter, get_narzuty
+        )
+        rok, nr = get_latest_quarter()
+        title = tender.get('title', '') or ''
+
+        # Search ICB for relevant materials based on tender title
+        matches = search_icb(title[:80], kwartalrok=rok, kwartalnr=nr, limit=5) if title else []
+
+        # Get narzuty for markup estimate
+        narzuty = get_narzuty(rok, nr)
+
+        icb_context = {
+            'quarter': f'{rok}-Q{nr}',
+            'relevant_materials': matches[:5],
+            'narzuty_sample': narzuty[:3] if narzuty else [],
+        }
+
+        # Store in state - merge with existing analysis
+        analysis = state.get('analysis', {})
+        analysis['icb_estimate'] = icb_context
+        state = {**state, 'analysis': analysis, 'steps': steps, 'icb_estimate': icb_context}
+        logger.info(f'ICB estimate: {len(matches)} materials found for tender {tender.get("id")}')
+    except Exception as e:
+        logger.warning(f'ICB estimate failed: {e}')
+        steps.append(f'icb_estimate_error:{e}')
+        state = {**state, 'steps': steps}
+
+    return state
 
 
 # ---------------------------------------------------------------------------
@@ -701,10 +744,12 @@ def _build_graph_v1() -> Any:
     g.add_node("fetch_tender", node_fetch_tender)
     g.add_node("analyze_swz", node_analyze_swz)
     g.add_node("score_tender", node_score_tender)
+    g.add_node("icb_estimate", node_icb_estimate)
     g.set_entry_point("fetch_tender")
     g.add_edge("fetch_tender", "analyze_swz")
     g.add_edge("analyze_swz", "score_tender")
-    g.add_edge("score_tender", END)
+    g.add_edge("score_tender", "icb_estimate")
+    g.add_edge("icb_estimate", END)
     return g.compile()
 
 
@@ -713,6 +758,7 @@ def _build_graph_v2() -> Any:
     g.add_node("fetch_tender",    node_fetch_tender)
     g.add_node("analyze_swz",     node_analyze_swz)
     g.add_node("score_tender",    node_score_tender)
+    g.add_node("icb_estimate",    node_icb_estimate)
     g.add_node("ahp_eval",        node_ahp_eval)
     g.add_node("competitor_check", node_competitor_check)
     g.add_node("bid_strategy",    node_bid_strategy)
@@ -721,7 +767,8 @@ def _build_graph_v2() -> Any:
     g.set_entry_point("fetch_tender")
     g.add_edge("fetch_tender",    "analyze_swz")
     g.add_edge("analyze_swz",     "score_tender")
-    g.add_edge("score_tender",    "ahp_eval")
+    g.add_edge("score_tender",    "icb_estimate")
+    g.add_edge("icb_estimate",    "ahp_eval")
     g.add_edge("ahp_eval",        "competitor_check")
     g.add_edge("competitor_check","bid_strategy")
     g.add_edge("bid_strategy",    "icb_pricing")
