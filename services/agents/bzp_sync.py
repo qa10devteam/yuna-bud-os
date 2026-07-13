@@ -32,7 +32,12 @@ async def sync_bzp_batch(max_pages: int = 3) -> dict[str, Any]:
     stats = {"fetched": 0, "inserted": 0, "skipped": 0, "errors": 0}
 
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(connect=8.0, read=30.0, write=10.0, pool=5.0),
+            headers={"Accept": "application/json"},
+            follow_redirects=True,
+            limits=httpx.Limits(max_connections=6, max_keepalive_connections=3),
+        ) as client:
             for page in range(max_pages):
                 try:
                     resp = await client.get(
@@ -44,7 +49,6 @@ async def sync_bzp_batch(max_pages: int = 3) -> dict[str, Any]:
                             "sortOrder": "DESC",
                             "noticeType": "ZP400PodstawaBzp",
                         },
-                        headers={"Accept": "application/json"},
                     )
                     if resp.status_code != 200:
                         break
@@ -64,7 +68,7 @@ async def sync_bzp_batch(max_pages: int = 3) -> dict[str, Any]:
                             stats["skipped"] += 1
 
                 except Exception as e:
-                    logger.warning("BZP page %d error: %s", page, e)
+                    logger.warning("source=bzp_sync page=%d error=%s", page, e)
                     stats["errors"] += 1
                     break
 
