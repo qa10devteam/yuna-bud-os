@@ -158,7 +158,12 @@ class BZPDocumentScraper:
     def _get_client(self) -> httpx.Client:
         if self._client is None or self._client.is_closed:
             self._client = httpx.Client(
-                timeout=TIMEOUT,
+                timeout=httpx.Timeout(connect=8.0, read=45.0, write=10.0, pool=5.0),
+                limits=httpx.Limits(
+                    max_connections=6,
+                    max_keepalive_connections=3,
+                    keepalive_expiry=60,
+                ),
                 follow_redirects=True,
                 headers={
                     "User-Agent": _UA,
@@ -223,7 +228,7 @@ class BZPDocumentScraper:
                 doc_type="SWZ",
             ))
 
-        logger.info("Znaleziono %d dokumentów dla %s (bzp=%s)", len(docs), tender_id, bzp_number)
+        logger.info("source=bzp_docs tender_id=%s znaleziono %d dokumentów (bzp=%s)", tender_id, len(docs), bzp_number)
         return docs
 
     def download_document(self, tender_id: str, doc: TenderDocument) -> Path | None:
@@ -303,7 +308,7 @@ class BZPDocumentScraper:
             self._store_results(result)
 
         logger.info(
-            "Fetch zakończony dla %s: docs=%d downloaded=%d errors=%d",
+            "source=bzp_docs tender_id=%s fetch zakończony: docs=%d downloaded=%d errors=%d",
             tender_id, len(result.documents), result.downloaded, len(result.errors),
         )
         return result
@@ -509,7 +514,10 @@ class BZPDocumentScraper:
 
                     cl = resp.headers.get("content-length")
                     if cl and int(cl) > MAX_FILE_SIZE:
-                        logger.warning("Plik za duży %s: %s bajtów", doc.filename, cl)
+                        logger.warning(
+                            "source=bzp_docs tender_id=%s plik za duży %s: %s bajtów",
+                            doc.object_id, doc.filename, cl,
+                        )
                         return None
 
                     total = 0
@@ -518,7 +526,10 @@ class BZPDocumentScraper:
                         for chunk in resp.iter_bytes(65536):
                             total += len(chunk)
                             if total > MAX_FILE_SIZE:
-                                logger.warning("Plik przekroczył max rozmiar: %s", doc.filename)
+                                logger.warning(
+                                    "source=bzp_docs tender_id=%s plik przekroczył max rozmiar: %s",
+                                    doc.object_id, doc.filename,
+                                )
                                 f.close()
                                 dest.unlink(missing_ok=True)
                                 return None
@@ -528,32 +539,50 @@ class BZPDocumentScraper:
 
                 # Walidacja: sprawdź magic bytes PDF
                 if doc.doc_type == "NOTICE" and not _is_pdf(bytes(header_bytes)):
-                    logger.warning("Plik %s nie jest PDF (magic bytes: %r)", doc.filename, bytes(header_bytes)[:4])
+                    logger.warning(
+                        "source=bzp_docs tender_id=%s plik %s nie jest PDF (magic bytes: %r)",
+                        doc.object_id, doc.filename, bytes(header_bytes)[:4],
+                    )
                     dest.unlink(missing_ok=True)
                     return None
 
                 doc.file_size  = total
                 doc.local_path = str(dest)
                 doc.content_type = resp.headers.get("content-type", "")
-                logger.info("Pobrano %s (%d KB) → %s", doc.filename, total // 1024, dest)
+                logger.info(
+                    "source=bzp_docs tender_id=%s pobrano %s (%d KB) → %s",
+                    doc.object_id, doc.filename, total // 1024, dest,
+                )
                 return dest
 
             except httpx.HTTPStatusError as exc:
                 last_error = exc
                 if exc.response.status_code in (404, 410):
-                    logger.warning("HTTP %d dla %s — brak pliku", exc.response.status_code, doc.url)
+                    logger.warning(
+                        "source=bzp_docs tender_id=%s HTTP %d dla %s — brak pliku",
+                        doc.object_id, exc.response.status_code, doc.url,
+                    )
                     break  # Nie próbujemy ponownie dla 404/410
-                logger.warning("Attempt %d/%d: HTTP %d dla %s", attempt, RETRY_ATTEMPTS, exc.response.status_code, doc.filename)
+                logger.warning(
+                    "source=bzp_docs tender_id=%s attempt=%d/%d HTTP %d dla %s",
+                    doc.object_id, attempt, RETRY_ATTEMPTS, exc.response.status_code, doc.filename,
+                )
             except httpx.HTTPError as exc:
                 last_error = exc
-                logger.warning("Attempt %d/%d: błąd sieci dla %s: %s", attempt, RETRY_ATTEMPTS, doc.filename, exc)
+                logger.warning(
+                    "source=bzp_docs tender_id=%s attempt=%d/%d błąd sieci dla %s: %s",
+                    doc.object_id, attempt, RETRY_ATTEMPTS, doc.filename, exc,
+                )
 
             dest.unlink(missing_ok=True)
             if attempt < RETRY_ATTEMPTS:
                 time.sleep(RETRY_DELAY * attempt)
 
         if last_error:
-            logger.error("Nieudane pobranie %s po %d próbach: %s", doc.filename, RETRY_ATTEMPTS, last_error)
+            logger.error(
+                "source=bzp_docs tender_id=%s nieudane pobranie %s po %d próbach: %s",
+                doc.object_id, doc.filename, RETRY_ATTEMPTS, last_error,
+            )
         return None
 
     def _doc_dir(self, tender_id: str) -> Path:

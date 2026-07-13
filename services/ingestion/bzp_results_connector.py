@@ -11,14 +11,16 @@ CLI:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
-import time
 from datetime import datetime, timedelta, date
 from typing import Any
 
 import httpx
 from sqlalchemy import text
 from terra_db.session import get_engine
+
+from .scraper_base import AsyncHTTPClient, RetryPolicy, ScraperMetrics, parse_pln
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +43,15 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
 }
 
+# ---------------------------------------------------------------------------
+# _parse_value: kept as thin wrapper around parse_pln for backward compat
+# (parse_pln handles Polish numeric strings; _parse_value handled plain floats
+# with "PLN" suffix — behaviour is equivalent)
+# ---------------------------------------------------------------------------
 
 def _parse_value(raw: Any) -> float | None:
-    """Extract PLN value from BZP result field."""
-    if raw is None:
-        return None
-    try:
-        s = str(raw).replace(" ", "").replace(",", ".").replace("PLN", "").strip()
-        return float(s)
-    except (ValueError, TypeError):
-        return None
+    """Extract PLN value from BZP result field (delegates to parse_pln)."""
+    return parse_pln(raw)
 
 
 def _parse_date(raw: Any) -> date | None:
@@ -64,18 +65,34 @@ def _parse_date(raw: Any) -> date | None:
     return None
 
 
-def fetch_result_notices(
+# ---------------------------------------------------------------------------
+# Core async fetch
+# ---------------------------------------------------------------------------
+
+async def fetch_result_notices(
     days_back: int = 30,
     page_size: int = 500,
 ) -> list[dict]:
-    """Pobiera ResultNotice z BZP za ostatnie N dni."""
+    """Pobiera ResultNotice z BZP za ostatnie N dni (async)."""
     date_from = (datetime.utcnow() - timedelta(days=days_back)).strftime("%Y-%m-%d")
     date_to = datetime.utcnow().strftime("%Y-%m-%d")
+
+    logger.info(
+        "source=bzp_results fetch_result_notices days_back=%d date_from=%s date_to=%s",
+        days_back, date_from, date_to,
+    )
 
     all_items: list[dict] = []
     offset = 0
 
-    with httpx.Client(headers=HEADERS, timeout=30.0) as client:
+    async with AsyncHTTPClient(
+        source="bzp_results_connector",
+        retry=RetryPolicy(max_attempts=4, base_delay=2.0, max_delay=60.0),
+        rate_per_second=2.0,
+        burst=5,
+        timeout=httpx.Timeout(connect=8.0, read=45.0, write=10.0, pool=5.0),
+        headers=HEADERS,
+    ) as client:
         while True:
             payload = {
                 "searchPhrase": "",
@@ -88,11 +105,11 @@ def fetch_result_notices(
                 "publicationDateTo": date_to,
             }
             try:
-                resp = client.post(BZP_SEARCH_URL, json=payload)
+                resp = await client.post(BZP_SEARCH_URL, json=payload)
                 resp.raise_for_status()
                 data = resp.json()
             except Exception as e:
-                logger.error(f"BZP search error at offset={offset}: {e}")
+                logger.error("source=bzp_results BZP search error at offset=%d: %s", offset, e)
                 break
 
             items = data.get("notices") or data.get("items") or data.get("results") or []
@@ -101,20 +118,44 @@ def fetch_result_notices(
                 if isinstance(data, list):
                     items = data
                 else:
-                    logger.debug(f"No items at offset={offset}, keys={list(data.keys())[:5]}")
+                    logger.debug(
+                        "source=bzp_results no items at offset=%d keys=%s",
+                        offset, list(data.keys())[:5],
+                    )
                     break
 
             all_items.extend(items)
-            logger.info(f"  Fetched {len(items)} ResultNotice (offset={offset}, total={len(all_items)})")
+            logger.info(
+                "source=bzp_results fetched=%d ResultNotice offset=%d total=%d",
+                len(items), offset, len(all_items),
+            )
 
             total = data.get("totalCount") or data.get("total") or 0
             if len(all_items) >= total or len(items) < page_size:
                 break
             offset += page_size
-            time.sleep(0.5)
+
+    # Emit ScraperMetrics summary
+    m = client.metrics
+    logger.info(
+        "source=bzp_results fetched=%d requests=%d errors=%d p50=%.0fms",
+        m.items_fetched, m.requests_total, m.requests_error, m.p50_ms,
+    )
 
     return all_items
 
+
+def fetch_result_notices_sync(
+    days_back: int = 30,
+    page_size: int = 500,
+) -> list[dict]:
+    """Sync wrapper around fetch_result_notices for backward compatibility."""
+    return asyncio.run(fetch_result_notices(days_back=days_back, page_size=page_size))
+
+
+# ---------------------------------------------------------------------------
+# Parsing
+# ---------------------------------------------------------------------------
 
 def parse_result_notice(raw: dict) -> dict | None:
     """Parsuje jeden ResultNotice do słownika do DB."""
@@ -174,6 +215,10 @@ def parse_result_notice(raw: dict) -> dict | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# DB upsert (public API — unchanged)
+# ---------------------------------------------------------------------------
+
 def upsert_results(records: list[dict], dry_run: bool = False) -> int:
     """Wstawia/aktualizuje rekordy w bzp_results. Zwraca liczbę zapisanych."""
     if not records:
@@ -213,15 +258,19 @@ def upsert_results(records: list[dict], dry_run: bool = False) -> int:
                 conn.execute(upsert_sql, rec_copy)
                 saved += 1
             except Exception as e:
-                logger.warning(f"Skip {rec.get('notice_number')}: {e}")
+                logger.warning("source=bzp_results skip %s: %s", rec.get("notice_number"), e)
 
     return saved
 
 
+# ---------------------------------------------------------------------------
+# run_bzp_results (public API — unchanged, stays sync)
+# ---------------------------------------------------------------------------
+
 def run_bzp_results(days_back: int = 30, dry_run: bool = False) -> dict:
-    logger.info(f"Fetching BZP ResultNotice (last {days_back} days)...")
-    raw_items = fetch_result_notices(days_back=days_back)
-    logger.info(f"Fetched {len(raw_items)} raw ResultNotice")
+    logger.info("source=bzp_results fetching BZP ResultNotice last=%d days", days_back)
+    raw_items = fetch_result_notices_sync(days_back=days_back)
+    logger.info("source=bzp_results fetched=%d raw ResultNotice", len(raw_items))
 
     parsed = []
     skipped = 0
@@ -232,9 +281,12 @@ def run_bzp_results(days_back: int = 30, dry_run: bool = False) -> dict:
         else:
             skipped += 1
 
-    logger.info(f"Parsed: {len(parsed)} valid, {skipped} skipped")
+    logger.info("source=bzp_results parsed=%d valid skipped=%d", len(parsed), skipped)
     saved = upsert_results(parsed, dry_run=dry_run)
-    logger.info(f"Saved: {saved} to bzp_results {'(dry-run)' if dry_run else ''}")
+    logger.info(
+        "source=bzp_results saved=%d to bzp_results%s",
+        saved, " (dry-run)" if dry_run else "",
+    )
     return {"fetched": len(raw_items), "parsed": len(parsed), "saved": saved, "skipped": skipped}
 
 
