@@ -10,11 +10,27 @@ On next estimate, compute_variant_b() will pick up the new coeff.
 from __future__ import annotations
 
 import logging
+import threading
 from decimal import Decimal
 
 import sqlalchemy as sa
 
 logger = logging.getLogger(__name__)
+
+
+def _ml_retrain_async(engine: object, tenant_id: str) -> None:
+    """Launch MLScorer.retrain_from_db() in a daemon background thread."""
+    def _run() -> None:
+        try:
+            from services.ingestion.scorer_ml import get_ml_scorer
+            logger.info("source=learning_loop ml_retrain triggered tenant=%s", tenant_id)
+            result = get_ml_scorer().retrain_from_db(engine)
+            logger.info("source=learning_loop ml_retrain done: %s", result)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("source=learning_loop ml_retrain error: %s", exc)
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
 
 _COEFF_MIN = Decimal("0.50")
 _COEFF_MAX = Decimal("2.00")
@@ -98,6 +114,10 @@ def close_contract(
         "calibration updated: contract=%s coeff %s→%s (Δ%.1f%%)",
         contract_id, prev_coeff, new_coeff, delta_pct,
     )
+
+    # Trigger ML retrain in background after calibration update
+    _ml_retrain_async(engine, tenant_id)
+
     return {
         "contract_id": contract_id,
         "previous_coeff": str(prev_coeff),

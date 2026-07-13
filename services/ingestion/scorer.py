@@ -450,6 +450,31 @@ def rescore_tenant(tenant_id: str, batch_size: int = 500) -> dict:
     }
 
 
+def trigger_ml_retrain_if_due(engine: object, tenant_id: str) -> dict:
+    """Check if MLScorer has accumulated enough new results and retrain if so.
+
+    Threshold: _records_since_train >= 7 (mirrors MLScorer's auto-retrain cadence).
+    Returns a result dict from retrain_from_db, or a status dict if skipped/unavailable.
+    """
+    try:
+        from services.ingestion.scorer_ml import get_ml_scorer
+        ml = get_ml_scorer()
+        if ml._records_since_train >= 7:
+            logger.info(
+                "source=scorer trigger_ml_retrain_if_due: %d records, retraining tenant=%s",
+                ml._records_since_train, tenant_id,
+            )
+            return ml.retrain_from_db(engine)
+        logger.debug(
+            "source=scorer trigger_ml_retrain_if_due: only %d records, skipping",
+            ml._records_since_train,
+        )
+        return {"status": "skipped", "reason": "below_threshold", "records_since_train": ml._records_since_train}
+    except Exception as exc:
+        logger.warning("source=scorer trigger_ml_retrain_if_due failed: %s", exc)
+        return {"status": "error", "error": str(exc)}
+
+
 if __name__ == "__main__":
     import argparse
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

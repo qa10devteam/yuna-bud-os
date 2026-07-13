@@ -50,7 +50,7 @@ def embed_tenders_batch(engine, tenant_id: Optional[str] = None, limit: int = 50
 
     with engine.connect() as conn:
         rows = conn.execute(
-            sa.text(f"SELECT id, title, buyer, cpv FROM tender {where_clause} LIMIT :lim"),
+            sa.text(f"SELECT id, title, buyer, cpv, description FROM tender {where_clause} LIMIT :lim"),
             {**params, "lim": limit},
         ).fetchall()
 
@@ -60,7 +60,7 @@ def embed_tenders_batch(engine, tenant_id: Optional[str] = None, limit: int = 50
     texts = []
     ids = []
     for row in rows:
-        text = f"{row[1] or ''} | {row[2] or ''} | {' '.join(row[3] or [])}"
+        text = f"{row[1] or ''} | {row[2] or ''} | {' '.join(row[3] or [])} | {row[4] or ''}"
         texts.append(text)
         ids.append(str(row[0]))
 
