@@ -1147,14 +1147,8 @@ export function SettingsPage() {
   const [section, setSection] = useState<SectionId>('organizacja');
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Page header */}
-      <div className="px-6 py-4 border-b border-earth-800/60 shrink-0">
-        <h2 className="text-lg font-semibold text-earth-100">Ustawienia</h2>
-        <p className="text-earth-500 text-xs mt-0.5">Konfiguracja organizacji, zespolu i preferencji</p>
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
+    <PageShell title="Ustawienia" subtitle="Konfiguracja konta i platformy" noPadding>
+      <div className="flex flex-1 overflow-hidden h-full">
         {/* Left sidebar */}
         <div className="w-52 border-r border-earth-800/60 py-3 px-2 space-y-0.5 shrink-0 overflow-y-auto">
           {SECTIONS.map(s => {
@@ -1164,9 +1158,9 @@ export function SettingsPage() {
               <button
                 key={s.id}
                 onClick={() => setSection(s.id)}
-                className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-token-lg text-sm transition-colors ${
                   active
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
                     : 'text-earth-400 hover:text-earth-200 hover:bg-earth-800/60'
                 }`}
               >
@@ -1199,6 +1193,6 @@ export function SettingsPage() {
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LoginForm } from '@/components/LoginForm';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AnalyticsPage } from '@/components/pages/AnalyticsPage';
@@ -31,6 +32,11 @@ import { ContractsPage } from '@/components/pages/ContractsPage';
 import { TeamPage } from '@/components/pages/TeamPage';
 import { ReportsPage } from '@/components/pages/ReportsPage';
 import { ICBPage } from '@/components/pages/ICBPage';
+import AlertsPage from '@/components/pages/AlertsPage';
+import AxiomEnginePage from '@/components/pages/AxiomEnginePage';
+import BidIntelligencePage from '@/components/pages/BidIntelligencePage';
+import WebhooksPage from '@/components/pages/WebhooksPage';
+import { PricingPage } from '@/components/pages/PricingPage';
 import { Sidebar } from '@/components/Sidebar';
 import { MarketBar } from '@/components/widgets/MarketBar';
 import { ChatWidget } from '@/components/ChatWidget';
@@ -70,13 +76,19 @@ function ActivePage() {
     case 'contracts':     return <ContractsPage />;
     case 'team':          return <TeamPage />;
     case 'reports':       return <ReportsPage />;
-    case 'icb':           return <ICBPage />;
+    case 'icb':             return <ICBPage />;
+    case 'import':          return <ImportPage />;
+    case 'alerts':          return <AlertsPage />;
+    case 'axiom':           return <AxiomEnginePage />;
+    case 'bid-intelligence':return <BidIntelligencePage />;
+    case 'webhooks':        return <WebhooksPage />;
+    case 'pricing':         return <PricingPage />;
     default:              return <DashboardPage />;
   }
 }
 
 export default function Home() {
-  const { user, accessToken } = useStore();
+  const { user, accessToken, currentModule } = useStore();
   const isAuthenticated = !!(user && accessToken);
   const [commandOpen, setCommandOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -119,7 +131,18 @@ export default function Home() {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <MarketBar />
           <main className="flex-1 overflow-auto bg-earth-950">
-            <ActivePage />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentModule}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="h-full"
+              >
+                <ActivePage />
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
         <ChatWidget />

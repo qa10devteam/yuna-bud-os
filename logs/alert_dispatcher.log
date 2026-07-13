@@ -474,3 +474,9 @@
 2026-07-13 13:00:23,007 [INFO] ingestion.alert_dispatcher: Alert 'Roboty budowlane CPV45': 0 nowych przetargów od 2026-07-13 11:55 — pomijam
 2026-07-13 13:00:23,008 [INFO] ingestion.alert_dispatcher: Alert dispatcher zakończony: {'alerts_checked': 1, 'alerts_fired': 0, 'emails_sent': 0, 'tenders_found': 0, 'skipped': 1, 'since_minutes': 65}
 2026-07-13 13:00:23,008 [INFO] run_alert_dispatcher: Alert dispatcher complete: checked=1 fired=0 emails=0 tenders=0 skipped=1
+2026-07-13 14:00:28,112 [INFO] run_alert_dispatcher: Starting alert dispatcher (since_minutes=65, dry_run=False)
+2026-07-13 14:00:29,286 [INFO] ingestion.alert_dispatcher: Alert dispatcher: szukam przetargów od 2026-07-13T12:55:29.286950+00:00 (ostatnie 65 min)
+2026-07-13 14:00:29,296 [INFO] ingestion.alert_dispatcher: Aktywnych alertów: 1
+2026-07-13 14:00:29,298 [INFO] ingestion.alert_dispatcher: Alert 'Roboty budowlane CPV45': 0 nowych przetargów od 2026-07-13 12:55 — pomijam
+2026-07-13 14:00:29,298 [INFO] ingestion.alert_dispatcher: Alert dispatcher zakończony: {'alerts_checked': 1, 'alerts_fired': 0, 'emails_sent': 0, 'tenders_found': 0, 'skipped': 1, 'since_minutes': 65}
+2026-07-13 14:00:29,298 [INFO] run_alert_dispatcher: Alert dispatcher complete: checked=1 fired=0 emails=0 tenders=0 skipped=1

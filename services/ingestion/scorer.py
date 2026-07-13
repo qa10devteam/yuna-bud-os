@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 # ─── Simple TTL cache (thread-safe, no external deps) ──────────────────────────
 
-_CACHE_TTL = 300  # 5 minutes
+_CACHE_TTL = 300      # 5 minutes (default)
+_CACHE_TTL_1H = 3600  # 1 hour (CPV win counts per tenant)
 _cache_lock = threading.Lock()
 _cache: dict[str, tuple[float, Any]] = {}  # key → (expires_at, value)
 
@@ -214,6 +215,44 @@ def load_cpv_win_rates(tenant_id: str | None = None) -> dict[str, float]:
     return win_rates
 
 
+# ─── FAZA 18: CPV win counts per tenant (4-digit prefix, TTL 1h) ───────────────
+
+def load_cpv_win_counts(tenant_id: str) -> dict[str, int]:
+    """Ładuje liczbę wygranych przetargów per CPV prefix (4 cyfry) dla tenanta.
+
+    Sprawdza historical_bids WHERE won=True AND org_id=tenant_id.
+    Zwraca {cpv4: win_count}. Cache TTL=1h. Fallback: pusty dict.
+    """
+    cache_key = f"cpv_win_counts:{tenant_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    engine = get_engine()
+    win_counts: dict[str, int] = {}
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT
+                    LEFT(cpv, 4) AS cpv4,
+                    COUNT(*) FILTER (WHERE won = true) AS wins
+                FROM historical_bids
+                WHERE cpv IS NOT NULL
+                  AND length(cpv) >= 4
+                  AND org_id = :tid
+                GROUP BY cpv4
+            """), {"tid": tenant_id}).fetchall()
+
+        for cpv4, wins in rows:
+            if cpv4:
+                win_counts[cpv4] = int(wins or 0)
+    except Exception as e:
+        logger.warning("source=scorer load_cpv_win_counts failed: %s", e)
+
+    _cache_set(cache_key, win_counts, ttl=_CACHE_TTL_1H)
+    return win_counts
+
+
 # ─── Scoring components ────────────────────────────────────────────────────────
 
 def _cpv_score(tender_cpv: str | None, preferred_cpvs: list[str]) -> float:
@@ -298,17 +337,78 @@ def _cpv_win_rate_score(tender_cpv: str | None, win_rates: dict[str, float]) -> 
     return win_rates.get(prefix5, 0.0)
 
 
+def _deadline_proximity_bonus(deadline: "date | datetime | str | None") -> float:
+    """FAZA 17 — Deadline proximity additive bonus.
+
+    Przetargi z optymalnym terminem dostają boost (są 'hot'):
+      < 3 dni  : -0.05 (za późno — malus)
+      3–7 dni  : +0.15 (urgent)
+      7–21 dni : +0.10 (optimal window)
+      21–60 dni: +0.05 (planning horizon)
+      > 60 dni lub brak: 0.0
+
+    Zwraca wartość addytywną (może być ujemna). Bezpieczna dla NULL deadline.
+    """
+    if deadline is None:
+        return 0.0
+    if isinstance(deadline, str):
+        try:
+            deadline = datetime.fromisoformat(deadline.replace("Z", "+00:00"))
+        except ValueError:
+            return 0.0
+    if isinstance(deadline, datetime):
+        deadline = deadline.date()
+    today = date.today()
+    delta = (deadline - today).days
+    if delta < 0:
+        return 0.0   # minął — brak bonusu (nie karzemy za przeszłe)
+    if delta < 3:
+        return -0.05  # za późno — malus
+    if delta < 7:
+        return 0.15   # urgent
+    if delta < 21:
+        return 0.10   # optimal window
+    if delta < 60:
+        return 0.05   # planning horizon
+    return 0.0        # > 60 dni lub brak → brak bonusu
+
+
+def _cpv_win_count_bonus(tender_cpv: str | None, win_counts: dict[str, int]) -> float:
+    """FAZA 18 — Historical win rate CPV additive boost.
+
+    Tenant wygrywał w danym CPV (4-cyfrowy prefix) → boost match_score:
+      >= 3 wygrane → +0.15
+      >= 1 wygrana → +0.08
+      brak danych  →  0.0
+    """
+    if not tender_cpv or not win_counts:
+        return 0.0
+    cpv4 = str(tender_cpv)[:4]
+    wins = win_counts.get(cpv4, 0)
+    if wins >= 3:
+        return 0.15
+    if wins >= 1:
+        return 0.08
+    return 0.0
+
+
 # ─── Main scoring function ──────────────────────────────────────────────────────
 
 def score_tender(
     tender: dict[str, Any],
     weights: ScoringWeights,
     win_rates: dict[str, float] | None = None,
+    win_counts: dict[str, int] | None = None,
 ) -> "ScoreResult":
     """
     Oblicza match_score (0.0–1.0) dla jednego przetargu.
     tender dict musi mieć: cpv_main, value_pln, voivodeship, deadline
     Zwraca ScoreResult z polami .score i .reason.
+
+    Addytywne bonusy nakładane PO ważonej sumie (FAZA 17 + 18):
+      deadline_bonus  — proximity boost (±0.05–0.15)
+      cpv_win_bonus   — historical win rate boost (0.08 lub 0.15)
+    Wynik końcowy: clamp(weighted_score + deadline_bonus + cpv_win_bonus, 0.0, 1.0)
     """
     w = weights.normalize()
     # Support both dict and dataclass (TenderIn)
@@ -344,7 +444,20 @@ def score_tender(
         "win_rate": (w.historical_win_weight, _cpv_win_rate_score(cpv, win_rates or {})),
     }
 
-    score = round(min(1.0, max(0.0, sum(wt * sc for wt, sc in components.values()))), 4)
+    weighted_score = sum(wt * sc for wt, sc in components.values())
+
+    # FAZA 17: Deadline proximity additive bonus (nawet NULL jest bezpieczny → 0.0)
+    deadline_bonus = _deadline_proximity_bonus(deadline)
+
+    # FAZA 18: Historical CPV win count additive bonus
+    cpv_win_bonus = _cpv_win_count_bonus(cpv, win_counts or {})
+
+    score = round(min(1.0, max(0.0, weighted_score + deadline_bonus + cpv_win_bonus)), 4)
+
+    logger.debug(
+        "source=scorer cpv=%s weighted=%.4f deadline_bonus=%.2f cpv_win_bonus=%.2f final=%.4f",
+        cpv, weighted_score, deadline_bonus, cpv_win_bonus, score,
+    )
 
     # S64: ML Scorer override if enabled in scoring_config
     try:
@@ -366,7 +479,7 @@ def score_tender(
     except Exception as e:
         logger.debug("source=scorer step=ml_blend: %s", e)  # ML scorer optional — fallback to rule-based
 
-    # Build human-readable reason string
+    # Build human-readable reason string (includes FAZA 17 + 18 bonuses)
     reason_parts = []
     if components["cpv"][1] >= 0.8:
         reason_parts.append(f"CPV match ({cpv})")
@@ -376,6 +489,14 @@ def score_tender(
         reason_parts.append("pilny deadline")
     if components["win_rate"][1] >= 0.5:
         reason_parts.append("wysoki win-rate")
+    # FAZA 17 bonus labels
+    if deadline_bonus > 0:
+        reason_parts.append(f"deadline_bonus+{deadline_bonus:.2f}")
+    elif deadline_bonus < 0:
+        reason_parts.append(f"deadline_malus{deadline_bonus:.2f}")
+    # FAZA 18 bonus label
+    if cpv_win_bonus > 0:
+        reason_parts.append(f"cpv_win_bonus+{cpv_win_bonus:.2f}")
     reason = "; ".join(reason_parts) if reason_parts else None
 
     return ScoreResult(score=score, reason=reason)
@@ -387,6 +508,7 @@ def rescore_tenant(tenant_id: str, batch_size: int = 500) -> dict:
     """Rescoruje wszystkie przetargi tenanta. Zwraca statystyki."""
     weights = load_scoring_config(tenant_id)
     win_rates = load_cpv_win_rates(tenant_id)
+    win_counts = load_cpv_win_counts(tenant_id)  # FAZA 18
 
     engine = get_engine()
     total = 0
@@ -424,7 +546,7 @@ def rescore_tenant(tenant_id: str, batch_size: int = 500) -> dict:
                     "voivodeship": row[3],
                     "deadline": row[4],
                 }
-                new_score = score_tender(tender_dict, weights, win_rates)
+                new_score = score_tender(tender_dict, weights, win_rates, win_counts)
                 conn.execute(text(
                     "UPDATE tender SET match_score = :score WHERE id = :id"
                 ), {"score": new_score.score, "id": str(row[0])})
