@@ -35,7 +35,7 @@ class MLScorer:
             y_arr = np.array(y)
             self.model = GradientBoostingClassifier(n_estimators=50)
             self.model.fit(X_arr, y_arr)
-            self.trained_at = datetime.datetime.utcnow()
+            self.trained_at = datetime.datetime.now(datetime.timezone.utc)
             self._records_since_train = 0
             logger.info("MLScorer: model wytrenowany na %d próbkach", len(y_arr))
         except ImportError:
