@@ -15,6 +15,7 @@ import {
   Thermometer,
   MapPin,
 } from 'lucide-react';
+import { PageShell } from '@/components/PageShell';
 
 // ── Polish cities ─────────────────────────────────────────────────────────────
 const PL_CITIES = [
@@ -77,20 +78,18 @@ function apiRiskToLevel(apiRisk?: string | null): RiskLevel | null {
 }
 
 const riskConfig: Record<RiskLevel, { cls: string; dot: string; label: string; icon: string }> = {
-  wysoki: { cls: 'bg-accent-danger/15 text-accent-danger border border-accent-danger/30', dot: 'bg-accent-danger', label: 'Stop roboty', icon: '⛔' },
-  średni: { cls: 'bg-accent-warning/15 text-accent-warning border border-accent-warning/30', dot: 'bg-accent-warning', label: 'Ostrożnie', icon: '⚠️' },
-  niski:  { cls: 'bg-accent-primary/15 text-accent-primary border border-accent-primary/30', dot: 'bg-accent-primary', label: 'OK', icon: '✓' },
+  wysoki: { cls: 'bg-accent-danger/15 text-accent-danger border border-accent-danger/30',   dot: 'bg-accent-danger',   label: 'Stop roboty', icon: '⛔' },
+  średni: { cls: 'bg-accent-warning/15 text-accent-warning border border-accent-warning/30', dot: 'bg-accent-warning', label: 'Ostrożnie',    icon: '⚠️' },
+  niski:  { cls: 'bg-accent-primary/15 text-accent-primary border border-accent-primary/30', dot: 'bg-accent-primary', label: 'OK',           icon: '✓' },
 };
 
-// ── Types (matching actual API response) ──────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 interface DayForecast {
   date: string;
-  // API field names:
   temp_min: number;
   temp_max: number;
   precipitation_mm: number;
   wind_max_kmh: number;
-  // Optional fields:
   weather_code?: number | null;
   construction_risk?: string | null;
   snowfall_cm?: number | null;
@@ -100,10 +99,8 @@ interface DayForecast {
 }
 
 interface WeatherResponse {
-  // API doesn't return city directly — use local state
   city?: string | null;
   forecast: DayForecast[];
-  // Other API fields:
   lat?: number;
   lon?: number;
   timezone?: string;
@@ -115,9 +112,9 @@ interface WeatherResponse {
 // ── Skeleton cards ────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="glass-card p-4 rounded-2xl animate-pulse">
+    <div className="card p-4 rounded-token-lg animate-pulse-soft">
       <div className="h-3 bg-earth-800 rounded w-10 mb-3" />
-      <div className="w-10 h-10 bg-earth-800 rounded-xl mb-3 mx-auto" />
+      <div className="w-10 h-10 bg-earth-800 rounded-token mb-3 mx-auto" />
       <div className="h-4 bg-earth-800 rounded w-16 mb-1.5 mx-auto" />
       <div className="h-3 bg-earth-800 rounded w-12 mx-auto" />
     </div>
@@ -185,7 +182,6 @@ export function PogodaPage() {
   }
 
   function DayCard({ day, size = 'normal' }: { day: DayForecast; size?: 'normal' | 'small' }) {
-    // Use API risk if available, otherwise calculate locally
     const risk: RiskLevel =
       apiRiskToLevel(day.construction_risk) ??
       calcRisk(day.precipitation_mm ?? 0, day.wind_max_kmh ?? 0, day.temp_min ?? 0);
@@ -198,9 +194,9 @@ export function PogodaPage() {
       <motion.div
         whileHover={{ y: -2 }}
         onClick={() => setSelectedDay(isSelected ? null : day)}
-        className={`glass-card rounded-2xl p-3 cursor-pointer transition-all duration-200 ${
+        className={`card rounded-token-lg cursor-pointer transition-all duration-200 ${
           isSmall ? 'p-3' : 'p-4'
-        } ${isSelected ? 'ring-2 ring-accent-primary/60' : 'hover:border-earth-700/80'}`}
+        } ${isSelected ? 'ring-2 ring-accent-primary/60' : 'card-hover'}`}
       >
         <div className="text-center">
           <p className="text-xs font-semibold text-earth-400 uppercase">{dayName}</p>
@@ -228,7 +224,7 @@ export function PogodaPage() {
 
           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${rc.cls}`}>
             <span>{rc.icon}</span>
-            {isSmall ? risk.slice(0,3) : rc.label}
+            {isSmall ? risk.slice(0, 3) : rc.label}
           </span>
         </div>
       </motion.div>
@@ -236,21 +232,17 @@ export function PogodaPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <div className="p-6 max-w-6xl mx-auto w-full space-y-6">
-
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-earth-50 tracking-tight">Prognoza Pogody</h1>
-            <p className="text-sm text-earth-500 mt-0.5">14-dniowa prognoza dla placów budowy</p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-earth-800/60 border border-earth-700/40">
-            <MapPin className="w-3.5 h-3.5 text-accent-primary" />
-            <span className="text-sm text-earth-300 font-medium">{city}</span>
-          </div>
+    <PageShell
+      title="Pogoda Budowlana"
+      subtitle="Warunki meteorologiczne dla placów budowy"
+      actions={
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-token bg-earth-800/60 border border-earth-700/40">
+          <MapPin className="w-3.5 h-3.5 text-accent-primary" />
+          <span className="text-sm text-earth-300 font-medium">{city}</span>
         </div>
-
+      }
+    >
+      <div className="space-y-6 max-w-6xl">
         {/* City search */}
         <div className="relative max-w-sm">
           <input
@@ -260,7 +252,7 @@ export function PogodaPage() {
             onFocus={() => setShowDropdown(true)}
             onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
             placeholder="Wyszukaj miasto..."
-            className="w-full bg-earth-900 border border-earth-700 rounded-xl px-4 py-2.5 text-sm text-earth-100 placeholder-earth-600 focus:outline-none focus:border-accent-primary/50 transition-colors"
+            className="input-base w-full"
           />
           <AnimatePresence>
             {showDropdown && filteredCities.length > 0 ? (
@@ -269,7 +261,7 @@ export function PogodaPage() {
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className="absolute top-full mt-1 left-0 right-0 bg-earth-900 border border-earth-700 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto"
+                className="absolute top-full mt-1 left-0 right-0 bg-earth-900 border border-earth-700 rounded-token-lg shadow-token-lg z-50 max-h-60 overflow-y-auto"
               >
                 {filteredCities.map((c) => (
                   <button
@@ -289,7 +281,7 @@ export function PogodaPage() {
 
         {/* Error banner */}
         {error && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-accent-warning/10 border border-accent-warning/30 rounded-xl text-accent-warning text-sm">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-accent-warning/10 border border-accent-warning/30 rounded-token-lg text-accent-warning text-sm">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Dane demonstracyjne (API niedostępne): {error}</span>
           </div>
@@ -297,9 +289,7 @@ export function PogodaPage() {
 
         {/* First 7 days */}
         <div>
-          <h3 className="text-xs font-semibold text-earth-500 uppercase tracking-wider mb-3">
-            Najbliższe 7 dni
-          </h3>
+          <h3 className="section-label mb-3">Najbliższe 7 dni</h3>
           <div className="grid grid-cols-7 gap-2">
             {loading
               ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
@@ -319,9 +309,7 @@ export function PogodaPage() {
         {/* Next 7 days */}
         {(secondRow.length > 0 || loading) && (
           <div>
-            <h3 className="text-xs font-semibold text-earth-500 uppercase tracking-wider mb-3">
-              Kolejne 7 dni
-            </h3>
+            <h3 className="section-label mb-3">Kolejne 7 dni</h3>
             <div className="grid grid-cols-7 gap-2">
               {loading
                 ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
@@ -339,7 +327,7 @@ export function PogodaPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="glass-card rounded-2xl p-5"
+              className="card rounded-token-xl p-5 shadow-token-md"
             >
               {(() => {
                 const risk: RiskLevel =
@@ -362,22 +350,22 @@ export function PogodaPage() {
                       </span>
                     </div>
                     <div className="grid grid-cols-4 gap-3">
-                      <div className="bg-earth-800/40 rounded-xl p-3 text-center">
+                      <div className="bg-earth-800/40 rounded-token-lg p-3 text-center">
                         <Thermometer className="w-4 h-4 text-blue-400 mx-auto mb-1" />
                         <p className="text-blue-400 font-mono text-lg">{(selectedDay.temp_min ?? 0).toFixed(1)}°C</p>
                         <p className="text-earth-600 text-xs">Min</p>
                       </div>
-                      <div className="bg-earth-800/40 rounded-xl p-3 text-center">
+                      <div className="bg-earth-800/40 rounded-token-lg p-3 text-center">
                         <Thermometer className="w-4 h-4 text-orange-400 mx-auto mb-1" />
                         <p className="text-orange-400 font-mono text-lg">{(selectedDay.temp_max ?? 0).toFixed(1)}°C</p>
                         <p className="text-earth-600 text-xs">Max</p>
                       </div>
-                      <div className="bg-earth-800/40 rounded-xl p-3 text-center">
+                      <div className="bg-earth-800/40 rounded-token-lg p-3 text-center">
                         <CloudRain className="w-4 h-4 text-accent-info mx-auto mb-1" />
                         <p className="text-accent-info font-mono text-lg">{(selectedDay.precipitation_mm ?? 0).toFixed(1)}</p>
                         <p className="text-earth-600 text-xs">Opady mm</p>
                       </div>
-                      <div className="bg-earth-800/40 rounded-xl p-3 text-center">
+                      <div className="bg-earth-800/40 rounded-token-lg p-3 text-center">
                         <Wind className="w-4 h-4 text-earth-400 mx-auto mb-1" />
                         <p className="text-earth-200 font-mono text-lg">{(selectedDay.wind_max_kmh ?? 0).toFixed(0)}</p>
                         <p className="text-earth-600 text-xs">Wiatr km/h</p>
@@ -391,17 +379,16 @@ export function PogodaPage() {
         </AnimatePresence>
 
         {/* Risk legend */}
-        <div className="flex items-center gap-4 px-4 py-3 bg-earth-900/40 rounded-xl border border-earth-800/40">
-          <span className="text-earth-600 text-xs font-medium uppercase tracking-wider">Ryzyko budowy:</span>
+        <div className="flex items-center gap-4 px-4 py-3 bg-earth-900/40 rounded-token-lg border border-earth-800/40">
+          <span className="section-label">Ryzyko budowy:</span>
           {(Object.entries(riskConfig) as [RiskLevel, typeof riskConfig[RiskLevel]][]).map(([level, cfg]) => (
             <span key={level} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.cls}`}>
               {cfg.icon} {level.charAt(0).toUpperCase() + level.slice(1)}
             </span>
           ))}
         </div>
-
       </div>
-    </div>
+    </PageShell>
   );
 }
 

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAuthFetch } from "@/lib/api-v2";
+import { PageShell } from "@/components/PageShell";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { Plus, Bell, Trash2 } from "lucide-react";
 
 interface Alert {
   id: string;
@@ -32,9 +35,7 @@ export default function AlertsPage() {
     notify_webhook: false,
   });
 
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
+  useEffect(() => { fetchAlerts(); }, []);
 
   const fetchAlerts = async () => {
     try {
@@ -91,157 +92,149 @@ export default function AlertsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0A1628] p-6">
-        <div className="mb-8 h-8 w-48 animate-pulse rounded bg-white/10" />
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-xl bg-[#1E293B]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const actions = (
+    <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
+      <Plus size={14} /> Nowy alert
+    </button>
+  );
 
   return (
-    <div className="min-h-screen bg-[#0A1628] p-6">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Tender Alerts</h1>
-          <p className="mt-1 text-sm text-gray-400">Get notified when matching tenders are published</p>
+    <PageShell
+      title="Powiadomienia"
+      subtitle="Alerty i powiadomienia systemowe"
+      actions={actions}
+    >
+      {/* Loading skeletons */}
+      {loading && (
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-20 rounded-token-lg bg-earth-900/50 animate-shimmer" />
+          ))}
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3B82F6]/80"
-        >
-          + New Alert
-        </button>
-      </div>
+      )}
 
       {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#1E293B] p-6">
-            <h3 className="mb-4 text-lg font-semibold text-white">Create Alert</h3>
+          <div className="w-full max-w-md card p-6 shadow-token-lg">
+            <h3 className="mb-4 text-lg font-semibold text-earth-100">Utwórz alert</h3>
             <div className="space-y-3">
               <input
-                placeholder="Alert name"
+                placeholder="Nazwa alertu"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                className="input-base"
               />
               <input
-                placeholder="Keywords (comma-separated)"
+                placeholder="Słowa kluczowe (oddzielone przecinkami)"
                 value={form.keywords}
                 onChange={(e) => setForm({ ...form, keywords: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                className="input-base"
               />
               <input
-                placeholder="Categories (comma-separated)"
+                placeholder="Kategorie (oddzielone przecinkami)"
                 value={form.categories}
                 onChange={(e) => setForm({ ...form, categories: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                className="input-base"
               />
               <div className="grid grid-cols-2 gap-3">
                 <input
                   type="number"
-                  placeholder="Min value (R)"
+                  placeholder="Min wartość (PLN)"
                   value={form.min_value}
                   onChange={(e) => setForm({ ...form, min_value: e.target.value })}
-                  className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                  className="input-base"
                 />
                 <input
                   type="number"
-                  placeholder="Max value (R)"
+                  placeholder="Max wartość (PLN)"
                   value={form.max_value}
                   onChange={(e) => setForm({ ...form, max_value: e.target.value })}
-                  className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                  className="input-base"
                 />
               </div>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-300">
+                <label className="flex items-center gap-2 text-sm text-earth-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.notify_email}
                     onChange={(e) => setForm({ ...form, notify_email: e.target.checked })}
-                    className="rounded border-gray-600 bg-[#0A1628] text-[#3B82F6]"
+                    className="rounded border-earth-700 bg-earth-900 text-accent-primary"
                   />
                   Email
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-300">
+                <label className="flex items-center gap-2 text-sm text-earth-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.notify_webhook}
                     onChange={(e) => setForm({ ...form, notify_webhook: e.target.checked })}
-                    className="rounded border-gray-600 bg-[#0A1628] text-[#3B82F6]"
+                    className="rounded border-earth-700 bg-earth-900 text-accent-primary"
                   />
                   Webhook
                 </label>
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-white">
-                Cancel
-              </button>
-              <button onClick={createAlert} className="rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#3B82F6]/80">
-                Create
-              </button>
+              <button onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
+              <button onClick={createAlert} className="btn-primary">Utwórz</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Alerts List */}
-      {alerts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/5 bg-[#1E293B] py-16">
-          <svg className="h-12 w-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <p className="mt-3 text-sm text-gray-400">No alerts configured</p>
-          <p className="text-xs text-gray-500">Create alerts to get notified about matching tenders</p>
-        </div>
-      ) : (
+      {!loading && alerts.length === 0 && (
+        <GlassCard className="flex flex-col items-center justify-center py-16">
+          <Bell size={48} className="text-earth-600 mb-3" />
+          <p className="text-sm text-earth-400">Brak skonfigurowanych alertów</p>
+          <p className="text-xs text-earth-500">Utwórz alerty, aby być powiadamianym o pasujących przetargach</p>
+        </GlassCard>
+      )}
+
+      {!loading && alerts.length > 0 && (
         <div className="space-y-3">
           {alerts.map((alert) => (
-            <div key={alert.id} className="rounded-xl border border-white/5 bg-[#1E293B] p-5">
+            <div key={alert.id} className="card p-5 card-hover">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-white">{alert.name}</h3>
+                    <h3 className="text-sm font-semibold text-earth-100">{alert.name}</h3>
                     {!alert.enabled && (
-                      <span className="rounded bg-gray-600/30 px-1.5 py-0.5 text-xs text-gray-400">Paused</span>
+                      <span className="rounded-token bg-earth-700/30 px-1.5 py-0.5 text-xs text-earth-400">Wstrzymany</span>
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {alert.keywords.map((kw) => (
-                      <span key={kw} className="rounded bg-[#3B82F6]/10 px-2 py-0.5 text-xs text-[#3B82F6]">{kw}</span>
+                      <span key={kw} className="rounded-token bg-info/10 px-2 py-0.5 text-xs text-info">{kw}</span>
                     ))}
                     {alert.categories.map((cat) => (
-                      <span key={cat} className="rounded bg-purple-400/10 px-2 py-0.5 text-xs text-purple-400">{cat}</span>
+                      <span key={cat} className="rounded-token bg-violet/10 px-2 py-0.5 text-xs text-violet">{cat}</span>
                     ))}
                   </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                    {alert.min_value && <span>Min: R{alert.min_value.toLocaleString()}</span>}
-                    {alert.max_value && <span>Max: R{alert.max_value.toLocaleString()}</span>}
+                  <div className="mt-2 flex items-center gap-4 text-xs text-earth-500">
+                    {alert.min_value && <span>Min: {alert.min_value.toLocaleString()} PLN</span>}
+                    {alert.max_value && <span>Max: {alert.max_value.toLocaleString()} PLN</span>}
                     {alert.notify_email && <span>📧 Email</span>}
                     {alert.notify_webhook && <span>🔗 Webhook</span>}
                     {alert.last_triggered && (
-                      <span>Last triggered: {new Date(alert.last_triggered).toLocaleDateString()}</span>
+                      <span>Ostatnio: {new Date(alert.last_triggered).toLocaleDateString('pl-PL')}</span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-4">
                   <button
                     onClick={() => toggleAlert(alert.id, alert.enabled)}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${alert.enabled ? "bg-[#3B82F6]" : "bg-gray-600"}`}
+                    className={`relative h-6 w-11 rounded-full transition-colors ${alert.enabled ? "bg-accent-primary" : "bg-earth-700"}`}
+                    aria-label={alert.enabled ? 'Wyłącz alert' : 'Włącz alert'}
                   >
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${alert.enabled ? "left-[22px]" : "left-0.5"}`} />
                   </button>
-                  <button onClick={() => deleteAlert(alert.id)} className="rounded p-1 text-gray-500 hover:bg-red-400/10 hover:text-red-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                  <button
+                    onClick={() => deleteAlert(alert.id)}
+                    className="rounded-token p-1 text-earth-500 hover:bg-danger/10 hover:text-danger transition-colors"
+                    aria-label="Usuń alert"
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
@@ -249,6 +242,6 @@ export default function AlertsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

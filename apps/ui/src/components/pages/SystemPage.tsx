@@ -2,8 +2,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthFetch } from '@/lib/api-v2';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { PageShell } from '@/components/PageShell';
 import { motion } from 'motion/react';
-import { Database, Server, Activity, Shield, Cpu, HardDrive, Users, Bell } from 'lucide-react';
+import { Database, Server, Activity, Shield, Cpu, HardDrive, Users, Bell, RefreshCw } from 'lucide-react';
 
 interface Metrics {
   platform: string;
@@ -39,10 +40,10 @@ interface DbTable {
 export function SystemPage() {
   const authFetch = useAuthFetch();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [tables, setTables] = useState<DbTable[]>([]);
+  const [tables, setTables]   = useState<DbTable[]>([]);
   const [routeCount, setRouteCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'database' | 'routes'>('overview');
+  const [tab, setTab]         = useState<'overview' | 'database' | 'routes'>('overview');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -62,38 +63,36 @@ export function SystemPage() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const stats = metrics ? [
-    { label: 'Przetargi', value: metrics.database.tenders, icon: Database, color: 'text-blue-400' },
-    { label: 'Embeddings', value: `${metrics.ai.embedding_coverage}%`, icon: Cpu, color: 'text-green-400' },
-    { label: 'ICB Records', value: metrics.database.icb_records.toLocaleString(), icon: HardDrive, color: 'text-purple-400' },
-    { label: 'API Routes', value: routeCount, icon: Server, color: 'text-orange-400' },
-    { label: 'Users', value: metrics.database.users, icon: Users, color: 'text-cyan-400' },
-    { label: 'Notifications', value: metrics.database.unread_notifications, icon: Bell, color: 'text-yellow-400' },
-    { label: 'Audit Log', value: metrics.database.audit_entries, icon: Shield, color: 'text-red-400' },
-    { label: 'DB Size', value: metrics.database.size, icon: Activity, color: 'text-earth-300' },
+    { label: 'Przetargi',      value: metrics.database.tenders,                    icon: Database,  color: 'text-info' },
+    { label: 'Embeddings',     value: `${metrics.ai.embedding_coverage}%`,          icon: Cpu,       color: 'text-success' },
+    { label: 'ICB Records',    value: metrics.database.icb_records.toLocaleString(),icon: HardDrive, color: 'text-violet' },
+    { label: 'API Routes',     value: routeCount,                                   icon: Server,    color: 'text-warning' },
+    { label: 'Users',          value: metrics.database.users,                       icon: Users,     color: 'text-info' },
+    { label: 'Notifications',  value: metrics.database.unread_notifications,        icon: Bell,      color: 'text-warning' },
+    { label: 'Audit Log',      value: metrics.database.audit_entries,               icon: Shield,    color: 'text-danger' },
+    { label: 'DB Size',        value: metrics.database.size,                        icon: Activity,  color: 'text-earth-300' },
   ] : [];
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-earth-100">System & Metryki</h1>
-          <p className="text-earth-400 text-sm mt-1">
-            {metrics ? `${metrics.platform} v${metrics.version}` : 'Ładowanie...'}
-          </p>
-        </div>
-        <button onClick={refresh} className="px-3 py-1.5 bg-earth-800 hover:bg-earth-700 text-earth-300 rounded-lg text-sm">
-          Odśwież
-        </button>
-      </div>
+  const actions = (
+    <button onClick={refresh} className="btn-secondary flex items-center gap-2">
+      <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Odśwież
+    </button>
+  );
 
+  return (
+    <PageShell
+      title="System"
+      subtitle={metrics ? `${metrics.platform} v${metrics.version}` : 'Status i diagnostyka platformy'}
+      actions={actions}
+    >
       {/* Tabs */}
-      <div className="flex gap-1 bg-earth-900/60 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-earth-900/60 rounded-token-lg p-1 w-fit mb-6">
         {(['overview', 'database', 'routes'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              tab === t ? 'bg-blue-600 text-white' : 'text-earth-400 hover:text-earth-200'
+            className={`px-4 py-1.5 rounded-token text-sm font-medium transition-colors ${
+              tab === t ? 'bg-accent-primary text-earth-950' : 'text-earth-400 hover:text-earth-200'
             }`}
           >
             {t === 'overview' ? 'Przegląd' : t === 'database' ? 'Baza danych' : 'API Routes'}
@@ -114,7 +113,7 @@ export function SystemPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                 >
-                  <GlassCard className="p-4">
+                  <GlassCard className="p-4 shadow-token-sm">
                     <div className="flex items-center gap-3">
                       <Icon size={18} className={stat.color} />
                       <div>
@@ -134,7 +133,7 @@ export function SystemPage() {
               <h3 className="text-earth-100 font-semibold mb-3">Pipeline Status</h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {Object.entries(metrics.pipeline).map(([status, count]) => (
-                  <div key={status} className="bg-earth-900/60 rounded-lg p-3 text-center">
+                  <div key={status} className="bg-earth-900/60 rounded-token-lg p-3 text-center border border-earth-800/40">
                     <div className="text-earth-100 font-bold">{count}</div>
                     <div className="text-earth-500 text-xs capitalize">{status}</div>
                   </div>
@@ -158,7 +157,7 @@ export function SystemPage() {
                 </div>
                 <div>
                   <span className="text-earth-500">Coverage:</span>
-                  <div className="text-green-400 font-bold">{metrics.ai.embedding_coverage}%</div>
+                  <div className="text-success font-bold">{metrics.ai.embedding_coverage}%</div>
                 </div>
                 <div>
                   <span className="text-earth-500">RAG Chunks:</span>
@@ -199,9 +198,9 @@ export function SystemPage() {
       {tab === 'routes' && (
         <GlassCard className="p-4">
           <h3 className="text-earth-100 font-semibold mb-3">{routeCount} zarejestrowanych endpointów</h3>
-          <p className="text-earth-400 text-sm">Pełna lista API dostępna pod <code className="bg-earth-800 px-1 rounded">/api/v2/system/routes</code></p>
+          <p className="text-earth-400 text-sm">Pełna lista API dostępna pod <code className="bg-earth-800 px-1 rounded-token">/api/v2/system/routes</code></p>
         </GlassCard>
       )}
-    </div>
+    </PageShell>
   );
 }

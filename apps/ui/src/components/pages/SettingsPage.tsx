@@ -12,6 +12,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuthFetch } from '@/lib/api-v2';
 import { showToast } from '@/components/Toast';
+import { PageShell } from '@/components/PageShell';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -96,16 +97,16 @@ const VOIVODESHIPS = [
 ];
 
 const PLAN_BADGE: Record<string, { label: string; className: string }> = {
-  free:       { label: 'Free',       className: 'bg-zinc-700/50 text-zinc-300 border border-zinc-600/40' },
-  pro:        { label: 'Pro',        className: 'bg-blue-500/15 text-blue-400 border border-blue-500/30' },
-  enterprise: { label: 'Enterprise', className: 'bg-amber-500/15 text-amber-400 border border-amber-500/30' },
+  free:       { label: 'Free',       className: 'bg-earth-700/50 text-earth-300 border border-earth-600/40' },
+  pro:        { label: 'Pro',        className: 'bg-accent-info/15 text-accent-info border border-accent-info/30' },
+  enterprise: { label: 'Enterprise', className: 'bg-accent-warning/15 text-accent-warning border border-accent-warning/30' },
 };
 
 const ROLE_META: Record<string, { label: string; Icon: typeof User; color: string }> = {
-  owner:     { label: 'Wlasciciel',   Icon: Crown,   color: 'text-amber-400'   },
-  admin:     { label: 'Administrator', Icon: Shield,  color: 'text-blue-400'    },
-  estimator: { label: 'Kosztorysant', Icon: User,    color: 'text-emerald-400' },
-  viewer:    { label: 'Przegladajacy', Icon: Eye,    color: 'text-earth-400'   },
+  owner:     { label: 'Wlasciciel',   Icon: Crown,   color: 'text-accent-warning'  },
+  admin:     { label: 'Administrator', Icon: Shield,  color: 'text-accent-info'     },
+  estimator: { label: 'Kosztorysant', Icon: User,    color: 'text-accent-primary'  },
+  viewer:    { label: 'Przegladajacy', Icon: Eye,    color: 'text-earth-400'       },
 };
 
 const DEFAULT_SCORING_CONFIG: ScoringConfig = {
@@ -131,7 +132,7 @@ const WEIGHT_FIELDS: { key: keyof Pick<ScoringConfig, 'cpv_weight' | 'value_weig
 
 // ─── Shared micro-components ───────────────────────────────────────────────────
 
-const INPUT = 'w-full bg-earth-800/60 border border-earth-700/60 rounded-xl px-4 py-2.5 text-sm text-earth-100 placeholder-earth-600 focus:outline-none focus:border-blue-500/60 transition-colors';
+const INPUT = 'w-full bg-earth-800/60 border border-earth-700/60 rounded-token-lg px-4 py-2.5 text-sm text-earth-100 placeholder-earth-600 focus:outline-none focus:border-accent-primary/50 transition-colors';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

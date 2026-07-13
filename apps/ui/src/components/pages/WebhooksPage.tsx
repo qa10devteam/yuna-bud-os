@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAuthFetch } from "@/lib/api-v2";
+import { PageShell } from "@/components/PageShell";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { Plus, Link2, Trash2 } from "lucide-react";
 
 interface Webhook {
   id: string;
@@ -33,9 +36,7 @@ export default function WebhooksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", url: "", events: [] as string[] });
 
-  useEffect(() => {
-    fetchWebhooks();
-  }, []);
+  useEffect(() => { fetchWebhooks(); }, []);
 
   const fetchWebhooks = async () => {
     try {
@@ -100,63 +101,56 @@ export default function WebhooksPage() {
     }));
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0A1628] p-6">
-        <div className="mb-8 h-8 w-48 animate-pulse rounded bg-white/10" />
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-[#1E293B]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const actions = (
+    <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
+      <Plus size={14} /> Nowy webhook
+    </button>
+  );
 
   return (
-    <div className="min-h-screen bg-[#0A1628] p-6">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Webhooks</h1>
-          <p className="mt-1 text-sm text-gray-400">Automate workflows by sending events to external services</p>
+    <PageShell
+      title="Webhooki"
+      subtitle="Integracje i powiadomienia zewnętrzne"
+      actions={actions}
+    >
+      {/* Loading skeletons */}
+      {loading && (
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-24 rounded-token-lg bg-earth-900/50 animate-shimmer" />
+          ))}
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3B82F6]/80"
-        >
-          + New Webhook
-        </button>
-      </div>
+      )}
 
       {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#1E293B] p-6">
-            <h3 className="mb-4 text-lg font-semibold text-white">Create Webhook</h3>
+          <div className="w-full max-w-md card p-6 shadow-token-lg">
+            <h3 className="mb-4 text-lg font-semibold text-earth-100">Utwórz webhook</h3>
             <div className="space-y-3">
               <input
-                placeholder="Webhook name"
+                placeholder="Nazwa webhooka"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                className="input-base"
               />
               <input
                 placeholder="Endpoint URL (https://...)"
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-[#0A1628] px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#3B82F6]"
+                className="input-base"
               />
               <div>
-                <p className="mb-2 text-xs text-gray-400">Events to subscribe</p>
+                <p className="mb-2 text-xs text-earth-400 label-base">Subskrybowane eventy</p>
                 <div className="flex flex-wrap gap-2">
                   {EVENT_OPTIONS.map((event) => (
                     <button
                       key={event}
                       onClick={() => toggleEvent(event)}
-                      className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
+                      className={`rounded-token px-2.5 py-1 text-xs transition-colors font-mono ${
                         form.events.includes(event)
-                          ? "bg-[#3B82F6] text-white"
-                          : "bg-white/5 text-gray-400 hover:bg-white/10"
+                          ? "bg-accent-primary text-earth-950"
+                          : "bg-earth-800/50 text-earth-400 hover:bg-earth-700/50 border border-earth-700/40"
                       }`}
                     >
                       {event}
@@ -166,15 +160,13 @@ export default function WebhooksPage() {
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-white">
-                Cancel
-              </button>
+              <button onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
               <button
                 onClick={createWebhook}
                 disabled={!form.name || !form.url || form.events.length === 0}
-                className="rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#3B82F6]/80 disabled:opacity-40"
+                className="btn-primary disabled:opacity-40"
               >
-                Create
+                Utwórz
               </button>
             </div>
           </div>
@@ -182,59 +174,62 @@ export default function WebhooksPage() {
       )}
 
       {/* Webhooks List */}
-      {webhooks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/5 bg-[#1E293B] py-16">
-          <svg className="h-12 w-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-          <p className="mt-3 text-sm text-gray-400">No webhooks configured</p>
-          <p className="text-xs text-gray-500">Connect external services to automate your workflow</p>
-        </div>
-      ) : (
+      {!loading && webhooks.length === 0 && (
+        <GlassCard className="flex flex-col items-center justify-center py-16">
+          <Link2 size={48} className="text-earth-600 mb-3" />
+          <p className="text-sm text-earth-400">Brak skonfigurowanych webhooków</p>
+          <p className="text-xs text-earth-500">Połącz zewnętrzne serwisy, aby automatyzować workflow</p>
+        </GlassCard>
+      )}
+
+      {!loading && webhooks.length > 0 && (
         <div className="space-y-3">
           {webhooks.map((webhook) => (
-            <div key={webhook.id} className="rounded-xl border border-white/5 bg-[#1E293B] p-5">
+            <div key={webhook.id} className="card p-5 card-hover">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-white">{webhook.name}</h3>
+                    <h3 className="text-sm font-semibold text-earth-100">{webhook.name}</h3>
                     {webhook.last_status && (
-                      <span className={`rounded px-1.5 py-0.5 text-xs ${
-                        webhook.last_status < 300 ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"
+                      <span className={`rounded-token px-1.5 py-0.5 text-xs ${
+                        webhook.last_status < 300 ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
                       }`}>
                         {webhook.last_status}
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 font-mono text-xs text-gray-400">{webhook.url}</p>
+                  <p className="mt-1 font-mono text-xs text-earth-500">{webhook.url}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {webhook.events.map((ev) => (
-                      <span key={ev} className="rounded bg-white/5 px-2 py-0.5 text-xs text-gray-400">{ev}</span>
+                      <span key={ev} className="rounded-token bg-earth-800/50 border border-earth-700/40 px-2 py-0.5 text-xs text-earth-400 font-mono">{ev}</span>
                     ))}
                   </div>
                   {webhook.last_delivery && (
-                    <p className="mt-2 text-xs text-gray-500">
-                      Last delivery: {new Date(webhook.last_delivery).toLocaleString()}
+                    <p className="mt-2 text-xs text-earth-500">
+                      Ostatnie dostarczenie: {new Date(webhook.last_delivery).toLocaleString('pl-PL')}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-4">
                   <button
                     onClick={() => testWebhook(webhook.id)}
-                    className="rounded px-2 py-1 text-xs text-[#3B82F6] hover:bg-[#3B82F6]/10"
+                    className="btn-ghost text-xs px-2 py-1"
                   >
                     Test
                   </button>
                   <button
                     onClick={() => toggleWebhook(webhook.id, webhook.enabled)}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${webhook.enabled ? "bg-[#3B82F6]" : "bg-gray-600"}`}
+                    className={`relative h-6 w-11 rounded-full transition-colors ${webhook.enabled ? "bg-accent-primary" : "bg-earth-700"}`}
+                    aria-label={webhook.enabled ? 'Wyłącz' : 'Włącz'}
                   >
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${webhook.enabled ? "left-[22px]" : "left-0.5"}`} />
                   </button>
-                  <button onClick={() => deleteWebhook(webhook.id)} className="rounded p-1 text-gray-500 hover:bg-red-400/10 hover:text-red-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                  <button
+                    onClick={() => deleteWebhook(webhook.id)}
+                    className="rounded-token p-1 text-earth-500 hover:bg-danger/10 hover:text-danger transition-colors"
+                    aria-label="Usuń webhook"
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
@@ -242,6 +237,6 @@ export default function WebhooksPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

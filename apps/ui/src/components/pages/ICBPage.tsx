@@ -9,10 +9,10 @@ import {
   Play, Info, Minus, ZapOff, Zap, LayoutDashboard, SlidersHorizontal,
   Map, BarChart, Sigma, Hammer,
 } from 'lucide-react';
-import { useStore } from '@/store/useStore';
 import { useAuthFetch } from '@/lib/api-v2';
 import { showToast } from '@/components/Toast';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { PageShell } from '@/components/PageShell';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ type TabId = typeof TABS[number]['id'];
 function Spinner({ size = 24 }: { size?: number }) {
   return (
     <Loader2
-      className="animate-spin text-blue-400"
+      className="animate-spin text-accent-info"
       style={{ width: size, height: size }}
     />
   );
@@ -168,12 +168,12 @@ function Spinner({ size = 24 }: { size?: number }) {
 function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 py-12 text-earth-400">
-      <AlertCircle className="text-red-400" size={32} />
+      <AlertCircle className="text-accent-danger" size={32} />
       <p className="text-sm">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          className="flex items-center gap-1 text-xs text-accent-info hover:text-accent-info/80 transition-colors"
         >
           <RefreshCw size={12} /> Spróbuj ponownie
         </button>
@@ -414,33 +414,33 @@ function DashboardTab() {
   if (error || !data) return <ErrorBox message={error || 'Brak danych'} onRetry={load} />;
 
   const inflation = data.yoy_inflation_pct;
-  const inflColor = inflation < 0 ? 'text-green-400' : 'text-red-400';
+  const inflColor = inflation < 0 ? 'text-accent-success' : 'text-accent-danger';
 
   const kpis = [
     {
       label: 'Rekordów ICB',
       value: fmtM(data.total_records),
-      icon: <Database size={20} className="text-blue-400" />,
+      icon: <Database size={20} className="text-accent-info" />,
       sub: 'InterCenBud',
     },
     {
       label: 'Unikalnych symboli',
       value: data.unique_symbols?.toLocaleString('pl-PL'),
-      icon: <Package size={20} className="text-purple-400" />,
+      icon: <Package size={20} className="text-accent-violet" />,
       sub: 'materiałów',
     },
     {
       label: 'Kategorii',
       value: data.categories_count?.toLocaleString('pl-PL'),
-      icon: <Grid3X3 size={20} className="text-amber-400" />,
+      icon: <Grid3X3 size={20} className="text-accent-warning" />,
       sub: 'grup materiałowych',
     },
     {
       label: 'Inflacja YoY',
       value: <span className={inflColor}>{fmtPct(inflation)}</span>,
       icon: inflation < 0
-        ? <ArrowDownRight size={20} className="text-green-400" />
-        : <ArrowUpRight size={20} className="text-red-400" />,
+        ? <ArrowDownRight size={20} className="text-accent-success" />
+        : <ArrowUpRight size={20} className="text-accent-danger" />,
       sub: 'rok do roku',
     },
   ];
@@ -472,7 +472,7 @@ function DashboardTab() {
         {/* Narzuty table */}
         <GlassCard className="p-5">
           <h3 className="text-sm font-semibold text-earth-100 mb-4 flex items-center gap-2">
-            <Percent size={16} className="text-blue-400" /> Narzuty branżowe
+            <Percent size={16} className="text-accent-info" /> Narzuty branżowe
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -503,7 +503,7 @@ function DashboardTab() {
         {/* Regional coefficients bar chart */}
         <GlassCard className="p-5">
           <h3 className="text-sm font-semibold text-earth-100 mb-4 flex items-center gap-2">
-            <MapPin size={16} className="text-blue-400" /> Współczynniki regionalne
+            <MapPin size={16} className="text-accent-info" /> Współczynniki regionalne
           </h3>
           <HBarChart
             data={data.regional_coefficients || []}
@@ -518,12 +518,12 @@ function DashboardTab() {
       {data.latest_quarter_by_type && (
         <GlassCard className="p-5">
           <h3 className="text-sm font-semibold text-earth-100 mb-4 flex items-center gap-2">
-            <BarChart2 size={16} className="text-blue-400" /> Ostatnie kwartały wg typu
+            <BarChart2 size={16} className="text-accent-info" /> Ostatnie kwartały wg typu
           </h3>
           <div className="grid grid-cols-3 gap-4">
             {(['R', 'M', 'S'] as const).map(t => (
-              <div key={t} className="bg-earth-900/60 rounded-lg p-4 border border-earth-800 text-center">
-                <div className="text-2xl font-bold text-blue-400 mb-1">{t}</div>
+              <div key={t} className="bg-earth-900/60 rounded-token p-4 border border-earth-800 text-center">
+                <div className="text-2xl font-bold text-accent-info mb-1">{t}</div>
                 <div className="text-xs text-earth-400 uppercase mb-2">
                   {t === 'R' ? 'Robocizna' : t === 'M' ? 'Materiały' : 'Sprzęt'}
                 </div>
@@ -584,13 +584,13 @@ function SzukajTab() {
               onChange={e => setInputVal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               placeholder="Szukaj materiału, symbolu lub kategorii…"
-              className="w-full bg-earth-900/60 border border-earth-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-earth-100 placeholder-earth-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all"
+              className="w-full bg-earth-900/60 border border-earth-800 rounded-token pl-9 pr-4 py-2.5 text-sm text-earth-100 placeholder-earth-500 focus:outline-none focus:border-accent-info/60 focus:ring-1 focus:ring-accent-info/30 transition-all"
             />
           </div>
           <button
             onClick={handleSubmit}
             disabled={loading || !inputVal.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 btn-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-token text-sm font-medium transition-colors"
           >
             {loading ? <Spinner size={14} /> : <Search size={14} />}
             Szukaj
@@ -617,7 +617,7 @@ function SzukajTab() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold text-earth-100">
-                    Wyniki: <span className="text-blue-400">{result.count}</span>
+                    Wyniki: <span className="text-accent-info">{result.count}</span>
                   </span>
                   {result.quarter && (
                     <span className="text-xs bg-earth-800 text-earth-300 px-2 py-0.5 rounded-full">
@@ -644,15 +644,15 @@ function SzukajTab() {
                       {result.results.map((r, i) => (
                         <tr
                           key={i}
-                          className="border-b border-earth-800/40 hover:bg-blue-500/5 transition-colors cursor-default"
+                          className="border-b border-earth-800/40 hover:bg-accent-info/5 transition-colors cursor-default"
                         >
                           <td className="py-2 pr-4 text-earth-100 max-w-[200px] truncate" title={r.nazwa}>{r.nazwa}</td>
-                          <td className="py-2 pr-4 font-mono text-xs text-blue-300">{r.symbol}</td>
+                          <td className="py-2 pr-4 font-mono text-xs text-accent-info">{r.symbol}</td>
                           <td className="py-2 pr-4 text-earth-100 whitespace-nowrap font-medium">{fmtPLN(r.cena_netto)}</td>
                           <td className={`py-2 pr-4 whitespace-nowrap font-medium ${
                             r.qoq_change_pct == null ? 'text-earth-500' :
-                            r.qoq_change_pct > 0 ? 'text-red-400' :
-                            r.qoq_change_pct < 0 ? 'text-green-400' : 'text-earth-400'
+                            r.qoq_change_pct > 0 ? 'text-accent-danger' :
+                            r.qoq_change_pct < 0 ? 'text-accent-success' : 'text-earth-400'
                           }`}>
                             {r.qoq_change_pct == null ? '—' : fmtPct(r.qoq_change_pct)}
                           </td>
@@ -734,8 +734,8 @@ function KategorieTab() {
               onClick={() => selected === cat.nazwa ? (setSelected(null), setDetail(null)) : loadDetail(cat.nazwa)}
             >
             <GlassCard
-              className={`p-4 transition-all hover:border-blue-500/40 ${
-                selected === cat.nazwa ? 'border-blue-500/60 bg-blue-500/10' : ''
+              className={`p-4 transition-all hover:border-accent-info/40 ${
+                selected === cat.nazwa ? 'border-accent-info/60 bg-accent-info/10' : ''
               }`}
             >
               <div className="font-semibold text-earth-100 text-sm mb-2 line-clamp-2">{cat.nazwa}</div>
@@ -802,7 +802,7 @@ function KategorieTab() {
                   {detail.top_expensive?.length > 0 && (
                     <div>
                       <div className="text-xs text-earth-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                        <ArrowUpRight size={12} className="text-amber-400" /> Najdroższe
+                        <ArrowUpRight size={12} className="text-accent-warning" /> Najdroższe
                       </div>
                       <div className="space-y-1">
                         {detail.top_expensive.slice(0, 5).map((item, i) => (
@@ -812,7 +812,7 @@ function KategorieTab() {
                               <div className="text-earth-500 font-mono">{item.symbol}</div>
                             </div>
                             <div className="text-right">
-                              <div className="text-amber-400 font-semibold">{fmtPLN(item.cena_netto)}</div>
+                              <div className="text-accent-warning font-semibold">{fmtPLN(item.cena_netto)}</div>
                               <div className="text-earth-500">{item.jednostka}</div>
                             </div>
                           </div>
@@ -825,7 +825,7 @@ function KategorieTab() {
                   {detail.most_volatile?.length > 0 && (
                     <div>
                       <div className="text-xs text-earth-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                        <Activity size={12} className="text-red-400" /> Najbardziej zmienne
+                        <Activity size={12} className="text-accent-danger" /> Najbardziej zmienne
                       </div>
                       <div className="space-y-1">
                         {detail.most_volatile.slice(0, 5).map((item, i) => (
@@ -910,7 +910,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
             <select
               value={selCat}
               onChange={e => setSelCat(e.target.value)}
-              className="w-full bg-earth-900/60 border border-earth-800 rounded-lg px-3 py-2.5 text-sm text-earth-100 focus:outline-none focus:border-blue-500/60"
+              className="w-full bg-earth-900/60 border border-earth-800 rounded-token px-3 py-2.5 text-sm text-earth-100 focus:outline-none focus:border-accent-info/60"
             >
               <option value="">— wybierz kategorię —</option>
               {categories.map(c => (
@@ -923,7 +923,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
             <select
               value={selTyp}
               onChange={e => setSelTyp(e.target.value as 'M' | 'R' | 'S')}
-              className="bg-earth-900/60 border border-earth-800 rounded-lg px-3 py-2.5 text-sm text-earth-100 focus:outline-none focus:border-blue-500/60"
+              className="bg-earth-900/60 border border-earth-800 rounded-token px-3 py-2.5 text-sm text-earth-100 focus:outline-none focus:border-accent-info/60"
             >
               <option value="M">M — Materiały</option>
               <option value="R">R — Robocizna</option>
@@ -933,7 +933,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
           <button
             onClick={() => loadForecast(selCat, selTyp)}
             disabled={!selCat || loading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 btn-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-token text-sm font-medium transition-colors"
           >
             {loading ? <Spinner size={14} /> : <TrendingUp size={14} />}
             Pobierz prognozy
@@ -959,7 +959,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
               <button
                 onClick={computeForecast}
                 disabled={computing}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-semibold text-white transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-accent-info hover:bg-accent-info/80 disabled:opacity-60 rounded-token text-sm font-semibold text-white transition-colors"
               >
                 {computing ? <Spinner size={16} /> : <Zap size={16} />}
                 {computing ? 'Obliczanie…' : 'Oblicz prognozy'}
@@ -973,7 +973,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
             {/* Band chart */}
             <GlassCard className="p-5">
               <h3 className="text-sm font-semibold text-earth-100 mb-4 flex items-center gap-2">
-                <TrendingUp size={16} className="text-blue-400" />
+                <TrendingUp size={16} className="text-accent-info" />
                 Prognoza: {data!.category} · typ {data!.typ_rms}
               </h3>
               <BandChartSVG data={data!.forecasts} />
@@ -992,13 +992,13 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
                   </thead>
                   <tbody>
                     {data!.forecasts.map((row, i) => (
-                      <tr key={i} className="border-b border-earth-800/40 hover:bg-blue-500/5 transition-colors">
+                      <tr key={i} className="border-b border-earth-800/40 hover:bg-accent-info/5 transition-colors">
                         <td className="py-2 pr-4 font-mono text-xs text-earth-300">{row.period}</td>
                         <td className="py-2 pr-4 font-medium text-earth-100">{fmtPLN(row.predicted_price)}</td>
                         <td className="py-2 pr-4 text-earth-400">{fmtPLN(row.lower_bound)}</td>
                         <td className="py-2 pr-4 text-earth-400">{fmtPLN(row.upper_bound)}</td>
                         <td className={`py-2 font-medium ${
-                          row.mape_pct < 5 ? 'text-green-400' : row.mape_pct < 15 ? 'text-amber-400' : 'text-red-400'
+                          row.mape_pct < 5 ? 'text-accent-success' : row.mape_pct < 15 ? 'text-accent-warning' : 'text-accent-danger'
                         }`}>{row.mape_pct?.toFixed(2)}%</td>
                       </tr>
                     ))}
@@ -1064,7 +1064,7 @@ function RegionyTab({ categories }: { categories: CategoryItem[] }) {
             <select
               value={selCat}
               onChange={e => { setSelCat(e.target.value); load(e.target.value); }}
-              className="w-full bg-earth-900/60 border border-earth-800 rounded-lg px-3 py-2.5 text-sm text-earth-100 focus:outline-none focus:border-blue-500/60"
+              className="w-full bg-earth-900/60 border border-earth-800 rounded-token px-3 py-2.5 text-sm text-earth-100 focus:outline-none focus:border-accent-info/60"
             >
               <option value="">— wybierz kategorię —</option>
               {categories.map(c => (
@@ -1092,21 +1092,21 @@ function RegionyTab({ categories }: { categories: CategoryItem[] }) {
         {data && !loading && (
           <motion.div key="data" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
             {/* National avg hero */}
-            <GlassCard className="p-6 text-center border-blue-500/30">
+            <GlassCard className="p-6 text-center border-accent-info/30">
               <div className="text-xs text-earth-400 uppercase tracking-widest mb-1">Średnia krajowa</div>
-              <div className="text-4xl font-bold text-blue-400">{fmtPLN(data.national_avg)}</div>
+              <div className="text-4xl font-bold text-accent-info">{fmtPLN(data.national_avg)}</div>
               <div className="text-sm text-earth-400 mt-1">{data.category}</div>
             </GlassCard>
 
             {/* Regional bars */}
             <GlassCard className="p-5">
               <h3 className="text-sm font-semibold text-earth-100 mb-4 flex items-center gap-2">
-                <Map size={16} className="text-blue-400" /> Porównanie regionalne
+                <Map size={16} className="text-accent-info" /> Porównanie regionalne
               </h3>
               <div className="space-y-2">
                 {data.regions.map((r, i) => {
                   const barW = maxPrice > 0 ? (r.adjusted_price / maxPrice) * 100 : 0;
-                  const diffColor = r.diff_vs_national_pct > 0 ? 'text-red-400' : r.diff_vs_national_pct < 0 ? 'text-green-400' : 'text-earth-400';
+                  const diffColor = r.diff_vs_national_pct > 0 ? 'text-accent-danger' : r.diff_vs_national_pct < 0 ? 'text-accent-success' : 'text-earth-400';
                   return (
                     <motion.div
                       key={r.voivodeship}
@@ -1118,7 +1118,7 @@ function RegionyTab({ categories }: { categories: CategoryItem[] }) {
                       <div className="w-36 text-xs text-earth-300 truncate shrink-0">{r.voivodeship}</div>
                       <div className="flex-1 bg-earth-900/60 rounded-full h-5 relative overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-blue-600/70 transition-all duration-500"
+                          className="h-full rounded-full bg-accent-info/70 transition-all duration-500"
                           style={{ width: `${barW}%` }}
                         />
                         <span className="absolute inset-0 flex items-center px-2 text-xs text-earth-100">
@@ -1196,13 +1196,13 @@ function ZmiennoscTab() {
 
   const SortIcon = ({ f }: { f: SortField }) => {
     if (sortField !== f) return <Minus size={10} className="text-earth-600" />;
-    return sortDir === 'asc' ? <ChevronUp size={10} className="text-blue-400" /> : <ChevronDown size={10} className="text-blue-400" />;
+    return sortDir === 'asc' ? <ChevronUp size={10} className="text-accent-info" /> : <ChevronDown size={10} className="text-accent-info" />;
   };
 
   const riskBadge = (r: string) => {
-    if (r === 'high') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">Wysoki</span>;
-    if (r === 'medium') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">Średni</span>;
-    return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">Niski</span>;
+    if (r === 'high') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-accent-danger/20 text-accent-danger border border-accent-danger/30">Wysoki</span>;
+    if (r === 'medium') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-accent-warning/20 text-accent-warning border border-accent-warning/30">Średni</span>;
+    return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-accent-success/20 text-accent-success border border-accent-success/30">Niski</span>;
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size={36} /></div>;
@@ -1212,7 +1212,7 @@ function ZmiennoscTab() {
     <GlassCard className="p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-earth-100 flex items-center gap-2">
-          <Activity size={16} className="text-blue-400" /> Macierz zmienności
+          <Activity size={16} className="text-accent-info" /> Macierz zmienności
         </h3>
         <span className="text-xs text-earth-400">{sorted.length} pozycji</span>
       </div>
@@ -1241,14 +1241,14 @@ function ZmiennoscTab() {
           </thead>
           <tbody>
             {sorted.map((row, i) => (
-              <tr key={i} className="border-b border-earth-800/40 hover:bg-blue-500/5 transition-colors">
+              <tr key={i} className="border-b border-earth-800/40 hover:bg-accent-info/5 transition-colors">
                 <td className="py-2 pr-4 text-earth-100 max-w-[200px] truncate" title={row.category}>{row.category}</td>
                 <td className="py-2 pr-4">
                   <span className="font-mono text-xs px-1.5 py-0.5 bg-earth-800 rounded text-earth-300">{row.typ_rms}</span>
                 </td>
                 <td className="py-2 pr-4 text-earth-200 font-medium">{fmtPLN(row.mean_price)}</td>
                 <td className={`py-2 pr-4 font-semibold ${
-                  row.cv > 30 ? 'text-red-400' : row.cv > 15 ? 'text-amber-400' : 'text-green-400'
+                  row.cv > 30 ? 'text-accent-danger' : row.cv > 15 ? 'text-accent-warning' : 'text-accent-success'
                 }`}>{row.cv?.toFixed(2)}%</td>
                 <td className="py-2">{riskBadge(row.risk_level)}</td>
               </tr>
@@ -1296,11 +1296,11 @@ function RobociznaTab() {
   return (
     <div className="space-y-5">
       {/* Hero */}
-      <GlassCard className="p-8 text-center border-blue-500/30">
+      <GlassCard className="p-8 text-center border-accent-info/30">
         <div className="flex items-center justify-center gap-2 text-xs text-earth-400 uppercase tracking-widest mb-2">
-          <HardHat size={14} className="text-blue-400" /> Robocizna — stawka krajowa R
+          <HardHat size={14} className="text-accent-info" /> Robocizna — stawka krajowa R
         </div>
-        <div className="text-5xl font-bold text-blue-400 mb-1">
+        <div className="text-5xl font-bold text-accent-info mb-1">
           {fmtPLN(data.national_avg_r)}
         </div>
         <div className="text-sm text-earth-400">normatywna stawka robocizny / r-g</div>
@@ -1309,7 +1309,7 @@ function RobociznaTab() {
       {/* Regional table */}
       <GlassCard className="p-5">
         <h3 className="text-sm font-semibold text-earth-100 mb-4 flex items-center gap-2">
-          <Map size={16} className="text-blue-400" /> Stawki regionalne
+          <Map size={16} className="text-accent-info" /> Stawki regionalne
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -1330,10 +1330,10 @@ function RobociznaTab() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.02 }}
-                  className="border-b border-earth-800/40 hover:bg-blue-500/5 transition-colors"
+                  className="border-b border-earth-800/40 hover:bg-accent-info/5 transition-colors"
                 >
                   <td className="py-2 pr-4 text-earth-100 font-medium">{r.voivodeship}</td>
-                  <td className="py-2 pr-4 text-blue-400 font-semibold">{fmtPLN(r.stawka_r)}</td>
+                  <td className="py-2 pr-4 text-accent-info font-semibold">{fmtPLN(r.stawka_r)}</td>
                   <td className="py-2 pr-4 text-earth-300 font-mono text-xs">{r.coefficient?.toFixed(3)}</td>
                   {bKeys.map(k => (
                     <td key={k} className="py-2 pr-4 text-earth-400 text-xs">
@@ -1367,33 +1367,12 @@ export function ICBPage() {
   }, [authFetch]);
 
   return (
-    <div className="min-h-screen bg-earth-950 text-earth-100 p-4 md:p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <div className="flex items-center gap-3 mb-1">
-          <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-500/30">
-            <Database size={22} className="text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-earth-100">
-              InterCenBud <span className="text-blue-400">ICB</span>
-            </h1>
-            <p className="text-xs text-earth-400">Cennik materiałów budowlanych · 784 k rekordów</p>
-          </div>
-          <div className="ml-auto">
-            <span className="text-xs bg-blue-600/20 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-full">
-              Intelligence Platform
-            </span>
-          </div>
-        </div>
-      </motion.div>
-
+    <PageShell
+      title="Cennik ICB"
+      subtitle="Baza cen robocizny, materiałów, sprzętu"
+    >
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-earth-900/60 border border-earth-800 rounded-xl p-1 overflow-x-auto">
+      <div className="flex gap-1 mb-6 bg-earth-900/60 border border-earth-800 rounded-token-lg p-1 overflow-x-auto">
         {TABS.map(tab => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -1401,9 +1380,9 @@ export function ICBPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-token text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                 active
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                  ? 'bg-accent-info text-white shadow-token-md'
                   : 'text-earth-400 hover:text-earth-200 hover:bg-earth-800/60'
               }`}
             >
@@ -1432,6 +1411,6 @@ export function ICBPage() {
           {activeTab === 'robocizna' && <RobociznaTab />}
         </motion.div>
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 }

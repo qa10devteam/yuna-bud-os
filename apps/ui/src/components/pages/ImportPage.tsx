@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, ChevronRight, ChevronLeft, Check, AlertTriangle, Loader2, FileSpreadsheet, Clock, FileText } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { PageShell } from '@/components/PageShell';
 import { showToast } from '@/components/Toast';
 import { useStore } from '@/store/useStore';
 
@@ -53,10 +54,10 @@ function formatDate(iso?: string): string {
 
 function statusLabel(status: string): { text: string; cls: string } {
   switch (status) {
-    case 'completed': return { text: 'Zakończony', cls: 'text-emerald-400' };
-    case 'processing': return { text: 'W trakcie', cls: 'text-yellow-400' };
+    case 'completed': return { text: 'Zakończony', cls: 'text-accent-primary' };
+    case 'processing': return { text: 'W trakcie', cls: 'text-accent-warning' };
     case 'pending':    return { text: 'Oczekuje', cls: 'text-earth-400' };
-    case 'failed':     return { text: 'Błąd', cls: 'text-red-400' };
+    case 'failed':     return { text: 'Błąd', cls: 'text-accent-danger' };
     default:           return { text: status, cls: 'text-earth-500' };
   }
 }
@@ -90,7 +91,7 @@ export function ImportPage() {
     setHistoryLoading(true);
     try {
       const res = await fetch('/api/v1/excel/imports', {
-        headers: { Authorization: 'Bearer ' + accessToken },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (res.ok) {
         const data: ImportJob[] = await res.json();
@@ -119,7 +120,7 @@ export function ImportPage() {
     if (!accessToken) return;
     try {
       const res = await fetch('/api/v1/excel/imports', {
-        headers: { Authorization: 'Bearer ' + accessToken },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return;
       const jobs: ImportJob[] = await res.json();
@@ -207,7 +208,7 @@ export function ImportPage() {
 
       const res = await fetch('/api/v1/excel/import/tenders', {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + accessToken },
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: formData,
       });
 
@@ -243,22 +244,25 @@ export function ImportPage() {
   const STEPS = ['Upload', 'Mapowanie', 'Walidacja', 'Import'];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-4 border-b border-earth-800/60 shrink-0">
-        <h2 className="text-lg font-semibold text-earth-100">Import danych historycznych</h2>
-        <p className="text-earth-500 text-xs mt-0.5">Wczytaj dane z CSV aby AI mogło się uczyć wzorców</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 max-w-2xl">
+    <PageShell title="Import Przetargów" subtitle="Import BZP/TED/XML">
+      <div className="max-w-2xl">
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6">
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${i < step ? 'bg-accent-primary text-earth-950' : i === step ? 'bg-accent-primary/30 text-accent-primary border border-accent-primary' : 'bg-earth-800 text-earth-600'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                i < step
+                  ? 'bg-accent-primary text-earth-950'
+                  : i === step
+                    ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary/60'
+                    : 'bg-earth-800 text-earth-600'
+              }`}>
                 {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
               </div>
               <span className={`text-xs ${i === step ? 'text-earth-200' : 'text-earth-600'}`}>{s}</span>
-              {i < STEPS.length - 1 && <div className={`h-px w-8 ${i < step ? 'bg-accent-primary' : 'bg-earth-800'}`} />}
+              {i < STEPS.length - 1 && (
+                <div className={`h-px w-8 ${i < step ? 'bg-accent-primary' : 'bg-earth-800'}`} />
+              )}
             </div>
           ))}
         </div>
@@ -270,9 +274,15 @@ export function ImportPage() {
             onDrop={handleDrop}
             onDragOver={e => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed border-earth-700/60 rounded-2xl p-12 text-center cursor-pointer hover:border-accent-primary/40 hover:bg-accent-primary/5 transition-all group"
+            className="border-2 border-dashed border-earth-700/60 rounded-token-xl p-12 text-center cursor-pointer hover:border-accent-primary/40 hover:bg-accent-primary/5 transition-all group"
           >
-            <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+            />
             <FileSpreadsheet className="w-12 h-12 text-earth-700 group-hover:text-accent-primary/60 mx-auto mb-3 transition-colors" />
             <p className="text-sm font-medium text-earth-300">Upuść plik CSV lub Excel tutaj</p>
             <p className="text-xs text-earth-600 mt-1">lub kliknij aby wybrać</p>
@@ -284,7 +294,9 @@ export function ImportPage() {
         {step === 1 && csvData && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-earth-200">Mapowanie kolumn</h3>
-            <p className="text-xs text-earth-500">Plik: <span className="text-earth-300">{file?.name}</span> • {csvData.rows.length} wierszy podglądu</p>
+            <p className="text-xs text-earth-500">
+              Plik: <span className="text-earth-300">{file?.name}</span> • {csvData.rows.length} wierszy podglądu
+            </p>
 
             {/* Preview table */}
             <GlassCard className="overflow-x-auto p-0">
@@ -314,12 +326,12 @@ export function ImportPage() {
                 <div key={tf.key} className="flex items-center gap-3">
                   <span className="text-xs text-earth-400 w-44 shrink-0">
                     {tf.label}
-                    {tf.required && <span className="text-red-400 ml-0.5">*</span>}
+                    {tf.required && <span className="text-accent-danger ml-0.5">*</span>}
                   </span>
                   <select
                     value={mapping[tf.key] ?? ''}
                     onChange={e => setMapping(m => ({ ...m, [tf.key]: e.target.value }))}
-                    className="flex-1 bg-earth-800 border border-earth-700/60 rounded-lg px-3 py-1.5 text-xs text-earth-200 focus:outline-none"
+                    className="input-base flex-1 text-xs py-1.5"
                   >
                     <option value="">— Pomiń —</option>
                     {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
@@ -329,10 +341,16 @@ export function ImportPage() {
             </GlassCard>
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(0)} className="flex items-center gap-1.5 px-4 py-2 text-sm text-earth-500 hover:text-earth-300">
+              <button
+                onClick={() => setStep(0)}
+                className="btn-ghost flex items-center gap-1.5 px-4 py-2 text-sm"
+              >
                 <ChevronLeft className="w-4 h-4" /> Wstecz
               </button>
-              <button onClick={validate} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-primary text-earth-950 rounded-xl text-sm font-semibold hover:bg-emerald-400 transition-colors">
+              <button
+                onClick={validate}
+                className="btn-primary flex items-center gap-1.5 px-5 py-2.5 text-sm"
+              >
                 Waliduj <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -343,22 +361,24 @@ export function ImportPage() {
         {step === 2 && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-earth-200">Wyniki walidacji</h3>
+
             {errors.length > 0 && (
-              <GlassCard className="p-4 space-y-2 border-red-500/20">
-                <p className="text-xs font-semibold text-red-400 uppercase tracking-wide">Błędy ({errors.length})</p>
+              <GlassCard className="p-4 space-y-2 border-accent-danger/20">
+                <p className="text-xs font-semibold text-accent-danger uppercase tracking-wide">Błędy ({errors.length})</p>
                 {errors.map((e, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs text-red-300">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-400" /> {e}
+                  <div key={i} className="flex items-start gap-2 text-xs text-accent-danger/80">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-danger" /> {e}
                   </div>
                 ))}
               </GlassCard>
             )}
+
             {warnings.length > 0 && (
-              <GlassCard className="p-4 space-y-2 border-yellow-500/20">
-                <p className="text-xs font-semibold text-yellow-400 uppercase tracking-wide">Ostrzeżenia ({warnings.length})</p>
+              <GlassCard className="p-4 space-y-2 border-accent-warning/20">
+                <p className="text-xs font-semibold text-accent-warning uppercase tracking-wide">Ostrzeżenia ({warnings.length})</p>
                 {warnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs text-yellow-300">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-yellow-400" /> {w}
+                  <div key={i} className="flex items-start gap-2 text-xs text-accent-warning/80">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-warning" /> {w}
                   </div>
                 ))}
               </GlassCard>
@@ -366,9 +386,9 @@ export function ImportPage() {
 
             {/* Import error */}
             {importError && (
-              <GlassCard className="p-4 border-red-500/20">
-                <div className="flex items-start gap-2 text-xs text-red-300">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-400" />
+              <GlassCard className="p-4 border-accent-danger/20">
+                <div className="flex items-start gap-2 text-xs text-accent-danger/80">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-danger" />
                   <span>{importError}</span>
                 </div>
               </GlassCard>
@@ -376,7 +396,7 @@ export function ImportPage() {
 
             {errors.length === 0 && !importError && (
               <GlassCard className="p-4">
-                <div className="flex items-center gap-2 text-emerald-400 mb-2">
+                <div className="flex items-center gap-2 text-accent-primary mb-2">
                   <Check className="w-4 h-4" />
                   <span className="text-sm font-semibold">Gotowe do importu</span>
                 </div>
@@ -400,7 +420,10 @@ export function ImportPage() {
                 <div className="w-full bg-earth-800 rounded-full h-2 overflow-hidden">
                   <div
                     className="bg-accent-primary h-2 rounded-full transition-all duration-500"
-                    style={{ width: progressPct !== null ? `${progressPct}%` : '100%', opacity: progressPct !== null ? 1 : 0.4 }}
+                    style={{
+                      width: progressPct !== null ? `${progressPct}%` : '100%',
+                      opacity: progressPct !== null ? 1 : 0.4,
+                    }}
                   />
                 </div>
                 {progressPct !== null && (
@@ -410,11 +433,19 @@ export function ImportPage() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 text-sm text-earth-500 hover:text-earth-300 disabled:opacity-40">
+              <button
+                onClick={() => setStep(1)}
+                disabled={loading}
+                className="btn-ghost flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-40"
+              >
                 <ChevronLeft className="w-4 h-4" /> Wstecz
               </button>
               {errors.length === 0 && (
-                <button onClick={submitImport} disabled={loading} className="flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-earth-950 rounded-xl text-sm font-semibold hover:bg-emerald-400 transition-colors disabled:opacity-50">
+                <button
+                  onClick={submitImport}
+                  disabled={loading}
+                  className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
+                >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {loading ? 'Importowanie…' : importError ? 'Spróbuj ponownie' : 'Importuj dane'}
                 </button>
@@ -430,16 +461,20 @@ export function ImportPage() {
               <Check className="w-8 h-8 text-accent-primary" />
             </div>
             <h3 className="text-base font-bold text-earth-100 mb-2">Import zakończony!</h3>
-            <p className="text-sm text-earth-500">Dane historyczne zostały zaimportowane. AI będzie mogło teraz uczyć się wzorców przetargów.</p>
+            <p className="text-sm text-earth-500">
+              Dane historyczne zostały zaimportowane. AI będzie mogło teraz uczyć się wzorców przetargów.
+            </p>
             {activeJob && activeJob.total > 0 && (
-              <p className="text-xs text-earth-600 mt-1">Zaimportowano {activeJob.processed} z {activeJob.total} rekordów.</p>
+              <p className="text-xs text-earth-600 mt-1">
+                Zaimportowano {activeJob.processed} z {activeJob.total} rekordów.
+              </p>
             )}
             <button
               onClick={() => {
                 setStep(0); setFile(null); setCsvData(null);
                 setDone(false); setActiveJob(null); setImportError(null);
               }}
-              className="mt-4 px-5 py-2 bg-earth-800 text-earth-300 rounded-xl text-sm hover:bg-earth-700 transition-colors"
+              className="btn-secondary mt-4 px-5 py-2 text-sm"
             >
               Importuj kolejny plik
             </button>
@@ -448,9 +483,10 @@ export function ImportPage() {
 
         {/* ── Import History ── */}
         <div className="mt-8 space-y-3">
-          <h3 className="text-xs font-semibold text-earth-500 uppercase tracking-wide flex items-center gap-2">
+          <h3 className="section-label flex items-center gap-2">
             <Clock className="w-3.5 h-3.5" /> Ostatnie importy
           </h3>
+
           {historyLoading ? (
             <p className="text-xs text-earth-600 flex items-center gap-2">
               <Loader2 className="w-3 h-3 animate-spin" /> Ładowanie historii…
@@ -473,9 +509,11 @@ export function ImportPage() {
                     const { text, cls } = statusLabel(job.status);
                     return (
                       <tr key={job.id ?? i} className="border-b border-earth-800/20 last:border-0">
-                        <td className="px-3 py-2 text-earth-300 flex items-center gap-1.5">
-                          <FileText className="w-3 h-3 text-earth-600 shrink-0" />
-                          <span className="truncate max-w-[140px]">{job.filename ?? '—'}</span>
+                        <td className="px-3 py-2 text-earth-300">
+                          <span className="flex items-center gap-1.5">
+                            <FileText className="w-3 h-3 text-earth-600 shrink-0" />
+                            <span className="truncate max-w-[140px]">{job.filename ?? '—'}</span>
+                          </span>
                         </td>
                         <td className="px-3 py-2 text-earth-500 whitespace-nowrap">{formatDate(job.created_at)}</td>
                         <td className="px-3 py-2 text-earth-400 text-right">
@@ -491,6 +529,6 @@ export function ImportPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

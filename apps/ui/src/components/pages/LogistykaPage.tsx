@@ -12,6 +12,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { showToast } from '@/components/Toast';
 import { useAuthFetch, type EmployeeResource, type EquipmentResource } from '@/lib/api-v2';
+import { PageShell } from '@/components/PageShell';
 
 // ── Local types ────────────────────────────────────────────────────────────────
 
@@ -69,11 +70,11 @@ function SkillChip({ label }: { label: string }) {
 
 function ActiveBadge({ active }: { active: boolean }) {
   return active ? (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-success/15 text-accent-success border border-accent-success/20">
       <CheckCircle className="w-3 h-3" /> Aktywny
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-500/15 text-red-400 border border-red-500/20">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-danger/15 text-accent-danger border border-accent-danger/20">
       <XCircle className="w-3 h-3" /> Nieaktywny
     </span>
   );
@@ -605,8 +606,8 @@ function OptymalizacjaTab() {
 
       {/* Error */}
       {error && (
-        <GlassCard className="p-4 border-red-500/20 bg-red-500/5">
-          <div className="flex items-center gap-2 text-red-400 text-sm">
+        <GlassCard className="p-4 border-accent-danger/20 bg-accent-danger/5">
+          <div className="flex items-center gap-2 text-accent-danger text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
@@ -1125,7 +1126,7 @@ function HarmonogramTab() {
       )}
 
       {!loading && error && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="flex items-center gap-2 p-4 rounded-token bg-accent-danger/10 border border-accent-danger/20 text-accent-danger text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -1314,20 +1315,12 @@ export function LogistykaPage() {
   const [activeTab, setActiveTab] = useState<TabId>('pracownicy');
 
   return (
-    <div className="min-h-screen bg-earth-950 p-4 md:p-6 space-y-5">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center flex-shrink-0">
-          <Truck className="w-5 h-5 text-accent-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-earth-100 leading-tight">Logistyka</h1>
-          <p className="text-xs text-earth-500">Zarządzaj zasobami — pracownicy, sprzęt, optymalizacja tras</p>
-        </div>
-      </div>
-
+    <PageShell
+      title="Logistyka"
+      subtitle="Zasoby, sprzęt, harmonogram budowy"
+    >
       {/* Tab bar */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-6">
         {TABS.map(tab => (
           <TabBtn
             key={tab.id}
@@ -1355,6 +1348,6 @@ export function LogistykaPage() {
           {activeTab === 'harmonogram'   && <HarmonogramTab />}
         </motion.div>
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 }

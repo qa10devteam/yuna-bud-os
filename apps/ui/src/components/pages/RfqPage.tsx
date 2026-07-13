@@ -7,6 +7,8 @@ import {
   CheckCircle2, XCircle, Loader2, AlertTriangle,
   Calendar, Info, RefreshCw, ClipboardList,
 } from 'lucide-react';
+import { PageShell } from '@/components/PageShell';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 // ── Typy ──────────────────────────────────────────────────────────────────────
 interface RfqItem {
@@ -49,7 +51,7 @@ function ConfirmDialog({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="glass-card rounded-2xl p-6 max-w-md w-full shadow-2xl"
+        className="card rounded-token-xl p-6 max-w-md w-full shadow-token-lg"
       >
         <div className="flex items-center gap-3 mb-4">
           {isGo
@@ -61,15 +63,19 @@ function ConfirmDialog({
           </h3>
         </div>
 
-        <p className="text-earth-500 text-xs uppercase tracking-wide mb-1">Zapytanie ofertowe:</p>
+        <p className="section-label mb-1">Zapytanie ofertowe:</p>
         <p className="text-earth-200 text-sm font-medium line-clamp-2 mb-4">{tender.title}</p>
 
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-earth-800/40 mb-5">
+        <div className="flex items-center gap-3 p-3 rounded-token bg-earth-800/40 mb-5">
           <Calendar className="w-4 h-4 text-earth-500 shrink-0" />
           <span className="text-earth-400 text-sm">Termin: {fmtDate(tender.deadline_at)}</span>
         </div>
 
-        <div className={`p-3 rounded-xl mb-5 text-sm ${isGo ? 'bg-accent-primary/8 border border-accent-primary/20 text-accent-primary' : 'bg-accent-danger/8 border border-accent-danger/20 text-accent-danger'}`}>
+        <div className={`p-3 rounded-token mb-5 text-sm ${
+          isGo
+            ? 'bg-accent-primary/8 border border-accent-primary/20 text-accent-primary'
+            : 'bg-accent-danger/8 border border-accent-danger/20 text-accent-danger'
+        }`}>
           {isGo
             ? '✓ Zapytanie zostanie przeniesione do etapu GO. Oferta zostanie przygotowana do złożenia.'
             : '✗ Zapytanie zostanie odrzucone. Decyzja NO-GO jest ostateczna i nie można jej cofnąć.'}
@@ -79,16 +85,16 @@ function ConfirmDialog({
           <button
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 py-3 rounded-xl bg-earth-800 text-earth-300 text-sm font-medium hover:bg-earth-700 transition-colors disabled:opacity-50"
+            className="btn-secondary flex-1 py-3 text-sm disabled:opacity-50"
           >
             Anuluj
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${
+            className={`flex-1 py-3 rounded-token text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${
               isGo
-                ? 'bg-accent-primary text-earth-950 hover:bg-emerald-400'
+                ? 'btn-primary'
                 : 'bg-accent-danger/15 text-accent-danger border border-accent-danger/30 hover:bg-accent-danger/25'
             }`}
           >
@@ -108,7 +114,7 @@ function ConfirmDialog({
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function SkeletonRow() {
   return (
-    <div className="glass-card rounded-2xl p-4 animate-pulse">
+    <div className="card rounded-token-xl p-4 animate-pulse-soft">
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <div className="h-4 bg-earth-800 rounded w-3/4 mb-2" />
@@ -119,8 +125,8 @@ function SkeletonRow() {
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
-          <div className="h-10 w-28 bg-earth-800 rounded-xl" />
-          <div className="h-10 w-28 bg-earth-800 rounded-xl" />
+          <div className="h-10 w-28 bg-earth-800 rounded-token" />
+          <div className="h-10 w-28 bg-earth-800 rounded-token" />
         </div>
       </div>
     </div>
@@ -171,7 +177,25 @@ export function RfqPage() {
   };
 
   return (
-    <>
+    <PageShell
+      title="Zapytania Ofertowe"
+      subtitle="RFQ i wyceny podwykonawców"
+      actions={
+        <div className="flex items-center gap-3">
+          {tenders.length > 0 && (
+            <StatusBadge status="warning" label={`${tenders.length} w analizie`} />
+          )}
+          <button
+            onClick={fetchTenders}
+            disabled={loading}
+            title="Odśwież listę"
+            className="btn-ghost p-2 disabled:opacity-40"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      }
+    >
       {/* Modal potwierdzenia */}
       <AnimatePresence>
         {confirm ? (
@@ -185,33 +209,9 @@ export function RfqPage() {
         ) : null}
       </AnimatePresence>
 
-      <div className="flex flex-col gap-5 p-6 h-full overflow-y-auto max-w-5xl mx-auto w-full">
-
-        {/* Nagłówek */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-earth-100">Zapytania ofertowe (RFQ)</h2>
-            <p className="text-earth-500 text-sm mt-0.5">Przetargi oczekujące na decyzję GO / NO-GO</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {tenders.length > 0 && (
-              <span className="px-3 py-1.5 rounded-full bg-accent-warning/15 text-accent-warning text-sm font-semibold">
-                {tenders.length} w analizie
-              </span>
-            )}
-            <button
-              onClick={fetchTenders}
-              disabled={loading}
-              title="Odśwież listę"
-              className="p-2 rounded-xl bg-earth-800/60 border border-earth-700/40 text-earth-500 hover:text-earth-300 hover:bg-earth-800 transition-colors disabled:opacity-40"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        </div>
-
+      <div className="flex flex-col gap-5 max-w-5xl">
         {/* Pasek informacyjny */}
-        <div className="flex items-start gap-2 px-4 py-3 bg-accent-info/8 border border-accent-info/20 rounded-xl text-accent-info text-xs leading-relaxed">
+        <div className="flex items-start gap-2 px-4 py-3 bg-accent-info/8 border border-accent-info/20 rounded-token-lg text-accent-info text-xs leading-relaxed">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>
             Przetargi z etapu <span className="font-semibold">Analiza</span> oczekują na Twoją decyzję.
@@ -222,7 +222,7 @@ export function RfqPage() {
 
         {/* Błąd */}
         {error && (
-          <div className="flex items-center gap-2 p-4 rounded-xl bg-accent-danger/10 border border-accent-danger/20 text-accent-danger text-sm">
+          <div className="flex items-center gap-2 p-4 rounded-token-lg bg-accent-danger/10 border border-accent-danger/20 text-accent-danger text-sm">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Błąd ładowania danych: {error}</span>
           </div>
@@ -237,7 +237,7 @@ export function RfqPage() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card rounded-2xl p-14 text-center"
+            className="card rounded-token-xl p-14 text-center"
           >
             <ClipboardList className="w-12 h-12 text-earth-700 mx-auto mb-4" />
             <p className="text-earth-300 font-semibold mb-1">Brak aktywnych zapytań ofertowych</p>
@@ -263,7 +263,7 @@ export function RfqPage() {
                     }}
                     exit={{ opacity: 0, x: isGo ? 60 : -60, scale: 0.95 }}
                     transition={{ duration: 0.3 }}
-                    className={`glass-card rounded-2xl p-5 ${decided ? 'pointer-events-none' : ''}`}
+                    className={`card rounded-token-xl p-5 ${decided ? 'pointer-events-none' : 'card-hover'}`}
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
@@ -286,7 +286,7 @@ export function RfqPage() {
 
                       {/* Przyciski decyzji */}
                       {decided ? (
-                        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold ${
+                        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-token text-sm font-bold ${
                           isGo ? 'bg-accent-primary/15 text-accent-primary' : 'bg-accent-danger/15 text-accent-danger'
                         }`}>
                           {isGo ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
@@ -296,14 +296,14 @@ export function RfqPage() {
                         <div className="flex flex-col gap-2 shrink-0">
                           <button
                             onClick={() => setConfirm({ tender: t, decision: 'decided_go' })}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-primary/15 text-accent-primary text-sm font-bold hover:bg-accent-primary/25 transition-colors border border-accent-primary/30 min-w-[130px] justify-center"
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-token bg-accent-primary/15 text-accent-primary text-sm font-bold hover:bg-accent-primary/25 transition-colors border border-accent-primary/30 min-w-[130px] justify-center"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                             GO — złóż ofertę
                           </button>
                           <button
                             onClick={() => setConfirm({ tender: t, decision: 'decided_nogo' })}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-danger/10 text-accent-danger text-sm font-bold hover:bg-accent-danger/20 transition-colors border border-accent-danger/25 min-w-[130px] justify-center"
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-token bg-accent-danger/10 text-accent-danger text-sm font-bold hover:bg-accent-danger/20 transition-colors border border-accent-danger/25 min-w-[130px] justify-center"
                           >
                             <XCircle className="w-4 h-4" />
                             NO-GO — odrzuć
@@ -318,6 +318,6 @@ export function RfqPage() {
           </div>
         )}
       </div>
-    </>
+    </PageShell>
   );
 }

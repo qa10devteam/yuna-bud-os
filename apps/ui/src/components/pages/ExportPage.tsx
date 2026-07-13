@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Download, FileText, FileSpreadsheet, Shield, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { showToast } from '@/components/Toast';
+import { PageShell } from '@/components/PageShell';
 
 // ── Polish provinces ──────────────────────────────────────────────────────────
 
@@ -58,9 +59,9 @@ async function downloadBlob(
 
 function FormatBadge({ format }: { format: 'CSV' | 'XLSX' | 'JSON' }) {
   const colors: Record<typeof format, string> = {
-    CSV: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    XLSX: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    JSON: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    CSV:  'bg-accent-primary/15 text-accent-primary border-accent-primary/30',
+    XLSX: 'bg-accent-info/15 text-accent-info border-accent-info/30',
+    JSON: 'bg-accent-warning/15 text-accent-warning border-accent-warning/30',
   };
   return (
     <span
@@ -87,10 +88,10 @@ function ExportCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col bg-earth-900/60 border border-earth-800/70 rounded-xl p-6 gap-4 hover:border-earth-700/60 transition-colors">
+    <div className="card card-hover rounded-token-xl p-6 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="w-10 h-10 rounded-lg bg-earth-800/80 border border-earth-700/50 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-token-lg bg-earth-800/80 border border-earth-700/50 flex items-center justify-center flex-shrink-0">
           <Icon className="w-5 h-5 text-earth-300" />
         </div>
         <FormatBadge format={format} />
@@ -123,7 +124,7 @@ function DownloadButton({
     <button
       onClick={onClick}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent-primary/10 hover:bg-accent-primary/20 border border-accent-primary/30 hover:border-accent-primary/50 text-accent-primary text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -204,28 +205,24 @@ function TendersXlsxCard() {
       <div className="space-y-3 mb-4">
         {/* CPV prefix */}
         <div className="space-y-1">
-          <label className="text-[11px] text-earth-500 font-medium uppercase tracking-wide">
-            Prefiks CPV
-          </label>
+          <label className="label-base">Prefiks CPV</label>
           <input
             type="text"
             value={cpvPrefix}
             onChange={(e) => setCpvPrefix(e.target.value)}
             placeholder="45230000"
             maxLength={8}
-            className="w-full bg-earth-800/60 border border-earth-700/50 rounded-lg px-3 py-2 text-sm text-earth-100 placeholder-earth-600 focus:outline-none focus:border-earth-600 transition-colors"
+            className="input-base w-full"
           />
         </div>
 
         {/* Province */}
         <div className="space-y-1">
-          <label className="text-[11px] text-earth-500 font-medium uppercase tracking-wide">
-            Województwo
-          </label>
+          <label className="label-base">Województwo</label>
           <select
             value={province}
             onChange={(e) => setProvince(e.target.value)}
-            className="w-full bg-earth-800/60 border border-earth-700/50 rounded-lg px-3 py-2 text-sm text-earth-100 focus:outline-none focus:border-earth-600 transition-colors appearance-none"
+            className="input-base w-full appearance-none"
           >
             <option value="">Wszystkie</option>
             {PROVINCES.map((p) => (
@@ -238,13 +235,11 @@ function TendersXlsxCard() {
 
         {/* Limit */}
         <div className="space-y-1">
-          <label className="text-[11px] text-earth-500 font-medium uppercase tracking-wide">
-            Liczba wyników
-          </label>
+          <label className="label-base">Liczba wyników</label>
           <select
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value) as TenderLimit)}
-            className="w-full bg-earth-800/60 border border-earth-700/50 rounded-lg px-3 py-2 text-sm text-earth-100 focus:outline-none focus:border-earth-600 transition-colors appearance-none"
+            className="input-base w-full appearance-none"
           >
             {TENDER_LIMITS.map((l) => (
               <option key={l} value={l}>
@@ -285,9 +280,9 @@ function GdprJsonCard() {
       description="Pobierz wszystkie dane powiązane z Twoim kontem zgodnie z wymogami RODO"
       format="JSON"
     >
-      <div className="mb-4 p-3 rounded-lg bg-earth-800/40 border border-earth-700/30">
+      <div className="mb-4 p-3 rounded-token bg-earth-800/40 border border-earth-700/30">
         <p className="text-[11px] text-earth-500 leading-relaxed">
-          Eksport obejmuje profil, zakładki, alerty, historię aktywnosci oraz wszystkie dane
+          Eksport obejmuje profil, zakładki, alerty, historię aktywności oraz wszystkie dane
           powiązane z kontem.
         </p>
       </div>
@@ -300,41 +295,27 @@ function GdprJsonCard() {
 
 export default function ExportPage() {
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-earth-800/80 border border-earth-700/50 flex items-center justify-center">
-          <Download className="w-4.5 h-4.5 text-earth-300" />
+    <PageShell title="Eksport Danych" subtitle="Raporty i eksport do Excel/PDF">
+      <div className="space-y-6 max-w-5xl">
+        {/* Export cards grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <BookmarksCsvCard />
+          <TendersXlsxCard />
+          <GdprJsonCard />
         </div>
-        <div>
-          <h1 className="text-lg font-bold text-earth-100">Eksport danych</h1>
-          <p className="text-xs text-earth-500">
-            Pobierz dane systemowe w wybranym formacie
+
+        {/* Info footer */}
+        <div className="flex items-start gap-3 p-4 rounded-token-lg bg-earth-900/40 border border-earth-800/50">
+          <div className="w-5 h-5 rounded-full bg-earth-700/60 border border-earth-600/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-[10px] font-bold text-earth-400">i</span>
+          </div>
+          <p className="text-xs text-earth-500 leading-relaxed">
+            Pliki są generowane na podstawie aktualnych danych Twojego konta. Eksport RODO
+            zawiera pełne dane zgodnie z art. 20 RODO (prawo do przenoszenia danych).
+            W razie pytań skontaktuj się z administratorem systemu.
           </p>
         </div>
       </div>
-
-      {/* Divider */}
-      <div className="border-t border-earth-800/60" />
-
-      {/* Export cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <BookmarksCsvCard />
-        <TendersXlsxCard />
-        <GdprJsonCard />
-      </div>
-
-      {/* Info footer */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-earth-900/40 border border-earth-800/50">
-        <div className="w-5 h-5 rounded-full bg-earth-700/60 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <span className="text-[10px] font-bold text-earth-400">i</span>
-        </div>
-        <p className="text-xs text-earth-500 leading-relaxed">
-          Pliki sa generowane na podstawie aktualnych danych Twojego konta. Eksport RODO
-          zawiera pelne dane zgodnie z art. 20 RODO (prawo do przenoszenia danych).
-          W razie pytaN skontaktuj sie z administratorem systemu.
-        </p>
-      </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -5,6 +7,9 @@ import {
   FileText, TrendingDown, Bell, Settings, Plus, Trash2,
   ExternalLink, Activity, ToggleLeft, ToggleRight
 } from 'lucide-react';
+import { PageShell } from '@/components/PageShell';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface Suggestion {
   event: string;
@@ -43,14 +48,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   'trending-down': <TrendingDown className="w-4 h-4" />,
 };
 
-const PRIORITY_COLORS: Record<string, string> = {
-  critical: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
-  high: 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100',
-  medium: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
-  low: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100',
+const PRIORITY_TOKEN: Record<string, string> = {
+  critical: 'bg-accent-danger/15 border border-accent-danger/30 text-accent-danger hover:bg-accent-danger/25',
+  high:     'bg-accent-warning/15 border border-accent-warning/30 text-accent-warning hover:bg-accent-warning/25',
+  medium:   'bg-accent-info/15 border border-accent-info/30 text-accent-info hover:bg-accent-info/25',
+  low:      'bg-earth-800/60 border border-earth-700/40 text-earth-400 hover:bg-earth-800',
 };
 
-// ─── Simply-Clever Action Button ─────────────────────────────────────────────
+// ─── Action Button ────────────────────────────────────────────────────────────
 
 function ActionButton({
   suggestion,
@@ -68,9 +73,8 @@ function ActionButton({
       onClick={onTrigger}
       disabled={loading}
       className={`
-        w-full flex items-center gap-3 px-4 py-3 rounded-lg border
-        transition-all duration-200 text-left
-        ${PRIORITY_COLORS[suggestion.priority]}
+        w-full flex items-center gap-3 px-4 py-3 rounded-token transition-all duration-200 text-left
+        ${PRIORITY_TOKEN[suggestion.priority]}
         ${loading ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
       `}
     >
@@ -88,7 +92,7 @@ function ActionButton({
   );
 }
 
-// ─── Smart Suggestions Panel ─────────────────────────────────────────────────
+// ─── Smart Suggestions Panel ──────────────────────────────────────────────────
 
 export function AutomationSuggestions({
   entityType,
@@ -108,7 +112,7 @@ export function AutomationSuggestions({
       .then(r => r.json())
       .then(setSuggestions)
       .catch(() => {});
-  }, [entityType, entityId]);
+  }, [entityType, entityId, authFetch]);
 
   const handleTrigger = async (suggestion: Suggestion) => {
     setLoading(suggestion.event);
@@ -134,7 +138,7 @@ export function AutomationSuggestions({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+      <div className="section-label flex items-center gap-2">
         <Zap className="w-3 h-3" />
         <span>Akcje</span>
       </div>
@@ -147,7 +151,7 @@ export function AutomationSuggestions({
             exit={{ opacity: 0, x: -20 }}
           >
             {triggered.includes(s.event) ? (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+              <div className="flex items-center gap-2 px-4 py-3 rounded-token bg-accent-primary/10 border border-accent-primary/20 text-accent-primary text-sm">
                 <CheckCircle className="w-4 h-4" />
                 <span>{s.label} — wysłano!</span>
               </div>
@@ -165,7 +169,7 @@ export function AutomationSuggestions({
   );
 }
 
-// ─── Webhook Manager (Settings page) ─────────────────────────────────────────
+// ─── Webhook Manager ──────────────────────────────────────────────────────────
 
 export function WebhookManager({
   authFetch,
@@ -216,15 +220,15 @@ export function WebhookManager({
   };
 
   return (
-    <div className="space-y-4">
+    <GlassCard className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Settings className="w-4 h-4" />
+        <h3 className="text-sm font-semibold text-earth-200 flex items-center gap-2">
+          <Settings className="w-4 h-4 text-earth-500" />
           Webhooki n8n
         </h3>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="text-xs px-3 py-1.5 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center gap-1"
+          className="btn-ghost flex items-center gap-1 text-xs px-3 py-1.5"
         >
           <Plus className="w-3 h-3" /> Dodaj
         </button>
@@ -234,25 +238,25 @@ export function WebhookManager({
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
-          className="p-3 rounded-lg border border-indigo-100 bg-indigo-50/50 space-y-2"
+          className="p-3 rounded-token-lg border border-earth-700/40 bg-earth-800/30 space-y-2"
         >
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
             placeholder="Nazwa (np. 'n8n — powiadomienia')"
-            className="w-full px-3 py-2 text-sm rounded border border-gray-200 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200"
+            className="input-base w-full text-sm"
           />
           <input
             value={newUrl}
             onChange={e => setNewUrl(e.target.value)}
             placeholder="URL webhook (np. http://localhost:5678/webhook/...)"
-            className="w-full px-3 py-2 text-sm rounded border border-gray-200 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200"
+            className="input-base w-full text-sm"
           />
           <div className="flex gap-2">
-            <button onClick={addWebhook} className="px-3 py-1.5 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700">
+            <button onClick={addWebhook} className="btn-primary px-3 py-1.5 text-xs">
               Zapisz
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-xs rounded text-gray-500 hover:text-gray-700">
+            <button onClick={() => setShowAdd(false)} className="btn-ghost px-3 py-1.5 text-xs">
               Anuluj
             </button>
           </div>
@@ -261,38 +265,38 @@ export function WebhookManager({
 
       <div className="space-y-2">
         {webhooks.map(wh => (
-          <div key={wh.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 bg-white">
+          <div key={wh.id} className="flex items-center gap-3 px-3 py-2 rounded-token border border-earth-800/60 bg-earth-900/40">
             <button onClick={() => toggleWebhook(wh.id, wh.active)}>
               {wh.active ? (
-                <ToggleRight className="w-5 h-5 text-green-500" />
+                <ToggleRight className="w-5 h-5 text-accent-primary" />
               ) : (
-                <ToggleLeft className="w-5 h-5 text-gray-300" />
+                <ToggleLeft className="w-5 h-5 text-earth-600" />
               )}
             </button>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-800 truncate">{wh.name}</div>
-              <div className="text-xs text-gray-400 truncate">{wh.url}</div>
+              <div className="text-sm font-medium text-earth-200 truncate">{wh.name}</div>
+              <div className="text-xs text-earth-500 truncate">{wh.url}</div>
             </div>
-            <a href={wh.url} target="_blank" rel="noopener" className="text-gray-300 hover:text-gray-500">
+            <a href={wh.url} target="_blank" rel="noopener" className="text-earth-600 hover:text-earth-400 transition-colors">
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
-            <button onClick={() => deleteWebhook(wh.id)} className="text-gray-300 hover:text-red-500">
+            <button onClick={() => deleteWebhook(wh.id)} className="text-earth-600 hover:text-accent-danger transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         ))}
         {!webhooks.length && (
-          <div className="text-center py-6 text-sm text-gray-400">
+          <div className="text-center py-6 text-sm text-earth-500">
             <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
             Brak webhooków. Dodaj URL n8n aby aktywować automatyzacje.
           </div>
         )}
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
-// ─── Event History (Activity Feed) ───────────────────────────────────────────
+// ─── Event History ────────────────────────────────────────────────────────────
 
 export function AutomationHistory({
   authFetch,
@@ -306,37 +310,37 @@ export function AutomationHistory({
       .then(r => r.json())
       .then(setEvents)
       .catch(() => {});
-  }, []);
+  }, [authFetch]);
 
   if (!events.length) return null;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+    <GlassCard className="p-4 space-y-3">
+      <div className="section-label flex items-center gap-2">
         <Activity className="w-3 h-3" />
         <span>Historia automatyzacji</span>
       </div>
       <div className="space-y-1">
         {events.map(ev => (
-          <div key={ev.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded hover:bg-gray-50">
+          <div key={ev.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded-token hover:bg-earth-800/40 transition-colors">
             <div className={`w-1.5 h-1.5 rounded-full ${
-              ev.status === 'delivered' ? 'bg-green-400' :
-              ev.status === 'failed' ? 'bg-red-400' : 'bg-yellow-400'
+              ev.status === 'delivered' ? 'bg-accent-primary' :
+              ev.status === 'failed' ? 'bg-accent-danger' : 'bg-accent-warning'
             }`} />
-            <span className="font-mono text-gray-600">{ev.event}</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-gray-400 truncate">
+            <span className="font-mono text-earth-400">{ev.event}</span>
+            <span className="text-earth-700">|</span>
+            <span className="text-earth-500 truncate">
               {new Date(ev.triggered_at).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
             </span>
             {ev.response_code > 0 && (
-              <span className={`ml-auto font-mono ${ev.response_code < 300 ? 'text-green-500' : 'text-red-500'}`}>
+              <span className={`ml-auto font-mono ${ev.response_code < 300 ? 'text-accent-primary' : 'text-accent-danger'}`}>
                 {ev.response_code}
               </span>
             )}
           </div>
         ))}
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -364,32 +368,32 @@ export function N8nStatusPanel({ authFetch }: { authFetch: (url: string, opts?: 
       .then(r => r.json())
       .then(data => setWorkflows(Array.isArray(data?.workflows) ? data.workflows : []))
       .catch(() => {});
-  }, []);
-
-  const statusColor = status?.healthy ? 'text-green-600' : 'text-red-500';
-  const statusIcon = status?.healthy ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertTriangle className="w-4 h-4 text-red-400" />;
+  }, [authFetch]);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <GlassCard className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 font-semibold text-gray-800 text-sm">
-          <Activity className="w-4 h-4 text-indigo-400" />
+        <div className="flex items-center gap-2 font-semibold text-earth-100 text-sm">
+          <Activity className="w-4 h-4 text-accent-violet" />
           <span>n8n Engine</span>
           {status && (
-            <span className={`text-xs font-normal ${statusColor}`}>
-              {status.healthy ? `v${status.version || '?'} — aktywny` : 'niedostepny'}
-            </span>
+            <StatusBadge
+              status={status.healthy ? 'success' : 'danger'}
+              label={status.healthy ? `v${status.version || '?'} — aktywny` : 'niedostępny'}
+            />
           )}
         </div>
-        {statusIcon}
+        {status && (
+          <div className={`w-2 h-2 rounded-full ${status.healthy ? 'bg-accent-primary shadow-glow' : 'bg-accent-danger'}`} />
+        )}
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
-        <span>Workflows: <strong>{status?.workflow_count ?? workflows.length}</strong></span>
-        <span>Aktywne: <strong>{workflows.filter(w => w.active).length}</strong></span>
+      <div className="flex items-center gap-4 text-xs text-earth-500 mb-3">
+        <span>Workflows: <strong className="text-earth-300">{status?.workflow_count ?? workflows.length}</strong></span>
+        <span>Aktywne: <strong className="text-earth-300">{workflows.filter(w => w.active).length}</strong></span>
         <button
           onClick={() => setExpanded(v => !v)}
-          className="ml-auto text-indigo-500 hover:text-indigo-700 flex items-center gap-1"
+          className="btn-ghost ml-auto flex items-center gap-1 text-xs px-2 py-1"
         >
           <Settings className="w-3 h-3" />
           {expanded ? 'Ukryj' : 'Szczegóły'}
@@ -404,16 +408,16 @@ export function N8nStatusPanel({ authFetch }: { authFetch: (url: string, opts?: 
           className="space-y-2 mt-2"
         >
           {workflows.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">Brak wdrożonych workflow.</p>
+            <p className="text-xs text-earth-600 italic">Brak wdrożonych workflow.</p>
           ) : (
             workflows.map(wf => (
-              <div key={wf.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+              <div key={wf.id} className="flex items-center gap-2 text-xs bg-earth-800/40 rounded-token px-3 py-2">
                 {wf.active
-                  ? <ToggleRight className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  : <ToggleLeft className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  ? <ToggleRight className="w-4 h-4 text-accent-primary flex-shrink-0" />
+                  : <ToggleLeft className="w-4 h-4 text-earth-600 flex-shrink-0" />
                 }
-                <span className="flex-1 truncate text-gray-700">{wf.name}</span>
-                <span className="text-gray-400 font-mono">{wf.id.substring(0, 8)}</span>
+                <span className="flex-1 truncate text-earth-300">{wf.name}</span>
+                <span className="text-earth-600 font-mono">{wf.id.substring(0, 8)}</span>
               </div>
             ))
           )}
@@ -421,14 +425,14 @@ export function N8nStatusPanel({ authFetch }: { authFetch: (url: string, opts?: 
             href="http://localhost:5678"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-indigo-500 hover:underline mt-1"
+            className="flex items-center gap-1 text-xs text-accent-violet hover:underline mt-1"
           >
             <ExternalLink className="w-3 h-3" />
             Otwórz n8n UI
           </a>
         </motion.div>
       )}
-    </div>
+    </GlassCard>
   );
 }
 
@@ -444,17 +448,16 @@ export default function AutomationPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <Zap className="w-6 h-6 text-indigo-500" />
-          Automatyzacje
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Podepnij n8n i uruchamiaj akcje jednym klikiem. Zero konfiguracji, maximum efekt.
-        </p>
-      </div>
-
+    <PageShell
+      title="Automatyzacja"
+      subtitle="Reguły i workflow AI"
+      actions={
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-token bg-accent-violet/10 border border-accent-violet/20 text-accent-violet text-xs font-medium">
+          <Zap className="w-3.5 h-3.5" />
+          n8n połączony
+        </div>
+      }
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <N8nStatusPanel authFetch={authFetch} />
@@ -464,6 +467,6 @@ export default function AutomationPage() {
           <AutomationHistory authFetch={authFetch} />
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
