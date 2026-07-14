@@ -27,12 +27,17 @@ interface DashboardData {
 }
 
 interface SearchResult {
+  id: number;
   nazwa: string;
-  symbol: string;
-  cena_netto: number;
-  qoq_change_pct: number | null;
-  kategoria: string;
+  symbol: string | null;
+  indeks_eto: string | null;
+  typ_rms: string;
   jednostka: string;
+  cena_netto: number;
+  cena_narzut: number;
+  category: string;
+  qoq_change_pct: number | null;
+  prev_quarter_price: number | null;
 }
 
 interface SearchResponse {
@@ -540,131 +545,267 @@ function DashboardTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  TAB 2 — Szukaj
+//  TAB 2 — Szukaj  (state-of-art: debounce + filtry + QoQ trend + narzut)
 // ─────────────────────────────────────────────────────────────────────────────
+
+const TYP_OPTIONS = [
+  { value: '', label: 'Wszystkie (R/M/S)' },
+  { value: 'R', label: 'R — Robocizna' },
+  { value: 'M', label: 'M — Materiał' },
+  { value: 'S', label: 'S — Sprzęt' },
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  beton_cement: 'Beton / cement',
+  stal_konstrukcyjna: 'Stal',
+  drewno: 'Drewno',
+  kruszywa_ziemne: 'Kruszywa',
+  nawierzchnie: 'Nawierzchnie',
+  instalacje_wod_kan: 'Inst. wod-kan',
+  ogrzewanie: 'Ogrzewanie',
+  elektryka: 'Elektryka',
+  izolacja_termo: 'Izolacja',
+  malowanie: 'Malowanie',
+  plytki_ceramiczne: 'Płytki',
+  stolarka: 'Stolarka',
+  murarstwo: 'Murarstwo',
+  wentylacja_klima: 'Wentylacja',
+  inne: 'Inne',
+};
 
 function SzukajTab() {
   const authFetch = useAuthFetch();
-  const [query, setQuery] = useState('');
   const [inputVal, setInputVal] = useState('');
+  const [typRms, setTypRms] = useState('');
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<'cena_netto' | 'nazwa' | 'qoq_change_pct'>('cena_netto');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) return;
+  const doSearch = useCallback(async (q: string, typ: string) => {
+    if (q.trim().length < 2) return;
     setLoading(true);
     setError(null);
-    setResult(null);
     try {
-      const res = await authFetch(`/api/v2/icb/search?q=${encodeURIComponent(q.trim())}`);
+      const params = new URLSearchParams({ q: q.trim(), limit: '50' });
+      if (typ) params.set('typ_rms', typ);
+      const res = await authFetch(`/api/v2/icb/search?${params.toString()}`);
       setResult(res as SearchResponse);
     } catch (e: any) {
       setError(e.message || 'Błąd wyszukiwania');
+      setResult(null);
     } finally {
       setLoading(false);
     }
   }, [authFetch]);
 
-  const handleSubmit = () => {
-    setQuery(inputVal);
-    doSearch(inputVal);
+  // Debounced search — fires 400ms after last keystroke
+  const handleInput = (val: string) => {
+    setInputVal(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.trim().length >= 2) {
+      debounceRef.current = setTimeout(() => doSearch(val, typRms), 400);
+    } else if (val.trim().length === 0) {
+      setResult(null);
+      setError(null);
+    }
+  };
+
+  const handleTypChange = (typ: string) => {
+    setTypRms(typ);
+    if (inputVal.trim().length >= 2) doSearch(inputVal, typ);
+  };
+
+  const sortedResults = result?.results ? [...result.results].sort((a, b) => {
+    let va: any = a[sortField] ?? (sortDir === 'asc' ? Infinity : -Infinity);
+    let vb: any = b[sortField] ?? (sortDir === 'asc' ? Infinity : -Infinity);
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    return sortDir === 'asc' ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+  }) : [];
+
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('desc'); }
+  };
+
+  const SortIcon = ({ field }: { field: typeof sortField }) => {
+    if (sortField !== field) return <Minus size={10} className="text-earth-600 ml-1 inline" />;
+    return sortDir === 'desc'
+      ? <ChevronDown size={10} className="text-accent-info ml-1 inline" />
+      : <ChevronUp size={10} className="text-accent-info ml-1 inline" />;
   };
 
   return (
-    <div className="space-y-5">
-      {/* Search bar */}
-      <GlassCard className="p-5">
+    <div className="space-y-4">
+      {/* ── Search bar + filters ── */}
+      <GlassCard className="p-5 space-y-3">
         <div className="flex gap-3">
           <div className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-earth-400 pointer-events-none" />
             <input
               type="text"
               value={inputVal}
-              onChange={e => setInputVal(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              placeholder="Szukaj materiału, symbolu lub kategorii…"
-              className="w-full bg-earth-900/60 border border-earth-800 rounded-token pl-9 pr-4 py-2.5 text-sm text-earth-100 placeholder-earth-500 focus:outline-none focus:border-accent-info/60 focus:ring-1 focus:ring-accent-info/30 transition-all"
+              onChange={e => handleInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doSearch(inputVal, typRms)}
+              placeholder="Szukaj materiału, symbolu, indeksu ETO… (min. 2 znaki)"
+              className="w-full bg-earth-900/60 border border-earth-800 rounded-token pl-9 pr-10 py-2.5 text-sm text-earth-100 placeholder-earth-500 focus:outline-none focus:border-accent-info/60 focus:ring-1 focus:ring-accent-info/30 transition-all"
             />
+            {inputVal && (
+              <button
+                onClick={() => { setInputVal(''); setResult(null); setError(null); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-earth-500 hover:text-earth-300 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <button
-            onClick={handleSubmit}
-            disabled={loading || !inputVal.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 btn-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-token text-sm font-medium transition-colors"
+            onClick={() => doSearch(inputVal, typRms)}
+            disabled={loading || inputVal.trim().length < 2}
+            className="flex items-center gap-2 px-5 py-2.5 btn-primary disabled:opacity-40 disabled:cursor-not-allowed rounded-token text-sm font-medium transition-colors"
           >
             {loading ? <Spinner size={14} /> : <Search size={14} />}
             Szukaj
           </button>
         </div>
+        {/* Filters row */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-earth-500 mr-1">Filtr:</span>
+          {TYP_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => handleTypChange(opt.value)}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                typRms === opt.value
+                  ? 'border-accent-info bg-accent-info/10 text-accent-info'
+                  : 'border-earth-700 text-earth-400 hover:border-earth-500 hover:text-earth-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {result && (
+            <span className="ml-auto text-xs text-earth-500">
+              {result.count} wyników · <span className="text-earth-400">{result.quarter}</span>
+            </span>
+          )}
+        </div>
       </GlassCard>
 
-      {/* Results */}
+      {/* ── Results ── */}
       <AnimatePresence mode="wait">
         {loading && (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="flex justify-center py-12">
-            <Spinner size={32} />
+            className="flex justify-center py-16">
+            <div className="flex flex-col items-center gap-3">
+              <Spinner size={32} />
+              <span className="text-xs text-earth-500">Przeszukuję 784 000 pozycji…</span>
+            </div>
           </motion.div>
         )}
         {error && !loading && (
           <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <ErrorBox message={error} onRetry={() => doSearch(query)} />
+            <ErrorBox message={error} onRetry={() => doSearch(inputVal, typRms)} />
           </motion.div>
         )}
         {result && !loading && (
-          <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <GlassCard className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-earth-100">
-                    Wyniki: <span className="text-accent-info">{result.count}</span>
-                  </span>
-                  {result.quarter && (
-                    <span className="text-xs bg-earth-800 text-earth-300 px-2 py-0.5 rounded-full">
-                      Kwartał: {result.quarter}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {result.results?.length === 0 ? (
-                <div className="text-center py-10 text-earth-400 text-sm">
-                  Brak wyników dla: <span className="text-earth-200 font-medium">"{query}"</span>
-                </div>
-              ) : (
+          <motion.div key="result" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+            {sortedResults.length === 0 ? (
+              <GlassCard className="p-10 text-center">
+                <Database size={32} className="mx-auto mb-3 text-earth-600" />
+                <p className="text-sm text-earth-400">
+                  Brak wyników dla: <span className="text-earth-200 font-medium">„{inputVal}"</span>
+                </p>
+                <p className="text-xs text-earth-600 mt-1">Spróbuj innej frazy lub zmień filtr R/M/S</p>
+              </GlassCard>
+            ) : (
+              <GlassCard className="p-0 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-earth-800">
-                        {['Nazwa', 'Symbol', 'Cena netto', 'QoQ %', 'Kategoria', 'Jedn.'].map(h => (
-                          <th key={h} className="pb-2 text-left text-xs text-earth-400 font-medium pr-4 whitespace-nowrap">{h}</th>
-                        ))}
+                      <tr className="border-b border-earth-800 bg-earth-900/40">
+                        <th className="pl-5 pr-4 py-3 text-left text-xs text-earth-400 font-medium w-[38%]">
+                          <button onClick={() => toggleSort('nazwa')} className="flex items-center hover:text-earth-200 transition-colors">
+                            Nazwa <SortIcon field="nazwa" />
+                          </button>
+                        </th>
+                        <th className="pr-4 py-3 text-left text-xs text-earth-400 font-medium">Typ</th>
+                        <th className="pr-4 py-3 text-left text-xs text-earth-400 font-medium">Symbol / ETO</th>
+                        <th className="pr-4 py-3 text-left text-xs text-earth-400 font-medium">
+                          <button onClick={() => toggleSort('cena_netto')} className="flex items-center hover:text-earth-200 transition-colors">
+                            Cena netto <SortIcon field="cena_netto" />
+                          </button>
+                        </th>
+                        <th className="pr-4 py-3 text-left text-xs text-earth-400 font-medium">Z narzutem</th>
+                        <th className="pr-4 py-3 text-left text-xs text-earth-400 font-medium">
+                          <button onClick={() => toggleSort('qoq_change_pct')} className="flex items-center hover:text-earth-200 transition-colors">
+                            QoQ <SortIcon field="qoq_change_pct" />
+                          </button>
+                        </th>
+                        <th className="pr-4 py-3 text-left text-xs text-earth-400 font-medium">Kategoria</th>
+                        <th className="pr-5 py-3 text-left text-xs text-earth-400 font-medium">Jedn.</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {result.results.map((r, i) => (
+                      {sortedResults.map((r, i) => (
                         <tr
-                          key={i}
-                          className="border-b border-earth-800/40 hover:bg-accent-info/5 transition-colors cursor-default"
+                          key={r.id ?? i}
+                          className="border-b border-earth-800/40 hover:bg-accent-info/5 transition-colors"
                         >
-                          <td className="py-2 pr-4 text-earth-100 max-w-[200px] truncate" title={r.nazwa}>{r.nazwa}</td>
-                          <td className="py-2 pr-4 font-mono text-xs text-accent-info">{r.symbol}</td>
-                          <td className="py-2 pr-4 text-earth-100 whitespace-nowrap font-medium">{fmtPLN(r.cena_netto)}</td>
-                          <td className={`py-2 pr-4 whitespace-nowrap font-medium ${
-                            r.qoq_change_pct == null ? 'text-earth-500' :
-                            r.qoq_change_pct > 0 ? 'text-accent-danger' :
-                            r.qoq_change_pct < 0 ? 'text-accent-success' : 'text-earth-400'
-                          }`}>
-                            {r.qoq_change_pct == null ? '—' : fmtPct(r.qoq_change_pct)}
+                          <td className="pl-5 pr-4 py-2.5 text-earth-100 max-w-[260px]" title={r.nazwa}>
+                            <span className="line-clamp-2 leading-tight">{r.nazwa}</span>
                           </td>
-                          <td className="py-2 pr-4 text-earth-300 text-xs max-w-[120px] truncate" title={r.kategoria}>{r.kategoria}</td>
-                          <td className="py-2 text-earth-400 text-xs">{r.jednostka}</td>
+                          <td className="pr-4 py-2.5">
+                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                              r.typ_rms === 'R' ? 'bg-blue-500/15 text-blue-400' :
+                              r.typ_rms === 'M' ? 'bg-green-500/15 text-green-400' :
+                              'bg-orange-500/15 text-orange-400'
+                            }`}>{r.typ_rms}</span>
+                          </td>
+                          <td className="pr-4 py-2.5">
+                            <div className="flex flex-col gap-0.5">
+                              {r.symbol && <span className="font-mono text-xs text-accent-info">{r.symbol}</span>}
+                              {r.indeks_eto && <span className="font-mono text-xs text-earth-500">{r.indeks_eto}</span>}
+                              {!r.symbol && !r.indeks_eto && <span className="text-earth-600 text-xs">—</span>}
+                            </div>
+                          </td>
+                          <td className="pr-4 py-2.5 text-earth-100 whitespace-nowrap font-medium tabular-nums">
+                            {fmtPLN(r.cena_netto)}
+                          </td>
+                          <td className="pr-4 py-2.5 text-earth-300 whitespace-nowrap tabular-nums text-xs">
+                            {fmtPLN(r.cena_narzut)}
+                          </td>
+                          <td className={`pr-4 py-2.5 whitespace-nowrap font-medium tabular-nums text-xs ${
+                            r.qoq_change_pct == null ? 'text-earth-600' :
+                            r.qoq_change_pct > 0 ? 'text-red-400' :
+                            r.qoq_change_pct < 0 ? 'text-green-400' : 'text-earth-400'
+                          }`}>
+                            {r.qoq_change_pct == null ? '—' : (
+                              <span className="flex items-center gap-0.5">
+                                {r.qoq_change_pct > 0 ? <ArrowUpRight size={10} /> : r.qoq_change_pct < 0 ? <ArrowDownRight size={10} /> : null}
+                                {fmtPct(r.qoq_change_pct)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="pr-4 py-2.5 text-earth-400 text-xs whitespace-nowrap">
+                            {CATEGORY_LABELS[r.category] ?? r.category}
+                          </td>
+                          <td className="pr-5 py-2.5 text-earth-500 text-xs">{r.jednostka}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              )}
-            </GlassCard>
+                {result.count > 50 && (
+                  <div className="px-5 py-3 border-t border-earth-800 text-xs text-earth-500 text-center">
+                    Pokazuję top 50 z {result.count} wyników — zawęź zapytanie, aby zobaczyć więcej
+                  </div>
+                )}
+              </GlassCard>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
