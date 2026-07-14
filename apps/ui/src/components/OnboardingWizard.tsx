@@ -102,7 +102,7 @@ interface OnboardingWizardProps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
-  const { user, accessToken } = useStore();
+  const { user, accessToken, setAuth, refreshToken } = useStore();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -150,12 +150,36 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   async function handleStart() {
     setLoading(true);
     try {
-      if (user?.org_id && accessToken) {
-        const headers = {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        };
-        await fetch(`/api/v2/organizations/${user.org_id}`, {
+      if (!accessToken || !user) throw new Error('Brak sesji');
+
+      const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      };
+
+      let orgId = user.org_id;
+
+      // Jeśli user nie ma org — utwórz przez onboarding/start
+      if (!orgId) {
+        const res = await fetch('/api/v2/onboarding/start', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            org_name: formData.name.trim() || 'Moja Firma',
+            email: user.email,
+            cpv_codes: formData.cpv,
+            regions: formData.regions,
+          }),
+        });
+        const data = await res.json();
+        if (data.org_id) {
+          orgId = data.org_id;
+          // Zaktualizuj store żeby user.org_id był wypełniony
+          setAuth({ ...user, org_id: orgId }, accessToken, refreshToken ?? '');
+        }
+      } else {
+        // Org już istnieje — zaktualizuj CPV i regiony
+        await fetch(`/api/v2/organizations/${orgId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({
@@ -163,11 +187,16 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             regions: formData.regions,
           }),
         }).catch(() => {});
+      }
+
+      // Uruchom ingest jeśli mamy org
+      if (orgId) {
         await fetch('/api/v1/ingest/run', {
           method: 'POST',
           headers,
         }).catch(() => {});
       }
+
       showToast('success', 'Profil zapisany. Pierwsze przetargi pojawiają się za chwilę.');
       onComplete();
     } catch {
