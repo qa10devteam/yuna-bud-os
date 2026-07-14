@@ -81,7 +81,7 @@ class MLScorer:
                         or_.final_value_pln,
                         or_.cpv_code,
                         t.deadline_at,
-                        t.buyer_nip
+                        t.buyer_name
                     FROM offer_result or_
                     LEFT JOIN tender t ON t.id = or_.tender_id
                     WHERE or_.status IN ('won', 'lost')

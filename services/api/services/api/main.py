@@ -325,7 +325,7 @@ app.add_middleware(TenantMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -628,6 +628,6 @@ async def v1_tenders_list(_req: _Request):
     target = f"/api/v2/tenders{'?' + qs if qs else ''}"
     token = _req.headers.get("authorization", "")
     import httpx as _httpx
-    async with _httpx.AsyncClient(base_url="http://127.0.0.1:8765") as client:
+    async with _httpx.AsyncClient(base_url="http://127.0.0.1:8000") as client:
         resp = await client.get(target, headers={"Authorization": token})
     return _JSONResponse(content=resp.json(), status_code=resp.status_code)

@@ -24,62 +24,43 @@ def upsert_tender(
     match_reason: str,
     tenant_id: str,
 ) -> tuple[str, bool]:
-    """Upsert tender. Returns (tender_id, created: bool). Idempotent."""
+    """Upsert tender. Returns (tender_id, created: bool). Idempotent.
+
+    Uses INSERT … ON CONFLICT (tenant_id, source, external_id) DO UPDATE SET
+    to avoid UniqueViolation race conditions in parallel ingestion workers.
+    """
     now = datetime.now(timezone.utc)
     raw_json = json.dumps(tender.raw, ensure_ascii=False, default=str)
+    new_id = str(uuid.uuid4())
+    cpv_literal = "{" + ",".join(tender.cpv) + "}"
 
     with engine.begin() as conn:
-        row = conn.execute(
-            sa.text(
-                "SELECT id FROM tender "
-                "WHERE tenant_id = :tenant_id AND source = :source AND external_id = :ext_id"
-            ),
-            {"tenant_id": tenant_id, "source": tender.source, "ext_id": tender.external_id},
-        ).fetchone()
-
-        if row:
-            # UPDATE — avoid ::cast by using sa.cast via raw SQL with ARRAY literal
-            conn.execute(
-                sa.text(
-                    "UPDATE tender SET "
-                    "  title=:title, buyer=:buyer, voivodeship=:voivodeship, "
-                    "  nuts_code=:nuts_code, "
-                    "  value_pln=:value_pln, deadline_at=:deadline_at, "
-                    "  published_at=:published_at, url=:url, "
-                    "  match_score=:match_score, match_reason=:match_reason, "
-                    "  raw=cast(:raw as jsonb), cpv=cast(:cpv as text[]) "
-                    "WHERE id=:id"
-                ),
-                {
-                    "id": str(row[0]),
-                    "title": tender.title,
-                    "buyer": tender.buyer,
-                    "voivodeship": tender.voivodeship,
-                    "nuts_code": getattr(tender, "nuts_code", None),
-                    "value_pln": float(tender.value_pln) if tender.value_pln else None,
-                    "deadline_at": tender.deadline_at,
-                    "published_at": tender.published_at,
-                    "url": tender.url,
-                    "match_score": match_score,
-                    "match_reason": match_reason,
-                    "raw": raw_json,
-                    "cpv": "{" + ",".join(tender.cpv) + "}",
-                },
-            )
-            return str(row[0]), False
-
-        new_id = str(uuid.uuid4())
-        conn.execute(
+        result = conn.execute(
             sa.text(
                 "INSERT INTO tender "
                 "(id, tenant_id, source, external_id, title, buyer, cpv, "
                 " voivodeship, nuts_code, value_pln, deadline_at, published_at, url, "
-                " status, match_score, match_reason, raw, created_at) "
+                " status, match_score, match_reason, raw, created_at, updated_at) "
                 "VALUES "
                 "(:id, :tenant_id, :source, :ext_id, :title, :buyer, cast(:cpv as text[]), "
                 " :voivodeship, :nuts_code, :value_pln, :deadline_at, :published_at, :url, "
                 " cast(:status as tender_status), :match_score, :match_reason, "
-                " cast(:raw as jsonb), :created_at)"
+                " cast(:raw as jsonb), :created_at, :created_at) "
+                "ON CONFLICT (tenant_id, source, external_id) DO UPDATE SET "
+                "  title         = EXCLUDED.title, "
+                "  buyer         = EXCLUDED.buyer, "
+                "  cpv           = EXCLUDED.cpv, "
+                "  voivodeship   = EXCLUDED.voivodeship, "
+                "  nuts_code     = EXCLUDED.nuts_code, "
+                "  value_pln     = EXCLUDED.value_pln, "
+                "  deadline_at   = EXCLUDED.deadline_at, "
+                "  published_at  = EXCLUDED.published_at, "
+                "  url           = EXCLUDED.url, "
+                "  match_score   = EXCLUDED.match_score, "
+                "  match_reason  = EXCLUDED.match_reason, "
+                "  raw           = EXCLUDED.raw, "
+                "  updated_at    = EXCLUDED.updated_at "
+                "RETURNING id, (xmax = 0) AS created"
             ),
             {
                 "id": new_id,
@@ -88,7 +69,7 @@ def upsert_tender(
                 "ext_id": tender.external_id,
                 "title": tender.title,
                 "buyer": tender.buyer,
-                "cpv": "{" + ",".join(tender.cpv) + "}",
+                "cpv": cpv_literal,
                 "voivodeship": tender.voivodeship,
                 "nuts_code": getattr(tender, "nuts_code", None),
                 "value_pln": float(tender.value_pln) if tender.value_pln else None,
@@ -102,7 +83,10 @@ def upsert_tender(
                 "created_at": now,
             },
         )
-        return new_id, True
+        row = result.fetchone()
+        returned_id = str(row[0])
+        created = bool(row[1])
+        return returned_id, created
 
 
 def get_or_create_default_tenant(engine: Engine) -> str:
@@ -129,4 +113,3 @@ def get_or_create_default_tenant(engine: Engine) -> str:
             {"id": new_id, "name": "Default Tenant"},
         )
         return new_id
-

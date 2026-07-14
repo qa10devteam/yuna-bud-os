@@ -271,6 +271,10 @@ def ingest_run(
     t.start()
     logger.info("Ingest task %s started (thread %s)", task_id, t.name)
 
+    # P0-fix: offline mode runs synchronously so tests & CI don't race the thread
+    if params.get("offline"):
+        t.join(timeout=30)
+
     return IngestTaskResponse(
         task_id=task_id, status="pending",
         progress={"step": "pending", "pct": 0, "message": "Oczekiwanie na start..."},

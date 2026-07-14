@@ -51,14 +51,15 @@ sleep 10
 # ── Stage 3: BIP connector ───────────────────────────────────────────────────
 log "--- Stage 3: BIP connector (workers=10, max-sites=500) ---"
 (
-    cd "$BIP_DIR"
+    # Run as module from repo root to resolve relative imports
+    cd /home/ubuntu/terra-os
     export PYTHONPATH="$PYTHONPATH_INGEST"
     export DEFAULT_TENANT_ID="$TENANT_ID"
     export DB_HOST="${DB_HOST:-127.0.0.1}"
     export DB_PORT="${DB_PORT:-5432}"
     export DB_NAME="${DB_NAME:-terraos}"
     export DB_USER="${DB_USER:-terraos}"
-    "$PYTHON" bip_connector.py \
+    "$PYTHON" -m services.ingestion.bip_connector \
         --workers 10 \
         --max-sites 500 \
         --tenant-id "$TENANT_ID" \

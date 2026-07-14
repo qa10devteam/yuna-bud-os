@@ -50,8 +50,10 @@ os.environ["DB_PORT"] = os.getenv("DB_PORT", "5432")
 os.environ["DB_NAME"] = os.getenv("DB_NAME", "terraos")
 os.environ["DB_USER"] = os.getenv("DB_USER", "terraos")
 os.environ["DB_PASSWORD"] = os.getenv("DB_PASSWORD", "terra_dev_2026")
-# Pin ingestion to the demo org so tender.tenant_id == demo user's org_id
-os.environ["DEFAULT_TENANT_ID"] = os.getenv("DEFAULT_TENANT_ID", "ec3d1e16-2139-48c2-93b5-ffe0defd606d")
+# Pin ingestion to demo user's TENANT_ID (c4879c87…) — NOT the org_id.
+# tenders_v2 resolves org_id→tenant_id via organizations.tenant_id, so ingest
+# must write to the same tenant_id or GET /tenders returns 0 results.
+os.environ["DEFAULT_TENANT_ID"] = os.getenv("DEFAULT_TENANT_ID", "c4879c87-016c-4580-b913-212c904c20fd")
 
 # Bust lru_cache on get_engine so any cached engine with wrong creds is evicted
 try:
