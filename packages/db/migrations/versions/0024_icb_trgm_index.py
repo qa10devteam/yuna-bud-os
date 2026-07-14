@@ -15,14 +15,14 @@ depends_on = None
 def upgrade() -> None:
     # Ensure pg_trgm extension exists
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-    # GIN index for fast similarity/ILIKE search on nazwa
+    # GIN index for fast similarity/ILIKE search on nazwa (no CONCURRENTLY in transaction)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_icb_nazwa_trgm
+        CREATE INDEX IF NOT EXISTS idx_icb_nazwa_trgm
         ON icb_ceny_srednie USING GIN (nazwa gin_trgm_ops)
     """)
     # Composite index for quarter + typ_rms filters (most common query pattern)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_icb_quarter_typ
+        CREATE INDEX IF NOT EXISTS idx_icb_quarter_typ
         ON icb_ceny_srednie (kwartalrok DESC, kwartalnr DESC, typ_rms)
     """)
 

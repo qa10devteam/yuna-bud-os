@@ -8,6 +8,7 @@ import {
   Mail, XCircle, Plus, RefreshCw, CheckCircle2,
   ChevronRight, Tag, MapPin, Calendar, Hash, Target,
   SlidersHorizontal, Zap, TrendingUp,
+  CreditCard, Key, Webhook, Copy, ExternalLink, AlertCircle,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuthFetch } from '@/lib/api-v2';
@@ -16,7 +17,7 @@ import { PageShell } from '@/components/PageShell';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type SectionId = 'organizacja' | 'zespol' | 'zaproszenia' | 'ustawienia' | 'scoring' | 'uzycie';
+type SectionId = 'organizacja' | 'zespol' | 'zaproszenia' | 'ustawienia' | 'scoring' | 'uzycie' | 'billing' | 'api_keys' | 'webhooks';
 
 interface OrgData {
   id: string;
@@ -71,12 +72,15 @@ interface RescoreResult {
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof Building2 }[] = [
-  { id: 'organizacja', label: 'Organizacja',  icon: Building2 },
-  { id: 'zespol',      label: 'Zespol',       icon: Users     },
-  { id: 'zaproszenia', label: 'Zaproszenia',  icon: Send      },
-  { id: 'ustawienia',  label: 'Ustawienia',   icon: Settings2 },
-  { id: 'scoring',     label: 'Scoring AI',   icon: Target    },
-  { id: 'uzycie',      label: 'Użycie',       icon: Zap       },
+  { id: 'organizacja', label: 'Organizacja',  icon: Building2  },
+  { id: 'zespol',      label: 'Zespol',       icon: Users      },
+  { id: 'zaproszenia', label: 'Zaproszenia',  icon: Send       },
+  { id: 'ustawienia',  label: 'Ustawienia',   icon: Settings2  },
+  { id: 'scoring',     label: 'Scoring AI',   icon: Target     },
+  { id: 'billing',     label: 'Billing',      icon: CreditCard },
+  { id: 'api_keys',    label: 'API Keys',     icon: Key        },
+  { id: 'webhooks',    label: 'Webhooki',     icon: Webhook    },
+  { id: 'uzycie',      label: 'Użycie',       icon: Zap        },
 ];
 
 const CPV_OPTIONS = [
@@ -1201,6 +1205,387 @@ function UsageSection() {
   );
 }
 
+// ─── Billing Section ────────────────────────────────────────────────────────
+
+interface BillingPlan {
+  id: string;
+  name: string;
+  status: 'active' | 'trialing' | 'past_due' | 'canceled';
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  features: string[];
+  seats: number;
+}
+
+function BillingSection() {
+  const authFetch = useAuthFetch();
+  const [sub, setSub] = useState<BillingPlan | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    authFetch('/api/v2/billing/subscription')
+      .then(d => setSub(d as BillingPlan))
+      .catch((e: unknown) => setError((e as Error).message ?? 'Błąd pobierania subskrypcji'))
+      .finally(() => setLoading(false));
+  }, [authFetch]);
+
+  const STATUS_CFG: Record<string, { label: string; className: string }> = {
+    active:   { label: 'Aktywna',        className: 'bg-accent-primary/15 text-accent-primary' },
+    trialing: { label: 'Trial',          className: 'bg-accent-info/15 text-accent-info' },
+    past_due: { label: 'Nieopłacona',    className: 'bg-accent-danger/15 text-accent-danger' },
+    canceled: { label: 'Anulowana',      className: 'bg-earth-700/30 text-earth-500' },
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 animate-spin text-accent-primary" /></div>;
+  if (error) return <GlassCard className="p-6 text-center"><p className="text-accent-danger text-sm flex items-center justify-center gap-2"><AlertCircle className="w-4 h-4" />{error}</p></GlassCard>;
+
+  return (
+    <div className="space-y-4">
+      <GlassCard className="p-6">
+        <h3 className="text-sm font-semibold text-earth-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-accent-primary" /> Plan i subskrypcja
+        </h3>
+        {sub ? (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-earth-100 font-bold text-lg">{sub.name}</span>
+                  {sub.status && STATUS_CFG[sub.status] && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_CFG[sub.status].className}`}>
+                      {STATUS_CFG[sub.status].label}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-earth-500 mt-1">
+                  {sub.seats} stanowisk · Odnowienie: {sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString('pl-PL') : '—'}
+                  {sub.cancel_at_period_end && <span className="text-accent-warning ml-2">· Anuluje się na koniec okresu</span>}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const data = await authFetch('/api/v2/billing/checkout-url') as { url?: string };
+                    if (data?.url) window.open(data.url, '_blank');
+                  } catch { /* noop */ }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-accent-primary/10 text-accent-primary hover:bg-accent-primary/20 rounded-token-lg transition-colors border border-accent-primary/20"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Zarządzaj
+              </button>
+            </div>
+            {sub.features && sub.features.length > 0 && (
+              <div>
+                <p className="text-xs text-earth-600 mb-2 font-medium">Dostępne funkcje:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sub.features.map(f => (
+                    <span key={f} className="text-xs bg-earth-800/50 text-earth-400 border border-earth-700/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-accent-primary" /> {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-earth-500">Brak danych subskrypcji</p>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
+
+// ─── API Keys Section ────────────────────────────────────────────────────────
+
+interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  created_at: string;
+  last_used_at: string | null;
+}
+
+interface ApiKeyCreated extends ApiKey {
+  plaintext_key?: string;
+}
+
+function APIKeysSection() {
+  const authFetch = useAuthFetch();
+  const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await authFetch('/api/v2/api-keys') as ApiKey[];
+      setKeys(Array.isArray(data) ? data : []);
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Błąd pobierania kluczy API');
+    } finally {
+      setLoading(false);
+    }
+  }, [authFetch]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const create = async () => {
+    if (!newKeyName.trim()) return;
+    setCreating(true);
+    try {
+      const data = await authFetch('/api/v2/api-keys', {
+        method: 'POST',
+        body: JSON.stringify({ name: newKeyName.trim(), scopes: ['read'] }),
+      }) as ApiKeyCreated;
+      setCreatedKey(data);
+      setKeys(prev => [data, ...prev]);
+      setNewKeyName('');
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Błąd tworzenia klucza');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const deleteKey = async (id: string) => {
+    try {
+      await authFetch(`/api/v2/api-keys/${id}`, { method: 'DELETE' });
+      setKeys(prev => prev.filter(k => k.id !== id));
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Błąd usuwania klucza');
+    }
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 animate-spin text-accent-primary" /></div>;
+
+  return (
+    <div className="space-y-4">
+      {/* New key created banner */}
+      {createdKey?.plaintext_key && (
+        <GlassCard className="p-4 border border-accent-warning/30 bg-accent-warning/5">
+          <p className="text-xs text-accent-warning font-semibold mb-2 flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5" /> Zapisz klucz — nie będzie widoczny ponownie!
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 bg-earth-950 rounded px-3 py-2 text-xs text-earth-200 font-mono truncate">
+              {createdKey.plaintext_key}
+            </code>
+            <button
+              onClick={() => { navigator.clipboard.writeText(createdKey.plaintext_key!); }}
+              className="p-2 text-earth-400 hover:text-accent-primary transition-colors"
+              title="Kopiuj klucz"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+          <button onClick={() => setCreatedKey(null)} className="text-xs text-earth-600 hover:text-earth-400 mt-2 transition-colors">Zamknij</button>
+        </GlassCard>
+      )}
+
+      {error && <p className="text-xs text-accent-danger">{error}</p>}
+
+      {/* Create new key */}
+      <GlassCard className="p-6">
+        <h3 className="text-sm font-semibold text-earth-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <Key className="w-4 h-4 text-accent-primary" /> Klucze API
+        </h3>
+        <div className="flex gap-2 mb-4">
+          <input
+            className="input-base flex-1"
+            placeholder="Nazwa klucza (np. CI/CD pipeline)"
+            value={newKeyName}
+            onChange={e => setNewKeyName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && create()}
+          />
+          <button
+            onClick={create}
+            disabled={creating || !newKeyName.trim()}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-accent-primary text-earth-950 font-semibold rounded-token-lg hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+          >
+            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Utwórz
+          </button>
+        </div>
+
+        {keys.length === 0 ? (
+          <p className="text-sm text-earth-600 py-4 text-center">Brak kluczy API</p>
+        ) : (
+          <div className="space-y-2">
+            {keys.map(k => (
+              <div key={k.id} className="flex items-center gap-3 p-3 bg-earth-800/40 rounded-token border border-earth-700/30">
+                <Key className="w-3.5 h-3.5 text-earth-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-earth-200 font-medium">{k.name}</div>
+                  <div className="text-xs text-earth-600 flex items-center gap-2">
+                    <code className="font-mono">{k.prefix}****</code>
+                    <span>·</span>
+                    <span>{new Date(k.created_at).toLocaleDateString('pl-PL')}</span>
+                    {k.last_used_at && <span>· Użyty: {new Date(k.last_used_at).toLocaleDateString('pl-PL')}</span>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  {k.scopes.map(s => (
+                    <span key={s} className="text-[10px] px-1.5 py-0.5 bg-earth-700/50 text-earth-400 rounded">{s}</span>
+                  ))}
+                </div>
+                <button
+                  onClick={() => deleteKey(k.id)}
+                  className="p-1.5 text-earth-600 hover:text-accent-danger transition-colors"
+                  title="Usuń klucz"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
+
+// ─── Webhooks Section ────────────────────────────────────────────────────────
+
+interface WebhookOut {
+  id: string;
+  url: string;
+  events: string[];
+  is_active: boolean;
+  created_at: string;
+  last_triggered_at: string | null;
+}
+
+function WebhooksSection() {
+  const authFetch = useAuthFetch();
+  const [webhooks, setWebhooks] = useState<WebhookOut[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({ url: '', events: 'tender.new,alert.match' });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await authFetch('/api/v3/webhooks') as WebhookOut[];
+      setWebhooks(Array.isArray(data) ? data : []);
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Błąd pobierania webhooków');
+    } finally {
+      setLoading(false);
+    }
+  }, [authFetch]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const create = async () => {
+    if (!form.url.trim()) return;
+    setCreating(true);
+    try {
+      const events = form.events.split(',').map(s => s.trim()).filter(Boolean);
+      const data = await authFetch('/api/v3/webhooks', {
+        method: 'POST',
+        body: JSON.stringify({ url: form.url.trim(), events }),
+      }) as WebhookOut;
+      setWebhooks(prev => [data, ...prev]);
+      setForm({ url: '', events: 'tender.new,alert.match' });
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Błąd tworzenia webhooka');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const deleteWebhook = async (id: string) => {
+    try {
+      await authFetch(`/api/v3/webhooks/${id}`, { method: 'DELETE' });
+      setWebhooks(prev => prev.filter(w => w.id !== id));
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Błąd usuwania webhooka');
+    }
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 animate-spin text-accent-primary" /></div>;
+
+  return (
+    <div className="space-y-4">
+      {error && <p className="text-xs text-accent-danger">{error}</p>}
+      <GlassCard className="p-6">
+        <h3 className="text-sm font-semibold text-earth-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <Webhook className="w-4 h-4 text-accent-primary" /> Webhooki
+        </h3>
+        <div className="space-y-3 mb-4">
+          <div>
+            <label className="block text-xs text-earth-500 mb-1.5">URL endpointu *</label>
+            <input
+              className="input-base w-full"
+              type="url"
+              placeholder="https://your-server.com/webhook"
+              value={form.url}
+              onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-earth-500 mb-1.5">Zdarzenia (przecinkami)</label>
+            <input
+              className="input-base w-full"
+              placeholder="tender.new, alert.match"
+              value={form.events}
+              onChange={e => setForm(f => ({ ...f, events: e.target.value }))}
+            />
+          </div>
+          <button
+            onClick={create}
+            disabled={creating || !form.url.trim()}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-accent-primary text-earth-950 font-semibold rounded-token-lg hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+          >
+            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Dodaj webhook
+          </button>
+        </div>
+
+        {webhooks.length === 0 ? (
+          <p className="text-sm text-earth-600 py-4 text-center">Brak webhooków</p>
+        ) : (
+          <div className="space-y-2">
+            {webhooks.map(w => (
+              <div key={w.id} className="flex items-start gap-3 p-3 bg-earth-800/40 rounded-token border border-earth-700/30">
+                <Webhook className="w-3.5 h-3.5 text-earth-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-mono text-earth-300 truncate">{w.url}</div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {w.events.map(ev => (
+                      <span key={ev} className="text-[10px] px-1.5 py-0.5 bg-accent-info/10 text-accent-info rounded border border-accent-info/20">{ev}</span>
+                    ))}
+                  </div>
+                  {w.last_triggered_at && (
+                    <div className="text-[10px] text-earth-600 mt-0.5">Ostatnio: {new Date(w.last_triggered_at).toLocaleString('pl-PL')}</div>
+                  )}
+                </div>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${w.is_active ? 'bg-accent-primary/15 text-accent-primary' : 'bg-earth-700/30 text-earth-500'}`}>
+                  {w.is_active ? 'Aktywny' : 'Wstrzymany'}
+                </span>
+                <button
+                  onClick={() => deleteWebhook(w.id)}
+                  className="p-1.5 text-earth-600 hover:text-accent-danger transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
+
+// ─── Settings Page ────────────────────────────────────────────────────────────
+
 export function SettingsPage() {
   const [section, setSection] = useState<SectionId>('organizacja');
 
@@ -1247,6 +1632,9 @@ export function SettingsPage() {
               {section === 'zaproszenia' ? <ZaproszeniaSSection /> : null}
               {section === 'ustawienia'  ? <UstawieniaSection />   : null}
               {section === 'scoring'     ? <ScoringSection />      : null}
+              {section === 'billing'     ? <BillingSection />      : null}
+              {section === 'api_keys'    ? <APIKeysSection />      : null}
+              {section === 'webhooks'    ? <WebhooksSection />     : null}
               {section === 'uzycie'      ? <UsageSection />        : null}
             </motion.div>
           </AnimatePresence>

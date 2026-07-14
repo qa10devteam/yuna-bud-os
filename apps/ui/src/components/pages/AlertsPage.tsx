@@ -1,247 +1,544 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useAuthFetch } from "@/lib/api-v2";
-import { PageShell } from "@/components/PageShell";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { Plus, Bell, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from 'react';
+import { useAuthFetch } from '@/lib/api-v2';
+import { PageShell } from '@/components/PageShell';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/SkeletonLoader';
+import { showToast } from '@/components/Toast';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Plus, Bell, Trash2, RefreshCw, Play, AlertCircle,
+  CheckCircle2, XCircle, Clock, Tag, Mail, Webhook,
+} from 'lucide-react';
 
-interface Alert {
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface TenderAlert {
   id: string;
   name: string;
+  cpv_prefixes: string[];
   keywords: string[];
-  categories: string[];
-  min_value?: number;
-  max_value?: number;
-  notify_email: boolean;
-  notify_webhook: boolean;
-  enabled: boolean;
+  frequency: 'realtime' | 'daily' | 'weekly';
+  channel: 'push' | 'email' | 'webhook';
+  is_active: boolean;
+  match_count: number;
+  last_matched_at: string | null;
+  webhook_url?: string | null;
   created_at: string;
-  last_triggered?: string;
 }
 
-export default function AlertsPage() {
-  const authFetch = useAuthFetch();
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    keywords: "",
-    categories: "",
-    min_value: "",
-    max_value: "",
-    notify_email: true,
-    notify_webhook: false,
-  });
+interface AlertTestResult {
+  matched: number;
+  sample: { id: string; title: string; value_pln: number | null }[];
+}
 
-  useEffect(() => { fetchAlerts(); }, []);
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-  const fetchAlerts = async () => {
+function fmtDate(s: string | null): string {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const FREQ_LABELS: Record<string, string> = {
+  realtime: 'Natychmiast',
+  daily: 'Codziennie',
+  weekly: 'Co tydzień',
+};
+
+const CHANNEL_ICONS: Record<string, React.ReactNode> = {
+  email: <Mail className="w-3.5 h-3.5" />,
+  webhook: <Webhook className="w-3.5 h-3.5" />,
+  push: <Bell className="w-3.5 h-3.5" />,
+};
+
+// ── Create form ───────────────────────────────────────────────────────────────
+
+interface CreateFormState {
+  name: string;
+  cpv: string;
+  keyword: string;
+  cpv_prefixes: string[];
+  keywords: string[];
+  frequency: 'realtime' | 'daily' | 'weekly';
+  channel: 'push' | 'email' | 'webhook';
+  webhook_url: string;
+  value_min: string;
+  value_max: string;
+}
+
+const EMPTY_FORM: CreateFormState = {
+  name: '', cpv: '', keyword: '',
+  cpv_prefixes: [], keywords: [],
+  frequency: 'daily', channel: 'push',
+  webhook_url: '', value_min: '', value_max: '',
+};
+
+function CreateAlertModal({
+  onClose, onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (form: CreateFormState) => Promise<void>;
+}) {
+  const [form, setForm] = useState<CreateFormState>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  const addCpv = () => {
+    const v = form.cpv.trim();
+    if (v && !form.cpv_prefixes.includes(v)) {
+      setForm(f => ({ ...f, cpv_prefixes: [...f.cpv_prefixes, v], cpv: '' }));
+    }
+  };
+
+  const addKeyword = () => {
+    const v = form.keyword.trim();
+    if (v && !form.keywords.includes(v)) {
+      setForm(f => ({ ...f, keywords: [...f.keywords, v], keyword: '' }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { showToast('error', 'Wpisz nazwę alertu'); return; }
+    setSaving(true);
     try {
-      const data = await authFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v2/alerts`);
-      setAlerts(data.alerts || []);
-    } catch (err) {
-      console.error("Failed to fetch alerts:", err);
+      await onCreate(form);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 12 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 8 }}
+        className="bg-earth-900 border border-earth-700/60 rounded-2xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-bold text-earth-100 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-accent-primary" /> Nowy Alert
+          </h3>
+          <button onClick={onClose} className="text-earth-600 hover:text-earth-300 transition-colors">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-xs text-earth-500 mb-1.5 font-medium">Nazwa alertu *</label>
+            <input
+              className="input-base w-full"
+              placeholder="np. Drogi Mazowsze 2025"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            />
+          </div>
+
+          {/* CPV */}
+          <div>
+            <label className="block text-xs text-earth-500 mb-1.5 font-medium">Prefiksy CPV</label>
+            <div className="flex gap-2">
+              <input
+                className="input-base flex-1"
+                placeholder="np. 4523"
+                value={form.cpv}
+                onChange={e => setForm(f => ({ ...f, cpv: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && addCpv()}
+              />
+              <button onClick={addCpv} className="px-3 bg-earth-700 rounded-lg text-earth-300 hover:bg-earth-600 text-sm transition-colors">+</button>
+            </div>
+            {form.cpv_prefixes.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {form.cpv_prefixes.map(c => (
+                  <span key={c} className="flex items-center gap-1 text-xs bg-accent-info/15 text-accent-info border border-accent-info/20 px-2 py-0.5 rounded-full">
+                    {c}
+                    <button onClick={() => setForm(f => ({ ...f, cpv_prefixes: f.cpv_prefixes.filter(x => x !== c) }))} className="hover:text-red-400"><XCircle className="w-2.5 h-2.5" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Keywords */}
+          <div>
+            <label className="block text-xs text-earth-500 mb-1.5 font-medium">Słowa kluczowe</label>
+            <div className="flex gap-2">
+              <input
+                className="input-base flex-1"
+                placeholder="np. remont, kanalizacja"
+                value={form.keyword}
+                onChange={e => setForm(f => ({ ...f, keyword: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && addKeyword()}
+              />
+              <button onClick={addKeyword} className="px-3 bg-earth-700 rounded-lg text-earth-300 hover:bg-earth-600 text-sm transition-colors">+</button>
+            </div>
+            {form.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {form.keywords.map(k => (
+                  <span key={k} className="flex items-center gap-1 text-xs bg-accent-primary/15 text-accent-primary border border-accent-primary/20 px-2 py-0.5 rounded-full">
+                    {k}
+                    <button onClick={() => setForm(f => ({ ...f, keywords: f.keywords.filter(x => x !== k) }))} className="hover:text-red-400"><XCircle className="w-2.5 h-2.5" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Frequency + channel */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-earth-500 mb-1.5 font-medium">Częstość</label>
+              <select className="input-base w-full" value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value as CreateFormState['frequency'] }))}>
+                <option value="realtime">Natychmiast</option>
+                <option value="daily">Codziennie</option>
+                <option value="weekly">Co tydzień</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-earth-500 mb-1.5 font-medium">Kanał</label>
+              <select className="input-base w-full" value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value as CreateFormState['channel'] }))}>
+                <option value="push">W aplikacji</option>
+                <option value="email">Email</option>
+                <option value="webhook">Webhook</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Value range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-earth-500 mb-1.5 font-medium">Wartość min (PLN)</label>
+              <input type="number" className="input-base w-full" placeholder="0" value={form.value_min} onChange={e => setForm(f => ({ ...f, value_min: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs text-earth-500 mb-1.5 font-medium">Wartość max (PLN)</label>
+              <input type="number" className="input-base w-full" placeholder="∞" value={form.value_max} onChange={e => setForm(f => ({ ...f, value_max: e.target.value }))} />
+            </div>
+          </div>
+
+          {/* Webhook URL */}
+          {form.channel === 'webhook' && (
+            <div>
+              <label className="block text-xs text-earth-500 mb-1.5 font-medium">Webhook URL</label>
+              <input type="url" className="input-base w-full" placeholder="https://…" value={form.webhook_url} onChange={e => setForm(f => ({ ...f, webhook_url: e.target.value }))} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button variant="secondary" fullWidth onClick={onClose}>Anuluj</Button>
+          <Button variant="primary" fullWidth loading={saving} onClick={handleSubmit} iconLeft={<Bell className="w-3.5 h-3.5" />}>
+            Utwórz alert
+          </Button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Alert card ────────────────────────────────────────────────────────────────
+
+function AlertCard({
+  alert, onToggle, onDelete, onTest,
+}: {
+  alert: TenderAlert;
+  onToggle: (id: string, current: boolean) => void;
+  onDelete: (id: string) => void;
+  onTest: (id: string) => void;
+}) {
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<AlertTestResult | null>(null);
+
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      await onTest(alert.id);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      className={`p-5 rounded-token-lg border transition-all ${
+        alert.is_active
+          ? 'bg-earth-900/50 border-earth-700/50 hover:border-earth-600/60'
+          : 'bg-earth-900/30 border-earth-800/40 opacity-70'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {/* Name + status */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-sm font-semibold text-earth-100">{alert.name}</h3>
+            {!alert.is_active && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-earth-800 text-earth-500 border border-earth-700">Wstrzymany</span>
+            )}
+          </div>
+
+          {/* Tags: CPV + keywords */}
+          {(alert.cpv_prefixes.length > 0 || alert.keywords.length > 0) && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {alert.cpv_prefixes.map(c => (
+                <span key={c} className="flex items-center gap-1 text-[10px] bg-accent-info/10 text-accent-info border border-accent-info/20 px-1.5 py-0.5 rounded">
+                  <Tag className="w-2.5 h-2.5" /> CPV: {c}
+                </span>
+              ))}
+              {alert.keywords.map(k => (
+                <span key={k} className="text-[10px] bg-accent-primary/10 text-accent-primary border border-accent-primary/20 px-1.5 py-0.5 rounded">
+                  &ldquo;{k}&rdquo;
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Meta row */}
+          <div className="flex items-center gap-3 mt-2 flex-wrap text-xs text-earth-500">
+            <span className="flex items-center gap-1">
+              {CHANNEL_ICONS[alert.channel] ?? <Bell className="w-3.5 h-3.5" />}
+              {alert.channel}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {FREQ_LABELS[alert.frequency] ?? alert.frequency}
+            </span>
+            {alert.match_count > 0 && (
+              <span className="flex items-center gap-1 text-accent-warning">
+                <CheckCircle2 className="w-3 h-3" />
+                {alert.match_count} dopasowań
+              </span>
+            )}
+            {alert.last_matched_at && (
+              <span className="text-earth-600">Ostatnio: {fmtDate(alert.last_matched_at)}</span>
+            )}
+          </div>
+
+          {/* Test result */}
+          {testResult && (
+            <div className="mt-2 p-2 rounded-token bg-accent-primary/10 border border-accent-primary/20 text-xs text-accent-primary">
+              Znaleziono {testResult.matched} dopasowań
+              {testResult.sample.length > 0 && (
+                <ul className="mt-1 text-earth-300 space-y-0.5">
+                  {testResult.sample.slice(0, 3).map(s => (
+                    <li key={s.id} className="truncate">• {s.title}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Toggle */}
+          <button
+            onClick={() => onToggle(alert.id, alert.is_active)}
+            className={`relative h-6 w-11 rounded-full transition-colors ${alert.is_active ? 'bg-accent-primary' : 'bg-earth-700'}`}
+            aria-label={alert.is_active ? 'Wyłącz alert' : 'Włącz alert'}
+          >
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-earth-100 transition-transform ${alert.is_active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+
+          {/* Test */}
+          <button
+            onClick={handleTest}
+            disabled={testing}
+            title="Testuj alert"
+            className="p-1.5 rounded-token hover:bg-accent-primary/10 text-earth-500 hover:text-accent-primary transition-colors disabled:opacity-40"
+          >
+            {testing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Delete */}
+          <button
+            onClick={() => onDelete(alert.id)}
+            title="Usuń alert"
+            className="p-1.5 rounded-token hover:bg-accent-danger/10 text-earth-500 hover:text-accent-danger transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export function AlertsPage() {
+  const authFetch = useAuthFetch();
+  const [alerts, setAlerts] = useState<TenderAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const fetchAlerts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await authFetch('/api/v2/tender-alerts') as { alerts: TenderAlert[]; alert_count: number } | TenderAlert[];
+      const items = Array.isArray(data) ? data : (data?.alerts ?? []);
+      setAlerts(items);
+    } catch (e: unknown) {
+      setError((e as Error).message || 'Błąd ładowania alertów');
     } finally {
       setLoading(false);
     }
-  };
+  }, [authFetch]);
 
-  const createAlert = async () => {
+  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+
+  const handleCreate = async (form: CreateFormState) => {
     try {
-      const payload = {
+      const body: Record<string, unknown> = {
         name: form.name,
-        keywords: form.keywords.split(",").map((k) => k.trim()).filter(Boolean),
-        categories: form.categories.split(",").map((c) => c.trim()).filter(Boolean),
-        min_value: form.min_value ? parseFloat(form.min_value) : undefined,
-        max_value: form.max_value ? parseFloat(form.max_value) : undefined,
-        notify_email: form.notify_email,
-        notify_webhook: form.notify_webhook,
+        cpv_prefixes: form.cpv_prefixes,
+        keywords: form.keywords,
+        frequency: form.frequency,
+        channel: form.channel,
       };
-      const data = await authFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v2/alerts`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      setAlerts((prev) => [...prev, data]);
-      setShowCreate(false);
-      setForm({ name: "", keywords: "", categories: "", min_value: "", max_value: "", notify_email: true, notify_webhook: false });
-    } catch (err) {
-      console.error("Failed to create alert:", err);
+      if (form.value_min) body.value_min = parseFloat(form.value_min);
+      if (form.value_max) body.value_max = parseFloat(form.value_max);
+      if (form.webhook_url) body.webhook_url = form.webhook_url;
+
+      const created = await authFetch('/api/v2/tender-alerts', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }) as TenderAlert;
+      setAlerts(prev => [created, ...prev]);
+      showToast('success', 'Alert utworzony ✓');
+    } catch (e: unknown) {
+      showToast('error', (e as Error).message || 'Błąd tworzenia alertu');
+      throw e;
     }
   };
 
-  const toggleAlert = async (id: string, enabled: boolean) => {
+  const handleToggle = async (id: string, current: boolean) => {
     try {
-      await authFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v2/alerts/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ enabled: !enabled }),
-      });
-      setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, enabled: !enabled } : a)));
-    } catch (err) {
-      console.error("Failed to toggle alert:", err);
+      await authFetch(`/api/v2/tender-alerts/${id}/toggle`, { method: 'PATCH' });
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_active: !current } : a));
+      showToast('success', current ? 'Alert wstrzymany' : 'Alert aktywowany');
+    } catch (e: unknown) {
+      showToast('error', (e as Error).message || 'Błąd przełączania alertu');
     }
   };
 
-  const deleteAlert = async (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
-      await authFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v2/alerts/${id}`, { method: "DELETE" });
-      setAlerts((prev) => prev.filter((a) => a.id !== id));
-    } catch (err) {
-      console.error("Failed to delete alert:", err);
+      await authFetch(`/api/v2/tender-alerts/${id}`, { method: 'DELETE' });
+      setAlerts(prev => prev.filter(a => a.id !== id));
+      showToast('success', 'Alert usunięty');
+    } catch (e: unknown) {
+      showToast('error', (e as Error).message || 'Błąd usuwania alertu');
     }
   };
+
+  const handleTest = async (id: string) => {
+    try {
+      const result = await authFetch(`/api/v2/tender-alerts/${id}/test`, { method: 'POST' }) as AlertTestResult;
+      showToast('info', `Test alertu: ${result.matched} dopasowań`);
+    } catch (e: unknown) {
+      showToast('error', (e as Error).message || 'Błąd testu alertu');
+    }
+  };
+
+  const activeCount = alerts.filter(a => a.is_active).length;
 
   const actions = (
-    <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
-      <Plus size={14} /> Nowy alert
-    </button>
+    <div className="flex items-center gap-2">
+      <Button variant="secondary" size="sm" iconLeft={<RefreshCw className="w-3.5 h-3.5" />} onClick={fetchAlerts} loading={loading}>
+        Odśwież
+      </Button>
+      <Button variant="primary" size="sm" iconLeft={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowCreate(true)}>
+        Nowy alert
+      </Button>
+    </div>
   );
 
   return (
     <PageShell
-      title="Powiadomienia"
-      subtitle="Alerty i powiadomienia systemowe"
+      title="Alerty Przetargowe"
+      subtitle={loading ? 'Ładowanie…' : `${alerts.length} alertów · ${activeCount} aktywnych`}
       actions={actions}
     >
-      {/* Loading skeletons */}
+      {/* Loading */}
       {loading && (
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 rounded-token-lg bg-earth-900/50 animate-shimmer" />
-          ))}
+          {[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={3} />)}
         </div>
       )}
 
-      {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md card p-6 shadow-token-lg">
-            <h3 className="mb-4 text-lg font-semibold text-earth-100">Utwórz alert</h3>
-            <div className="space-y-3">
-              <input
-                placeholder="Nazwa alertu"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="input-base"
-              />
-              <input
-                placeholder="Słowa kluczowe (oddzielone przecinkami)"
-                value={form.keywords}
-                onChange={(e) => setForm({ ...form, keywords: e.target.value })}
-                className="input-base"
-              />
-              <input
-                placeholder="Kategorie (oddzielone przecinkami)"
-                value={form.categories}
-                onChange={(e) => setForm({ ...form, categories: e.target.value })}
-                className="input-base"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="number"
-                  placeholder="Min wartość (PLN)"
-                  value={form.min_value}
-                  onChange={(e) => setForm({ ...form, min_value: e.target.value })}
-                  className="input-base"
-                />
-                <input
-                  type="number"
-                  placeholder="Max wartość (PLN)"
-                  value={form.max_value}
-                  onChange={(e) => setForm({ ...form, max_value: e.target.value })}
-                  className="input-base"
-                />
-              </div>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-earth-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.notify_email}
-                    onChange={(e) => setForm({ ...form, notify_email: e.target.checked })}
-                    className="rounded border-earth-700 bg-earth-900 text-accent-primary"
-                  />
-                  Email
-                </label>
-                <label className="flex items-center gap-2 text-sm text-earth-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.notify_webhook}
-                    onChange={(e) => setForm({ ...form, notify_webhook: e.target.checked })}
-                    className="rounded border-earth-700 bg-earth-900 text-accent-primary"
-                  />
-                  Webhook
-                </label>
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
-              <button onClick={createAlert} className="btn-primary">Utwórz</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Alerts List */}
-      {!loading && alerts.length === 0 && (
-        <GlassCard className="flex flex-col items-center justify-center py-16">
-          <Bell size={48} className="text-earth-600 mb-3" />
-          <p className="text-sm text-earth-400">Brak skonfigurowanych alertów</p>
-          <p className="text-xs text-earth-500">Utwórz alerty, aby być powiadamianym o pasujących przetargach</p>
+      {/* Error */}
+      {!loading && error && (
+        <GlassCard className="p-8">
+          <EmptyState
+            icon={<AlertCircle className="w-6 h-6" />}
+            title="Błąd ładowania alertów"
+            description={error}
+            cta={
+              <Button variant="secondary" size="sm" onClick={fetchAlerts} iconLeft={<RefreshCw className="w-3.5 h-3.5" />}>
+                Spróbuj ponownie
+              </Button>
+            }
+          />
         </GlassCard>
       )}
 
-      {!loading && alerts.length > 0 && (
+      {/* Empty state */}
+      {!loading && !error && alerts.length === 0 && (
+        <GlassCard className="p-8">
+          <EmptyState
+            icon={<Bell className="w-6 h-6" />}
+            title="Brak alertów"
+            description="Utwórz alerty, aby być powiadamianym o nowych przetargach pasujących do Twojego profilu."
+            cta={
+              <Button variant="primary" size="sm" onClick={() => setShowCreate(true)} iconLeft={<Plus className="w-3.5 h-3.5" />}>
+                Utwórz pierwszy alert
+              </Button>
+            }
+          />
+        </GlassCard>
+      )}
+
+      {/* Alert list */}
+      {!loading && !error && alerts.length > 0 && (
         <div className="space-y-3">
-          {alerts.map((alert) => (
-            <div key={alert.id} className="card p-5 card-hover">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-earth-100">{alert.name}</h3>
-                    {!alert.enabled && (
-                      <span className="rounded-token bg-earth-700/30 px-1.5 py-0.5 text-xs text-earth-400">Wstrzymany</span>
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {alert.keywords.map((kw) => (
-                      <span key={kw} className="rounded-token bg-info/10 px-2 py-0.5 text-xs text-info">{kw}</span>
-                    ))}
-                    {alert.categories.map((cat) => (
-                      <span key={cat} className="rounded-token bg-violet/10 px-2 py-0.5 text-xs text-violet">{cat}</span>
-                    ))}
-                  </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-earth-500">
-                    {alert.min_value && <span>Min: {alert.min_value.toLocaleString()} PLN</span>}
-                    {alert.max_value && <span>Max: {alert.max_value.toLocaleString()} PLN</span>}
-                    {alert.notify_email && <span>📧 Email</span>}
-                    {alert.notify_webhook && <span>🔗 Webhook</span>}
-                    {alert.last_triggered && (
-                      <span>Ostatnio: {new Date(alert.last_triggered).toLocaleDateString('pl-PL')}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => toggleAlert(alert.id, alert.enabled)}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${alert.enabled ? "bg-accent-primary" : "bg-earth-700"}`}
-                    aria-label={alert.enabled ? 'Wyłącz alert' : 'Włącz alert'}
-                  >
-                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-earth-100 transition-transform ${alert.enabled ? "left-[22px]" : "left-0.5"}`} />
-                  </button>
-                  <button
-                    onClick={() => deleteAlert(alert.id)}
-                    className="rounded-token p-1 text-earth-500 hover:bg-danger/10 hover:text-danger transition-colors"
-                    aria-label="Usuń alert"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+          <AnimatePresence mode="popLayout">
+            {alerts.map(alert => (
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                onTest={handleTest}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       )}
+
+      {/* Create modal */}
+      <AnimatePresence>
+        {showCreate && (
+          <CreateAlertModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />
+        )}
+      </AnimatePresence>
     </PageShell>
   );
 }

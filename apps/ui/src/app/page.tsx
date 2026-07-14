@@ -32,7 +32,7 @@ import { ContractsPage } from '@/components/pages/ContractsPage';
 import { TeamPage } from '@/components/pages/TeamPage';
 import { ReportsPage } from '@/components/pages/ReportsPage';
 import { ICBPage } from '@/components/pages/ICBPage';
-import AlertsPage from '@/components/pages/AlertsPage';
+import { AlertsPage } from '@/components/pages/AlertsPage';
 import AxiomEnginePage from '@/components/pages/AxiomEnginePage';
 import BidIntelligencePage from '@/components/pages/BidIntelligencePage';
 import WebhooksPage from '@/components/pages/WebhooksPage';
