@@ -311,6 +311,10 @@ try:
 except ImportError:
     pass  # prometheus_fastapi_instrumentator not installed — skip
 
+@app.get("/health", include_in_schema=False)
+def health_root():
+    return {"status": "ok"}
+
 # Attach slowapi limiter state to app
 app.state.limiter = limiter
 

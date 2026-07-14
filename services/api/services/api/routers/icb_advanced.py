@@ -275,6 +275,8 @@ def compare_regional(
 class BasketItem(BaseModel):
     symbol: str | None = None
     query: str | None = None
+    category: str | None = None
+    typ_rms: str | None = None
     quantity: float = 1.0
     unit: str = "szt"
 
@@ -302,6 +304,9 @@ def compute_basket(body: BasketRequest) -> dict:
             price_data = get_icb_price(item.symbol, rok, nr)
         elif item.query:
             matches = search_icb(item.query, kwartalrok=rok, kwartalnr=nr, limit=1)
+            price_data = matches[0] if matches else None
+        elif item.category:
+            matches = search_icb(item.category.replace('_', ' '), typ_rms=item.typ_rms, kwartalrok=rok, kwartalnr=nr, limit=1)
             price_data = matches[0] if matches else None
         else:
             continue

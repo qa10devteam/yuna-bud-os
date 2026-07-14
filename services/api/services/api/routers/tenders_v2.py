@@ -13,6 +13,7 @@ import base64
 import json
 import logging
 import threading
+import uuid as _uuid_mod
 from typing import Any, Literal
 
 import sqlalchemy as sa
@@ -142,6 +143,17 @@ def _row_to_summary(row: Any, is_dup_set: set[str], dup_masters: dict[str, str])
         master_id=dup_masters.get(rid),
         created_at=row.created_at.isoformat() if row.created_at else "",
     )
+
+
+def _validate_uuid(value: str, param_name: str = "id") -> None:
+    """Raise HTTP 404 when *value* is not a valid UUID string."""
+    try:
+        _uuid_mod.UUID(str(value))
+    except (ValueError, AttributeError):
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": f"Przetarg nie znaleziony (nieprawidłowy {param_name})"},
+        )
 
 
 def _get_dup_context(conn, tenant_id: str) -> tuple[set[str], dict[str, str]]:
@@ -424,6 +436,121 @@ def tender_stats(user: AuthUser) -> TenderStatsResponse:
     )
 
 
+@router.get("/search", summary="Szybkie wyszukiwanie przetargów")
+def search_tenders(
+    user: AuthUser,
+    q: str = Query(..., min_length=1, description="Fraza wyszukiwania"),
+    limit: int = Query(20, ge=1, le=100),
+    source: str | None = Query(None),
+    status: str | None = Query(None),
+) -> dict:
+    """
+    GET /api/v2/tenders/search?q=...
+    Full-text search over tenders for the authenticated tenant.
+    Returns {items: [...], total: int, query: str}.
+    This route MUST be declared before /{tender_id} to avoid 'search' being
+    interpreted as a UUID, which crashes with a PostgreSQL cast error.
+    """
+    org_id = user.org_id
+    if not org_id:
+        raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
+
+    q = q.strip()
+    if not q:
+        return {"items": [], "total": 0, "query": q}
+
+    engine = get_engine()
+    tenant_id = _resolve_tenant_id(engine, org_id)
+
+    conditions: list[str] = ["t.tenant_id = :tenant_id", "t.status != 'archived'"]
+    params: dict = {"tenant_id": tenant_id, "limit": limit, "q": q}
+
+    if source and source in VALID_SOURCES:
+        conditions.append("t.source = CAST(:source AS source_kind)")
+        params["source"] = source
+
+    if status and status in VALID_STATUSES:
+        conditions.append("t.status = :status")
+        params["status"] = status
+
+    # Full-text search condition with ILIKE fallback
+    fts_condition = (
+        "to_tsvector('simple', coalesce(t.title,'') || ' ' || coalesce(t.buyer,''))"
+        " @@ plainto_tsquery('simple', :q)"
+    )
+    ilike_condition = "(t.title ILIKE :q_like OR t.buyer ILIKE :q_like)"
+    params["q_like"] = f"%{q}%"
+
+    where = " AND ".join(conditions)
+
+    rows: list = []
+    with engine.connect() as conn:
+        # Try FTS first
+        try:
+            rows = conn.execute(
+                sa.text(f"""
+                    SELECT t.id, t.title, t.buyer, t.source::text, t.status::text,
+                           t.value_pln, t.deadline_at, t.url, t.created_at,
+                           ts_headline(
+                               'simple',
+                               coalesce(t.title,'') || ' ' || coalesce(t.buyer,''),
+                               plainto_tsquery('simple', :q),
+                               'MaxWords=15, MinWords=5'
+                           ) AS excerpt
+                    FROM tender t
+                    WHERE {where} AND {fts_condition}
+                    ORDER BY
+                        ts_rank(
+                            to_tsvector('simple', coalesce(t.title,'') || ' ' || coalesce(t.buyer,'')),
+                            plainto_tsquery('simple', :q)
+                        ) DESC,
+                        t.created_at DESC
+                    LIMIT :limit
+                """),
+                params,
+            ).fetchall()
+        except Exception:
+            logger.exception("FTS search failed for q=%r, falling back to ILIKE", q)
+            rows = []
+
+        # ILIKE fallback
+        if not rows:
+            try:
+                rows = conn.execute(
+                    sa.text(f"""
+                        SELECT t.id, t.title, t.buyer, t.source::text, t.status::text,
+                               t.value_pln, t.deadline_at, t.url, t.created_at,
+                               coalesce(t.title, '') AS excerpt
+                        FROM tender t
+                        WHERE {where} AND {ilike_condition}
+                        ORDER BY t.created_at DESC
+                        LIMIT :limit
+                    """),
+                    params,
+                ).fetchall()
+            except Exception:
+                logger.exception("ILIKE fallback search failed for q=%r", q)
+                rows = []
+
+    items = [
+        {
+            "id": str(r.id),
+            "title": r.title or "",
+            "buyer": r.buyer,
+            "source": r.source,
+            "status": r.status,
+            "value_pln": float(r.value_pln) if r.value_pln is not None else None,
+            "deadline_at": r.deadline_at.isoformat() if r.deadline_at else None,
+            "url": r.url,
+            "excerpt": r.excerpt or r.title or "",
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+
+    return {"items": items, "total": len(items), "query": q}
+
+
 @router.get("/{tender_id}", response_model=TenderDetail, summary="Szczegóły przetargu")
 def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
     """
@@ -437,6 +564,9 @@ def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
     org_id = user.org_id
     if not org_id:
         raise HTTPException(status_code=403, detail={"error": "no_org"})
+
+    # Validate UUID format before hitting the DB — prevents PostgreSQL cast error (500)
+    _validate_uuid(tender_id, "tender_id")
 
     # S86 — Check cache first
     _cache_key = f"tender:{tender_id}:{org_id}"
@@ -541,6 +671,7 @@ def patch_tender(tender_id: str, body: TenderPatch, user: AuthUser) -> dict:
     org_id = user.org_id
     if not org_id:
         raise HTTPException(status_code=403, detail={"error": "no_org"})
+    _validate_uuid(tender_id, "tender_id")
     engine = get_engine()
     tenant_id = _resolve_tenant_id(engine, org_id)
 
@@ -570,6 +701,7 @@ def delete_tender(tender_id: str, user: AuthUser) -> dict:
     org_id = user.org_id
     if not org_id:
         raise HTTPException(status_code=403, detail={"error": "no_org"})
+    _validate_uuid(tender_id, "tender_id")
     engine = get_engine()
     tenant_id = _resolve_tenant_id(engine, org_id)
 

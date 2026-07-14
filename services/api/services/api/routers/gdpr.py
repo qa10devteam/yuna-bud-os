@@ -11,7 +11,7 @@ from __future__ import annotations
 
 
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -39,6 +39,11 @@ class ConsentRequest(BaseModel):
     analytics: bool = False
     marketing: bool = False
     third_party: bool = False
+
+
+class SingleConsentRequest(BaseModel):
+    consent_type: Literal['analytics', 'marketing', 'third_party']
+    granted: bool
 
 
 # ─── Faza 67: Data Export ──────────────────────────────────────────────────────
@@ -230,9 +235,42 @@ def record_consent(body: ConsentRequest, current_user: AuthUser, db: DB) -> dict
     }
 
 
+@router.patch("/consent", status_code=200)
+def update_single_consent(body: SingleConsentRequest, current_user: AuthUser, db: DB) -> dict[str, Any]:
+    """Update a single consent field (GDPR Art. 7)."""
+    allowed = {"analytics", "marketing", "third_party"}
+    field = body.consent_type
+    if field not in allowed:
+        raise HTTPException(status_code=422, detail=f"consent_type must be one of {allowed}")
+
+    try:
+        db.execute(
+            text(f"""
+                INSERT INTO gdpr_consents (user_id, analytics, marketing, third_party, recorded_at)
+                VALUES (:uid, False, False, False, NOW())
+                ON CONFLICT (user_id) DO UPDATE SET {field} = :granted, recorded_at = NOW()
+            """),
+            {"uid": current_user.user_id, "granted": body.granted},
+        )
+        db.commit()
+    except Exception as exc:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("Failed to update GDPR consent for user %s: %s", current_user.user_id, exc)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update consent") from exc
+
+    consent = {f: False for f in allowed}
+    consent[field] = body.granted
+    return {
+        "status": "recorded",
+        "consent": consent,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @router.get("/consent")
 def get_consent(current_user: AuthUser, db: DB) -> dict[str, Any]:
-    """Get current consent status for user (GDPR Art. 15)."""
     try:
         row = db.execute(
             text("SELECT analytics, marketing, third_party, recorded_at FROM gdpr_consents WHERE user_id = :uid"),

@@ -261,6 +261,20 @@ def run_backup(user: AuthUser) -> dict:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Version info
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/system/version")
+def get_version():
+    import os
+    return {
+        "version": os.environ.get("APP_VERSION", "1.0.0"),
+        "environment": os.environ.get("ENVIRONMENT", "production"),
+        "api_version": "v2",
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Audit log read-only
 # ──────────────────────────────────────────────────────────────────────────────
 
