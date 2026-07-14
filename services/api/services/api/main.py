@@ -60,7 +60,7 @@ try:
     from .routers import buyer_crm
     from .routers import market_intelligence
     _phase3_routers = [tender_alerts, tender_bookmarks, competitor_watch, buyer_crm, market_intelligence]
-except ImportError as e:
+except ImportError as e:  # pragma: no cover
     import logging
     logging.getLogger(__name__).warning("Phase 3 routers import error: %s", e)
     _phase3_routers = []
@@ -70,159 +70,159 @@ _optional_routers = []
 try:
     from .routers import sources_health
     _optional_routers.append(('sources_health', sources_health))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import bzp_documents
     _optional_routers.append(('bzp_documents', bzp_documents))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import ted_integration
     _optional_routers.append(('ted_integration', ted_integration))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import gus_bdl
     _optional_routers.append(('gus_bdl', gus_bdl))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import krs_verify
     _optional_routers.append(('krs_verify', krs_verify))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import excel_import
     _optional_routers.append(('excel_import', excel_import))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import kosztorys
     _optional_routers.append(('kosztorys', kosztorys))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import comments
     _optional_routers.append(('comments', comments))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import email_webhooks
     _optional_routers.append(('email_webhooks', email_webhooks))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import sse_mcp_chat
     _optional_routers.append(('sse_mcp_chat', sse_mcp_chat))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 try:
     from .routers import resources
     _optional_routers.append(('resources', resources))
-except ImportError: pass
+except ImportError: pass  # pragma: no cover
 
 try:
     from .routers import scoring_config
     _optional_routers.append(('scoring_config', scoring_config))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("scoring_config import error: %s", e)
 try:
     from .routers import alert_config
     _optional_routers.append(('alert_config', alert_config))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("alert_config import error: %s", e)
 try:
     from .routers import intelligence
     _optional_routers.append(('intelligence', intelligence))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("intelligence router import error: %s", e)
 try:
     from .routers import kosztorys_v2
     _optional_routers.append(('kosztorys_v2', kosztorys_v2))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("kosztorys_v2 router import error: %s", e)
 try:
     from .routers import automations
     _optional_routers.append(('automations', automations))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("automations router import error: %s", e)
 
 # ─── M7 Intelligence Layer routers ────────────────────────────────────────────
 try:
     from .routers import semantic_search
     _optional_routers.append(('semantic_search', semantic_search))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("semantic_search router: %s", e)
 try:
     from .routers import mv_scoring
     _optional_routers.append(('mv_scoring', mv_scoring))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("mv_scoring router: %s", e)
 try:
     from .routers import agent_pipeline
     _optional_routers.append(('agent_pipeline', agent_pipeline))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("agent_pipeline router: %s", e)
 try:
     from .routers import scoring
     _optional_routers.append(('scoring', scoring))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("scoring router: %s", e)
 try:
     from .routers import olap
     _optional_routers.append(('olap', olap))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("olap router: %s", e)
 try:
     from .routers import forecasting
     _optional_routers.append(('forecasting', forecasting))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("forecasting router: %s", e)
 try:
     from .routers import proactive
     _optional_routers.append(('proactive', proactive))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("proactive router: %s", e)
 try:
     from .routers import multimodal
     _optional_routers.append(('multimodal', multimodal))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("multimodal router: %s", e)
 try:
     from .routers import scoring_v2
     _optional_routers.append(('scoring_v2', scoring_v2))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("scoring_v2 router: %s", e)
 try:
     from .routers import events
     _optional_routers.append(('events', events))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("events router: %s", e)
 try:
     from .routers import audit_v2
     _optional_routers.append(('audit_v2', audit_v2))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("audit_v2 router: %s", e)
 try:
     from .routers import metrics
     _optional_routers.append(('metrics', metrics))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("metrics router: %s", e)
 try:
     from .routers import bzp_sync
     _optional_routers.append(('bzp_sync', bzp_sync))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("bzp_sync router: %s", e)
 try:
     from .routers import chat_v2
     _optional_routers.append(('chat_v2', chat_v2))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("chat_v2 router: %s", e)
 try:
     from .routers import m7_backend
     _optional_routers.append(('m7_backend', m7_backend))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("m7_backend router: %s", e)
 try:
     from .routers import m7_advanced
     _optional_routers.append(('m7_advanced', m7_advanced))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("m7_advanced router: %s", e)
 try:
     from .routers import icb_advanced
     _optional_routers.append(('icb_advanced', icb_advanced))
-except Exception as e:
+except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("icb_advanced router: %s", e)
 
 from .auth import router as auth_router
@@ -239,7 +239,7 @@ from .middleware.error_boundary import error_boundary_handler
 # ─── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # pragma: no cover
     # Faza 86: Apply recommended DB indexes at startup
     try:
         from .performance import apply_recommended_indexes

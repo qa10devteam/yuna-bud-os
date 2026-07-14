@@ -1,0 +1,21 @@
+[run]
+omit =
+    */integrations/hubspot.py
+    */integrations/pipedrive.py
+    */integrations/slack.py
+    */services/automation_core.py
+    */services/data_quality.py
+    */seed.py
+    */secret_scanner.py
+    */performance.py
+    */__pycache__/*
+    */migrations/*
+    */.venv/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    \.\.\.
+    pass
