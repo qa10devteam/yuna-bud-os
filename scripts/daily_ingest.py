@@ -35,6 +35,22 @@ logging.basicConfig(
 logger = logging.getLogger("daily_ingest")
 
 
+def _notify_slack_failure(message: str) -> None:
+    """Send a failure alert to Slack if SLACK_WEBHOOK_URL is configured (optional)."""
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+    if not webhook_url:
+        return
+    try:
+        import requests
+        requests.post(
+            webhook_url,
+            json={"text": message},
+            timeout=10,
+        )
+    except Exception as exc:
+        logger.warning("Failed to send Slack alert: %s", exc)
+
+
 def main() -> None:
     days_back = int(os.getenv("INGEST_DAYS_BACK", "2"))
     include_ted = os.getenv("INGEST_INCLUDE_TED", "true").lower() == "true"
@@ -46,19 +62,25 @@ def main() -> None:
         days_back, include_ted, include_bip, bip_region,
     )
 
-    from terra_db.session import get_engine
-    from ingestion.pipeline import run_ingest
+    try:
+        from terra_db.session import get_engine
+        from ingestion.pipeline import run_ingest
 
-    engine = get_engine()
-    result = run_ingest(
-        engine=engine,
-        days_back=days_back,
-        offline=False,
-        include_ted=include_ted,
-        include_bip=include_bip,
-        bip_region=bip_region,
-        bip_max_sites=bip_max_sites,
-    )
+        engine = get_engine()
+        result = run_ingest(
+            engine=engine,
+            days_back=days_back,
+            offline=False,
+            include_ted=include_ted,
+            include_bip=include_bip,
+            bip_region=bip_region,
+            bip_max_sites=bip_max_sites,
+        )
+    except Exception as exc:
+        error_msg = f":rotating_light: *Terra daily ingest FAILED*\n```{exc}```"
+        logger.error("Ingest pipeline failed: %s", exc)
+        _notify_slack_failure(error_msg)
+        raise
 
     logger.info(
         "Ingest complete: fetched=%d, created=%d, updated=%d, dropped=%d, errors=%d",
@@ -68,6 +90,13 @@ def main() -> None:
         result.dropped_filter,
         result.errors,
     )
+
+    if result.errors:
+        _notify_slack_failure(
+            f":warning: *Terra ingest completed with errors*\n"
+            f"fetched={result.raw_fetched}, created={result.created}, "
+            f"updated={result.updated}, errors={result.errors}"
+        )
 
     # Faza 19 — Alert Dispatcher: wyślij emaile dla nowych przetargów
     _run_alert_dispatcher()

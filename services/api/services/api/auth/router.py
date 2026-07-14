@@ -13,10 +13,11 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, field_validator
+import sqlalchemy as sa
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from terra_db.session import get_session
+from terra_db.session import get_session, get_engine
 
 from .deps import AuthUser
 from ..services.email_service import send_welcome_email, send_password_reset_email
@@ -327,10 +328,6 @@ def logout(body: RefreshRequest, db: DB):
 
 # ─── Password Reset ────────────────────────────────────────────────────────────
 
-# TODO: Migrate to DB table (password_reset_tokens) — currently in-memory for MVP
-_password_reset_tokens: dict[str, dict] = {}  # {token: {email, expires_at}}
-
-
 class ForgotPasswordRequest(BaseModel):
     email: str
 
@@ -357,11 +354,17 @@ def forgot_password(request: Request, body: ForgotPasswordRequest, db: DB):
     ).fetchone()
 
     if user:
-        token = str(_uuid_mod.uuid4())
-        _password_reset_tokens[token] = {
-            "email": user.email,
-            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-        }
+        token = token_urlsafe(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        engine = get_engine()
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "INSERT INTO password_reset_tokens (user_id, token, expires_at) "
+                    "VALUES (:uid, :token, :exp)"
+                ),
+                {"uid": str(user.id), "token": token, "exp": expires_at},
+            )
         send_password_reset_email(user.email, token)
 
     # Always return success to prevent email enumeration
@@ -372,29 +375,46 @@ def forgot_password(request: Request, body: ForgotPasswordRequest, db: DB):
 @limiter.limit("5/minute")
 def reset_password(request: Request, body: ResetPasswordRequest, db: DB):
     """Validate reset token and update password."""
-    token_data = _password_reset_tokens.get(body.token)
+    engine = get_engine()
+    with engine.begin() as conn:
+        row = conn.execute(
+            text(
+                "SELECT id, user_id, expires_at, used_at "
+                "FROM password_reset_tokens "
+                "WHERE token = :token"
+            ),
+            {"token": body.token},
+        ).fetchone()
 
-    if not token_data:
-        raise HTTPException(status_code=400, detail="Nieprawidłowy lub wygasły token")
+        if not row:
+            raise HTTPException(status_code=400, detail="Nieprawidłowy lub wygasły token")
 
-    if token_data["expires_at"] < datetime.now(timezone.utc):
-        del _password_reset_tokens[body.token]
-        raise HTTPException(status_code=400, detail="Token wygasł")
+        expires_at = row.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Token wygasł")
 
-    # Update password
-    new_hash = hash_password(body.new_password)
-    result = db.execute(
-        text("UPDATE users SET password_hash = :ph WHERE email = :email RETURNING id"),
-        {"ph": new_hash, "email": token_data["email"]},
-    ).fetchone()
+        if row.used_at is not None:
+            raise HTTPException(status_code=400, detail="Token został już wykorzystany")
+
+        # Mark token as used
+        conn.execute(
+            text(
+                "UPDATE password_reset_tokens SET used_at = now() WHERE id = :id"
+            ),
+            {"id": str(row.id)},
+        )
+
+        # Update password
+        new_hash = hash_password(body.new_password)
+        result = conn.execute(
+            text("UPDATE users SET password_hash = :ph WHERE id = :uid RETURNING id"),
+            {"ph": new_hash, "uid": str(row.user_id)},
+        ).fetchone()
 
     if not result:
         raise HTTPException(status_code=400, detail="Nie znaleziono użytkownika")
-
-    db.commit()
-
-    # Invalidate token after use
-    del _password_reset_tokens[body.token]
 
     return {"message": "Hasło zostało zmienione pomyślnie."}
 
