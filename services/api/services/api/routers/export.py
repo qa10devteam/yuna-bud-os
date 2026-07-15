@@ -29,7 +29,8 @@ _SAFE = re.compile(r"[^\w\-]")
 
 
 def _slug(s: str) -> str:
-    return _SAFE.sub("_", (s or "kosztorys"))[:60]
+    ascii_s = (s or "kosztorys").encode("ascii", "ignore").decode("ascii")
+    return _SAFE.sub("_", ascii_s)[:60]
 
 
 def _get_estimate(conn: Any, estimate_id: str) -> dict:

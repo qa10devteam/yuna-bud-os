@@ -498,6 +498,9 @@ if 'alert_config' in _opt_map:
 if 'automations' in _opt_map:
     app.include_router(_opt_map['automations'].router)
 
+if 'intelligence' in _opt_map:
+    app.include_router(_opt_map['intelligence'].router)
+
 if 'gus_bdl' in _opt_map and hasattr(_opt_map['gus_bdl'], 'gus_v2_router'):
     app.include_router(_opt_map['gus_bdl'].gus_v2_router)
 

@@ -417,9 +417,8 @@ async def handle_subscription_deleted(obj: dict[str, Any], db: Any) -> None:
 async def handle_payment_succeeded(obj: dict[str, Any], db: Any) -> None:
     """invoice.payment_succeeded — clear payment_failed flag, extend period."""
     customer_id = obj.get("customer", "")
-    period_end_unix = obj.get("lines", {}).get("data", [{}])[0].get(
-        "period", {}
-    ).get("end") or obj.get("period_end")
+    _lines_data = obj.get("lines", {}).get("data", [])
+    period_end_unix = (_lines_data[0].get("period", {}).get("end") if _lines_data else None) or obj.get("period_end")
     period_end = _ts(period_end_unix)
 
     org_id = _resolve_org_id_from_customer(db, customer_id)
