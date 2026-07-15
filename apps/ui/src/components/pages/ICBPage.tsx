@@ -1417,7 +1417,7 @@ function ZmiennoscTab() {
     setError(null);
     try {
       const res = await authFetch('/api/v2/icb/volatility-matrix') as VolatilityResponse;
-      setData(res.rows || []);
+      setData(Array.isArray(res) ? res : ((res as any).rows || []));
     } catch (e: any) {
       setError(e.message || 'Błąd ładowania macierzy zmienności');
     } finally {
