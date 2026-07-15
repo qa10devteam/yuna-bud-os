@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '@/store/useStore';
 import type { AuthUser } from '@/store/useStore';
-import { Eye, EyeOff, Loader2, LogIn, UserPlus } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, Lock, LogIn, Mail, UserPlus } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -81,24 +81,57 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-earth-950 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-earth-950 flex items-center justify-center p-4 relative overflow-hidden"
+      style={{
+        backgroundImage: [
+          'radial-gradient(ellipse at 50% -20%, rgba(16,185,129,0.12) 0%, transparent 60%)',
+          'linear-gradient(rgba(16,185,129,0.04) 1px, transparent 1px)',
+          'linear-gradient(90deg, rgba(16,185,129,0.04) 1px, transparent 1px)',
+        ].join(', '),
+        backgroundSize: 'auto, 40px 40px, 40px 40px',
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
-        {/* ── Logo ──────────────────────────────────────────────────── */}
+        {/* ── Brand mark ────────────────────────────────────────────── */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-primary/10 border border-accent-primary/20 mb-4">
-            <span className="text-2xl font-bold text-accent-primary">Y</span>
+          {/* Hexagon logo mark */}
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4"
+            style={{
+              clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+              background: 'rgba(16,185,129,0.15)',
+              boxShadow: 'inset 0 0 20px rgba(16,185,129,0.2), 0 0 40px rgba(16,185,129,0.1)',
+              outline: '1px solid rgba(16,185,129,0.4)',
+            }}
+          >
+            <span className="text-3xl font-bold text-accent-primary" style={{ fontFamily: 'var(--font-space)' }}>b</span>
           </div>
-          <h1 className="text-2xl font-bold text-earth-100 tracking-tight">YU-NA</h1>
-          <p className="text-earth-500 text-sm mt-1">Platforma zarządzania przetargami budowlanymi</p>
+
+          {/* Brand name */}
+          <h1 className="text-xl font-bold text-earth-100 tracking-tight" style={{ fontFamily: 'var(--font-space)' }}>
+            budos
+          </h1>
+          <p className="text-earth-600 text-xs mt-0.5" style={{ fontFamily: 'var(--font-space)' }}>
+            by YU-NA
+          </p>
+          <p className="text-earth-500 text-sm mt-2" style={{ fontFamily: 'var(--font-space)' }}>
+            AI dla przetargów budowlanych
+          </p>
         </div>
 
         {/* ── Card ──────────────────────────────────────────────────── */}
-        <div className="bg-earth-900/60 border border-earth-700/50 rounded-token-xl p-6 backdrop-blur-sm shadow-token-lg">
+        <div
+          className="rounded-token-xl p-6 backdrop-blur-xl shadow-token-lg border border-earth-700/40 border-t-earth-600/60"
+          style={{
+            background: 'linear-gradient(135deg, rgba(15,13,10,0.8), rgba(28,26,22,0.6))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 25px 50px rgba(0,0,0,0.5)',
+          }}
+        >
 
           {/* Tabs */}
           <div className="flex rounded-token bg-earth-800/50 p-1 mb-6 gap-1">
@@ -163,21 +196,25 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             {/* E-mail */}
             <div>
               <label className="label-base">E-mail</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                placeholder="twoj@firma.pl"
-                className="input-base"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-500 pointer-events-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="twoj@firma.pl"
+                  className="input-base pl-9"
+                />
+              </div>
             </div>
 
             {/* Password */}
             <div>
               <label className="label-base">Hasło</label>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-500 pointer-events-none" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -185,7 +222,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                   required
                   autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
                   placeholder={tab === 'register' ? 'min. 8 znaków' : '••••••••'}
-                  className="input-base pr-11"
+                  className="input-base pl-9 pr-11"
                 />
                 <button
                   type="button"
@@ -210,7 +247,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                   className="overflow-hidden"
                 >
                   <div className="flex items-start gap-2 px-3 py-2.5 bg-accent-danger/10 border border-accent-danger/20 rounded-token text-accent-danger text-sm">
-                    <span className="mt-0.5 shrink-0">⚠</span>
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                     <span>{error}</span>
                   </div>
                 </motion.div>
@@ -221,7 +258,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-2.5 mt-2"
+              className="btn-primary w-full py-3 mt-2 font-semibold tracking-tight hover:brightness-110 transition-all duration-200"
+              style={{
+                background: loading
+                  ? undefined
+                  : 'linear-gradient(to right, #10b981, #34d399)',
+              }}
             >
               {loading
                 ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -235,7 +277,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
         {/* Footer */}
         <p className="text-center text-earth-700 text-xs mt-4">
-          YU-NA &copy; 2026 — System zarządzania przetargami budowlanymi
+          budos &copy; 2026
         </p>
       </motion.div>
     </div>
