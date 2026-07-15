@@ -131,7 +131,7 @@ export default function ICBPriceExplorer() {
                 </div>
                 <div className="text-right ml-3">
                   <p className="text-sm font-medium text-emerald-400">
-                    {item.cena_netto?.toFixed(2)} PLN
+                    {(item.cena_netto ?? 0).toFixed(2)} PLN
                   </p>
                   <p className="text-xs text-zinc-500">/{item.jm}</p>
                 </div>

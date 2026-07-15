@@ -278,11 +278,11 @@ export function MarketIntelPage() {
                   <svg viewBox="0 0 600 200" className="w-full h-48">
                     {forecastData.map((f, i) => {
                       const x = 50 + i * (500 / forecastData.length);
-                      const maxVal = Math.max(...forecastData.map(d => d.upper_ci));
+                      const maxVal = Math.max(...forecastData.map(d => d.upper_ci ?? 0));
                       const scale = 160 / (maxVal || 1);
-                      const y = 180 - f.forecast * scale;
-                      const yLow = 180 - f.lower_ci * scale;
-                      const yHigh = 180 - f.upper_ci * scale;
+                      const y = 180 - (f.forecast ?? 0) * scale;
+                      const yLow = 180 - (f.lower_ci ?? 0) * scale;
+                      const yHigh = 180 - (f.upper_ci ?? 0) * scale;
                       return (
                         <g key={i}>
                           {/* CI band */}
@@ -291,7 +291,7 @@ export function MarketIntelPage() {
                           <circle cx={x} cy={y} r={5} fill="#10b981" />
                           {/* Value label */}
                           <text x={x} y={y - 12} textAnchor="middle" fill="#9c8e7e" fontSize="10">
-                            {f.forecast.toFixed(0)}
+                            {(f.forecast ?? 0).toFixed(0)}
                           </text>
                           {/* Period label */}
                           <text x={x} y={195} textAnchor="middle" fill="#6b5e50" fontSize="9">
@@ -305,7 +305,7 @@ export function MarketIntelPage() {
                       <polyline
                         points={forecastData.map((f, i) => {
                           const x = 50 + i * (500 / forecastData.length);
-                          const maxVal = Math.max(...forecastData.map(d => d.upper_ci));
+                          const maxVal = Math.max(...forecastData.map(d => d.upper_ci ?? 0));
                           const scale = 160 / (maxVal || 1);
                           return `${x},${180 - f.forecast * scale}`;
                         }).join(' ')}
@@ -318,8 +318,8 @@ export function MarketIntelPage() {
                     {forecastData.map((f, i) => (
                       <div key={i} className="card p-3 text-center">
                         <div className="section-label mb-1">Q+{f.period}</div>
-                        <div className="text-earth-100 font-bold text-lg">{f.forecast.toFixed(0)}</div>
-                        <div className="text-earth-500 text-xs">{f.lower_ci.toFixed(0)}–{f.upper_ci.toFixed(0)}</div>
+                        <div className="text-earth-100 font-bold text-lg">{(f.forecast ?? 0).toFixed(0)}</div>
+                        <div className="text-earth-500 text-xs">{(f.lower_ci ?? 0).toFixed(0)}–{(f.upper_ci ?? 0).toFixed(0)}</div>
                       </div>
                     ))}
                   </div>
@@ -353,7 +353,7 @@ export function MarketIntelPage() {
                           />
                         </div>
                         <div className="text-earth-400 text-xs mt-1">{monthNames[m.month - 1]}</div>
-                        <div className="text-earth-500 text-[10px]">{m.seasonal_index.toFixed(2)}</div>
+                        <div className="text-earth-500 text-[10px]">{(m.seasonal_index ?? 0).toFixed(2)}</div>
                       </div>
                     );
                   })}

@@ -64,9 +64,10 @@ const DEFAULT_CRITERIA: AHPCriterion[] = [
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
 function fmtPLN(v: number) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + ' mln zł';
-  if (v >= 1_000) return (v / 1_000).toFixed(0) + ' tys. zł';
-  return v.toFixed(0) + ' zł';
+  const n = v ?? 0;
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + ' mln zł';
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + ' tys. zł';
+  return n.toFixed(0) + ' zł';
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────────
@@ -300,9 +301,9 @@ export function AnalyticsPage() {
                     : ahpResult.recommendation === 'CONSIDER' ? 'text-accent-warning'
                     : 'text-accent-danger'
                   }`}>{ahpResult.recommendation_pl}</div>
-                  <div className="text-xs text-earth-500">Wynik AHP: {ahpResult.total.toFixed(1)}/100</div>
+                  <div className="text-xs text-earth-500">Wynik AHP: {(ahpResult.total ?? 0).toFixed(1)}/100</div>
                 </div>
-                <div className="ml-auto text-3xl font-bold text-earth-200">{ahpResult.total.toFixed(0)}</div>
+                <div className="ml-auto text-3xl font-bold text-earth-200">{(ahpResult.total ?? 0).toFixed(0)}</div>
               </div>
 
               {/* Score bar */}
@@ -328,7 +329,7 @@ export function AnalyticsPage() {
                         style={{ width: `${(b.score / 10) * 100}%` }}
                       />
                     </div>
-                    <span className="text-earth-400 w-16 text-right">+{b.contribution.toFixed(1)} pkt</span>
+                    <span className="text-earth-400 w-16 text-right">+{(b.contribution ?? 0).toFixed(1)} pkt</span>
                   </div>
                 ))}
               </div>
@@ -385,8 +386,8 @@ export function AnalyticsPage() {
             >
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Optymalna marża',  value: `${biddingResult.optimal_markup_pct.toFixed(1)}%`,  color: 'text-accent-primary' },
-                  { label: 'Szansa wygrania',  value: `${biddingResult.win_probability_pct.toFixed(0)}%`, color: 'text-accent-success' },
+                  { label: 'Optymalna marża',  value: `${(biddingResult.optimal_markup_pct ?? 0).toFixed(1)}%`,  color: 'text-accent-primary' },
+                  { label: 'Szansa wygrania',  value: `${(biddingResult.win_probability_pct ?? 0).toFixed(0)}%`, color: 'text-accent-success' },
                   { label: 'Oczekiwany zysk',  value: fmtPLN(biddingResult.expected_profit),              color: 'text-accent-warning' },
                   { label: 'Cena oferty',       value: fmtPLN(biddingResult.bid_price),                   color: 'text-accent-info' },
                 ].map(kpi => (
@@ -402,7 +403,7 @@ export function AnalyticsPage() {
                 <div className="section-label mb-2">Oczekiwany zysk vs marża</div>
                 {biddingResult.chart_data.filter((_, i) => i % 4 === 0).map(pt => (
                   <div key={pt.markup_pct} className="flex items-center gap-2 text-xs">
-                    <span className="text-earth-500 w-12">{pt.markup_pct.toFixed(0)}%</span>
+                    <span className="text-earth-500 w-12">{(pt.markup_pct ?? 0).toFixed(0)}%</span>
                     <div className="flex-1 bg-earth-800 rounded-full h-1.5 overflow-hidden">
                       <div
                         className="bg-accent-primary/70 h-1.5 rounded-full"
@@ -572,7 +573,7 @@ export function AnalyticsPage() {
               {/* KPI Cards */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Win Rate',      value: `${winData.win_rate.toFixed(1)}%`,  color: 'text-accent-primary' },
+                  { label: 'Win Rate',      value: `${(winData.win_rate ?? 0).toFixed(1)}%`,  color: 'text-accent-primary' },
                   { label: 'Łączne oferty', value: String(winData.total_bids),          color: 'text-earth-200' },
                   { label: 'Wygrane',       value: String(winData.wins),                color: 'text-accent-success' },
                 ].map(kpi => (
@@ -587,7 +588,7 @@ export function AnalyticsPage() {
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-earth-400">Skuteczność ofertowania</span>
-                  <span className="text-xs text-accent-primary font-bold">{winData.win_rate.toFixed(1)}%</span>
+                  <span className="text-xs text-accent-primary font-bold">{(winData.win_rate ?? 0).toFixed(1)}%</span>
                 </div>
                 <div className="w-full bg-earth-800 rounded-full h-3">
                   <div
@@ -614,7 +615,7 @@ export function AnalyticsPage() {
                             style={{ width: `${Math.min(100, pt.rate)}%` }}
                           />
                         </div>
-                        <span className="text-earth-300 font-semibold w-12 text-right">{pt.rate.toFixed(1)}%</span>
+                        <span className="text-earth-300 font-semibold w-12 text-right">{(pt.rate ?? 0).toFixed(1)}%</span>
                       </div>
                     ))}
                   </div>

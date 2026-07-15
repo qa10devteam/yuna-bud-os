@@ -56,14 +56,16 @@ interface ICBPrice {
 // ── Formatters ─────────────────────────────────────────────────────────────────
 
 function fmtPLN(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M PLN`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k PLN`;
-  return `${v.toFixed(0)} PLN`;
+  const n = v ?? 0;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M PLN`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k PLN`;
+  return `${n.toFixed(0)} PLN`;
 }
 
 function fmtPct(v: number | null): string {
-  if (v === null) return '—';
-  return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
+  if (v === null || v === undefined) return '—';
+  const n = v ?? 0;
+  return `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
 }
 
 // ── Mini chart (sparkline) ─────────────────────────────────────────────────────
@@ -289,7 +291,7 @@ export default function MarketIntelligenceDashboard() {
             {icbPrices.slice(0, 8).map((p, i) => (
               <div key={i} className="flex items-center justify-between text-xs">
                 <span className="text-earth-300 truncate max-w-[140px]">{p.nazwa || p.symbol}</span>
-                <span className="text-accent-primary font-medium">{p.cena_netto?.toFixed(2)} PLN/{p.jm}</span>
+                <span className="text-accent-primary font-medium">{(p.cena_netto ?? 0).toFixed(2)} PLN/{p.jm}</span>
               </div>
             ))}
             {icbPrices.length === 0 && <p className="text-xs text-earth-500">Brak danych ICB</p>}

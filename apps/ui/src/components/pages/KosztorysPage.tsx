@@ -126,12 +126,13 @@ function fmtPLN(n: number | null | undefined): string {
 }
 
 function fmtNum(n: number, dec = 2): string {
-  return n.toLocaleString('pl-PL', { maximumFractionDigits: dec });
+  const v = n ?? 0;
+  return v.toLocaleString('pl-PL', { maximumFractionDigits: dec });
 }
 
 function pct(a: number, total: number): string {
   if (!total) return '0%';
-  return ((a / total) * 100).toFixed(1) + '%';
+  return (((a ?? 0) / total) * 100).toFixed(1) + '%';
 }
 
 const DEFAULT_NARZUTY: Narzuty = { ko_r_pct: 70, ko_s_pct: 30, z_pct: 12.5, kz_pct: 7.1, vat_pct: 23 };
@@ -572,7 +573,7 @@ function IntelligencePanel({
                       <span className="text-earth-500 text-xs truncate max-w-[140px]">{r.category}</span>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs tabular-nums ${r.change_yoy_pct > 5 ? 'text-red-400' : r.change_yoy_pct < -2 ? 'text-accent-primary' : 'text-earth-400'}`}>
-                          {r.change_yoy_pct > 0 ? '+' : ''}{r.change_yoy_pct.toFixed(1)}%
+                          {r.change_yoy_pct > 0 ? '+' : ''}{(r.change_yoy_pct ?? 0).toFixed(1)}%
                         </span>
                         <div className="w-12 h-1.5 bg-earth-800 rounded-full overflow-hidden">
                           <div
@@ -1103,7 +1104,7 @@ export function KosztorysPage() {
         // Export local as CSV (xlsx fallback)
         const csv = ['Lp,Kod,Opis,Jm,Ilość,R jcena,M jcena,S jcena,CJ netto,Wartość netto',
           ...pozycje.map(p =>
-            `${p.lp},"${p.kst_code}","${p.opis}",${p.jednostka},${p.ilosc},${p.r_jcena},${p.m_jcena},${p.s_jcena},${p.jcena_netto.toFixed(4)},${p.wartosc_netto.toFixed(2)}`
+            `${p.lp},"${p.kst_code}","${p.opis}",${p.jednostka},${p.ilosc},${p.r_jcena},${p.m_jcena},${p.s_jcena},${(p.jcena_netto ?? 0).toFixed(4)},${(p.wartosc_netto ?? 0).toFixed(2)}`
           ),
           `,,,,,,,,Netto,${sumaNetto.toFixed(2)}`,
           `,,,,,,,,VAT ${narzuty.vat_pct}%,${sumaVat.toFixed(2)}`,
@@ -1522,12 +1523,12 @@ export function KosztorysPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-earth-300 text-xs font-medium truncate">{alert.symbol}</p>
                           <p className="text-earth-500 text-xs">
-                            {alert.baseline_price?.toFixed(2)} → {alert.current_price?.toFixed(2)} PLN
+                            {(alert.baseline_price ?? 0).toFixed(2)} → {(alert.current_price ?? 0).toFixed(2)} PLN
                           </p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className={`text-sm font-bold tabular-nums ${alert.change_pct > 0 ? 'text-red-400' : 'text-accent-primary'}`}>
-                            {alert.change_pct > 0 ? '+' : ''}{alert.change_pct?.toFixed(1)}%
+                            {alert.change_pct > 0 ? '+' : ''}{(alert.change_pct ?? 0).toFixed(1)}%
                           </p>
                           <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                             alert.severity === 'critical' ? 'bg-accent-danger/30 text-accent-danger' :
