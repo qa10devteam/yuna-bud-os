@@ -64,8 +64,8 @@ interface DigestData {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatPLN(value: number): string {
-  return value.toLocaleString('pl-PL', {
+function formatPLN(value: number | null | undefined): string {
+  return (value ?? 0).toLocaleString('pl-PL', {
     style: 'currency',
     currency: 'PLN',
     maximumFractionDigits: 0,
