@@ -148,7 +148,7 @@ export function RfqPage() {
     setLoading(true);
     setError(null);
     authFetch('/api/v2/rfq')
-      .then((data: RfqItem[]) => { setTenders(data ?? []); setLoading(false); })
+      .then((data: any) => { setTenders(Array.isArray(data) ? data : (data?.items ?? [])); setLoading(false); })
       .catch((e: Error) => { setError(e.message); setLoading(false); });
   }, [authFetch]);
 

@@ -117,7 +117,7 @@ export default function Home() {
 
   if (!isAuthenticated) {
     return (
-      <ErrorBoundary>
+      <ErrorBoundary resetKey={currentModule}>
         <LoginForm onSuccess={() => {}} />
         <ToastContainer />
       </ErrorBoundary>
@@ -125,7 +125,7 @@ export default function Home() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary resetKey={currentModule}>
       <div className="flex min-h-[100dvh] bg-earth-950">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
