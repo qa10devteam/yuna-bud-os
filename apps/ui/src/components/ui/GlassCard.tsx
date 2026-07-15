@@ -14,12 +14,12 @@ interface GlassCardProps {
 // ── Style map ──────────────────────────────────────────────────────────────────
 
 const VARIANT_CLS: Record<'default' | 'elevated' | 'flat', string> = {
-  default:  'bg-earth-900/60 border border-earth-700/50 shadow-token-sm',
-  elevated: 'bg-earth-800/70 border border-earth-600/50 shadow-token-md',
+  default:  'bg-gradient-to-b from-earth-900/60 to-earth-900/80 border border-earth-700/50 shadow-token-sm',
+  elevated: 'bg-earth-800/80 border border-earth-600/60 shadow-token-md',
   flat:     'bg-earth-900/40 border border-earth-800/50',
 };
 
-const INTERACTIVE = 'cursor-pointer hover:border-earth-600/60 transition-all duration-200 text-left w-full';
+const INTERACTIVE = 'cursor-pointer hover:border-earth-600/60 hover:shadow-token-md transition-all duration-200 text-left w-full';
 
 // ── Component ──────────────────────────────────────────────────────────────────
 

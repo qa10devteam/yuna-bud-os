@@ -55,6 +55,15 @@
 }
 
 /* ── Surface / semantic aliases (use in components via var()) ───────────────── */
+
+/* Subtle grid overlay for atmospheric depth */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
 :root {
   --surface-0:      var(--color-earth-950);  /* page background */
   --surface-1:      var(--color-earth-900);  /* card background */
@@ -174,12 +183,16 @@
   }
 
   .glass-card {
-    background: color-mix(in srgb, var(--color-earth-900) 50%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-earth-700) 40%, transparent);
+    background: linear-gradient(135deg, 
+      color-mix(in srgb, var(--color-earth-900) 65%, transparent),
+      color-mix(in srgb, var(--color-earth-800) 40%, transparent)
+    );
+    border: 1px solid color-mix(in srgb, var(--color-earth-700) 50%, transparent);
+    border-top-color: color-mix(in srgb, var(--color-earth-600) 40%, transparent);
     border-radius: 0.75rem;
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    box-shadow: 0 8px 20px -4px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 20px -4px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
   }
 
   /* ── Buttons ────────────────────────────────────────────────────────────── */
@@ -268,6 +281,19 @@
   /* ── Section headers ────────────────────────────────────────────────────── */
 
   .section-label {
-    @apply text-[10px] font-semibold uppercase tracking-widest text-earth-600;
+    @apply text-[10px] font-medium text-earth-700;
+  }
+
+  .stat-value {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
   }
 }
+
+/* ── Glow animation ──────────────────────────────────────────────────────────── */
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px -2px rgba(16,185,129,0.3); }
+  50%       { box-shadow: 0 0 16px -2px rgba(16,185,129,0.5); }
+}
+.animate-glow { animation: glow-pulse 3s ease-in-out infinite; }

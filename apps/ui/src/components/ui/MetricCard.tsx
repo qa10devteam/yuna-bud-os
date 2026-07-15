@@ -39,11 +39,11 @@ export function MetricCard({
     return (
       <GlassCard className={`p-4 flex flex-col gap-3 ${className}`}>
         <div className="flex items-center justify-between">
-          <div className="h-3 w-24 rounded animate-shimmer" />
-          <div className="w-8 h-8 rounded-lg animate-shimmer" />
+          <div className="h-3 w-24 rounded bg-earth-800 animate-shimmer" />
+          <div className="w-8 h-8 rounded-lg bg-earth-800 animate-shimmer" />
         </div>
-        <div className="h-7 w-20 rounded animate-shimmer" />
-        <div className="h-2.5 w-28 rounded animate-shimmer" />
+        <div className="h-7 w-20 rounded bg-earth-800 animate-shimmer" />
+        <div className="h-2.5 w-28 rounded bg-earth-800 animate-shimmer" />
       </GlassCard>
     );
   }
@@ -54,11 +54,11 @@ export function MetricCard({
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-earth-500 font-semibold uppercase tracking-wider">
+        <span className="text-[11px] text-earth-600 font-medium tracking-normal">
           {label}
         </span>
         <div
-          className={`w-8 h-8 rounded-lg bg-earth-800/80 flex items-center justify-center ${iconColor}`}
+          className={`w-8 h-8 rounded-lg bg-gradient-to-br from-earth-700/60 to-earth-800/80 flex items-center justify-center ${iconColor}`}
         >
           <Icon className="w-4 h-4" />
         </div>

@@ -31,7 +31,7 @@ function Breadcrumb({ segments }: { segments: BreadcrumbSegment[] }) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex items-center gap-1 mb-2 text-[11px] text-earth-600 font-medium tracking-wide uppercase"
+      className="flex items-center gap-1 mb-2 text-[11px] text-earth-700 font-medium tracking-normal"
     >
       {segments.map((seg, i) => (
         <span key={i} className="flex items-center gap-1">
@@ -39,7 +39,7 @@ function Breadcrumb({ segments }: { segments: BreadcrumbSegment[] }) {
           {seg.onClick ? (
             <button
               onClick={seg.onClick}
-              className="hover:text-earth-400 transition-colors"
+              className="hover:text-earth-500 transition-colors"
             >
               {seg.label}
             </button>
@@ -81,19 +81,19 @@ export function PageShell({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={noPadding ? 'w-full' : 'pt-6 px-6 md:px-8 pb-10 max-w-7xl mx-auto w-full'}
+      className={noPadding ? 'w-full' : 'pt-5 px-6 md:px-8 pb-10 max-w-7xl mx-auto w-full'}
     >
       {/* ── Breadcrumb ──────────────────────────────────────────────── */}
       <Breadcrumb segments={segments} />
 
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex items-start justify-between gap-4 mb-5">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-earth-100 tracking-tight leading-tight">
+          <h1 className="text-[22px] font-semibold text-earth-100 tracking-tight leading-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-1 text-sm text-earth-500">{subtitle}</p>
+            <p className="mt-1 text-[13px] text-earth-600">{subtitle}</p>
           )}
         </div>
 
