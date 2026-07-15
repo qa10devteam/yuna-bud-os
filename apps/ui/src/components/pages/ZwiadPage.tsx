@@ -192,9 +192,10 @@ function scoreColor(score: number): { text: string; bg: string; bar: string } {
 }
 
 function fmtMln(v: number): string {
-  if (v >= 1000) return (v / 1000).toFixed(1) + ' mld';
-  if (v >= 1) return v.toFixed(1) + ' M';
-  return (v * 1000).toFixed(0) + ' tys.';
+  const n = v ?? 0;
+  if (n >= 1000) return (n / 1000).toFixed(1) + ' mld';
+  if (n >= 1) return n.toFixed(1) + ' M';
+  return (n * 1000).toFixed(0) + ' tys.';
 }
 
 // ─── MatchScoreBar ────────────────────────────────────────────────────────────
@@ -237,11 +238,11 @@ function MatchScoreBar({ score, compact = false }: { score: number | null; compa
 function KPIStrip({ kpi, loading }: { kpi: IntelKPI | null; loading: boolean }) {
   const items = kpi
     ? [
-        { label: 'Przetargi',      value: kpi.n_tenders.toLocaleString('pl-PL'),   icon: FileText,   iconColor: 'text-accent-primary' },
+        { label: 'Przetargi',      value: (kpi.n_tenders ?? 0).toLocaleString('pl-PL'),   icon: FileText,   iconColor: 'text-accent-primary' },
         { label: 'Łączna wartość', value: fmtMln(kpi.total_value_mln),             icon: DollarSign, iconColor: 'text-accent-info'    },
         { label: 'Śr. wartość',    value: fmtPLN(kpi.avg_value),                   icon: TrendingUp, iconColor: 'text-accent-warning' },
         { label: 'Śr. konkurencja',value: kpi.avg_competition?.toFixed(1) ?? '—',  icon: Users,      iconColor: 'text-accent-violet'  },
-        { label: 'Zamawiający',    value: kpi.n_buyers.toLocaleString('pl-PL'),     icon: Building2,  iconColor: 'text-sky-400'        },
+        { label: 'Zamawiający',    value: (kpi.n_buyers ?? 0).toLocaleString('pl-PL'),     icon: Building2,  iconColor: 'text-sky-400'        },
       ]
     : [];
 

@@ -19,10 +19,11 @@ interface MarketKPI {
 }
 
 function fmtPLN(v: number): string {
-  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}B PLN`;
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M PLN`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k PLN`;
-  return `${v.toFixed(0)} PLN`;
+  const n = v ?? 0;
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B PLN`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M PLN`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k PLN`;
+  return `${n.toFixed(0)} PLN`;
 }
 
 export default function MarketKPIBar() {

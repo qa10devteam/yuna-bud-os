@@ -474,11 +474,11 @@ export function SilnikPage() {
                         />
                       </div>
                       <span className="text-xs font-mono text-earth-500 w-8 text-right">
-                        {score.toFixed(0)}
+                         {(score ?? 0).toFixed(0)}
                       </span>
                       {delta !== 0 && (
                         <span className={`text-xs font-bold ${delta > 0 ? 'text-accent-success' : 'text-accent-danger'}`}>
-                          {delta > 0 ? '↑' : '↓'}{Math.abs(delta).toFixed(1)}
+                           {delta > 0 ? '↑' : '↓'}{Math.abs(delta ?? 0).toFixed(1)}
                         </span>
                       )}
                     </div>
@@ -564,7 +564,7 @@ export function SilnikPage() {
                           {item.criterion}
                         </text>
                         <text x={135 + barWidth + 8} y={y + 20} fontSize="11" fill="#10b981" fontWeight="700">
-                          +{item.contribution.toFixed(1)}
+                           +{(item.contribution ?? 0).toFixed(1)}
                         </text>
                       </g>
                     );
@@ -577,7 +577,7 @@ export function SilnikPage() {
                     <g>
                       <line x1={130} y1={250} x2={580} y2={250} stroke="#334155" strokeWidth="1" />
                       <text x={130} y={248} fontSize="12" fill="#94a3b8" fontWeight="600">
-                        Total: {totalScore.toFixed(1)} / 100
+                         Total: {(totalScore ?? 0).toFixed(1)} / 100
                       </text>
                     </g>
                   )}
@@ -786,7 +786,7 @@ export function SilnikPage() {
                 >
                   <div className="text-xs font-semibold text-earth-100">{heatmapTooltip.cell.cpv_name}</div>
                   <div className="text-xs text-accent-primary font-bold">
-                    Win rate: {(heatmapTooltip.cell.win_rate * 100).toFixed(0)}%
+                     Win rate: {((heatmapTooltip.cell.win_rate ?? 0) * 100).toFixed(0)}%
                   </div>
                   <div className="text-xs text-earth-500">
                     Przetargów: {heatmapTooltip.cell.count}

@@ -39,9 +39,10 @@ const item      = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, tra
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtMln(v: number): string {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + ' M';
-  if (v >= 1_000) return (v / 1_000).toFixed(0) + ' tys.';
-  return String(v);
+  const n = v ?? 0;
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + ' M';
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + ' tys.';
+  return String(n);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

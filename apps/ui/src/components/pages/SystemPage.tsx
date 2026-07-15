@@ -65,7 +65,7 @@ export function SystemPage() {
   const stats = metrics ? [
     { label: 'Przetargi',      value: metrics.database.tenders,                    icon: Database,  color: 'text-info' },
     { label: 'Embeddings',     value: `${metrics.ai.embedding_coverage}%`,          icon: Cpu,       color: 'text-success' },
-    { label: 'ICB Records',    value: metrics.database.icb_records.toLocaleString(),icon: HardDrive, color: 'text-violet' },
+    { label: 'ICB Records',    value: (metrics.database.icb_records ?? 0).toLocaleString(),icon: HardDrive, color: 'text-violet' },
     { label: 'API Routes',     value: routeCount,                                   icon: Server,    color: 'text-warning' },
     { label: 'Users',          value: metrics.database.users,                       icon: Users,     color: 'text-info' },
     { label: 'Notifications',  value: metrics.database.unread_notifications,        icon: Bell,      color: 'text-warning' },
@@ -185,7 +185,7 @@ export function SystemPage() {
                 {tables.map(t => (
                   <tr key={t.table} className="border-b border-earth-900 hover:bg-earth-900/40">
                     <td className="py-2 px-2 text-earth-200 font-mono text-xs">{t.table}</td>
-                    <td className="py-2 px-2 text-right text-earth-300">{t.rows.toLocaleString()}</td>
+                    <td className="py-2 px-2 text-right text-earth-300">{(t.rows ?? 0).toLocaleString()}</td>
                     <td className="py-2 px-2 text-right text-earth-400">{t.size}</td>
                   </tr>
                 ))}

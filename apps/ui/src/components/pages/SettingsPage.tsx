@@ -1129,11 +1129,11 @@ function ScoringSection() {
                   <p className="text-xs text-earth-600 mb-1">Zmiana avg. score</p>
                   <div className="flex items-baseline gap-2">
                     <p className="text-base font-bold text-earth-500 font-mono">
-                      {rescoreResult.avg_score_before.toFixed(2)}
+                      {(rescoreResult.avg_score_before ?? 0).toFixed(2)}
                     </p>
                     <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                     <p className="text-base font-bold text-emerald-400 font-mono">
-                      {rescoreResult.avg_score_after.toFixed(2)}
+                      {(rescoreResult.avg_score_after ?? 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
