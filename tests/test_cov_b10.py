@@ -279,14 +279,22 @@ class TestSseStream:
     @pytest.mark.asyncio
     async def test_sse_stream_status_and_content_type(self, app, auth_headers):
         """GET /api/v1/sse/stream → 200 + text/event-stream; don't consume body."""
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test", timeout=5.0
-        ) as c:
-            async with c.stream("GET", "/api/v1/sse/stream", headers=auth_headers) as r:
-                assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
-                if r.status_code == 200:
-                    ct = r.headers.get("content-type", "")
-                    assert "text/event-stream" in ct
+        # Use a mock generator so we don't block forever reading the stream
+        async def _quick_gen():
+            yield b"data: {\"type\": \"connected\"}\n\n"
+
+        with patch(
+            "services.api.services.api.routers.sse_mcp_chat._sse_generator",
+            return_value=_quick_gen(),
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as c:
+                r = await c.get("/api/v1/sse/stream", headers=auth_headers)
+        assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
+        if r.status_code == 200:
+            ct = r.headers.get("content-type", "")
+            assert "text/event-stream" in ct
 
 
 class TestPlayground:
@@ -394,9 +402,9 @@ class TestDemo:
     @pytest.mark.asyncio
     async def test_demo_reset_correct_secret_200(self, app, auth_headers):
         """POST /api/v2/demo/reset?secret=DEMO_RESET_SECRET → 200 (DB mocked)."""
-        engine, session_mock = _mock_engine()
+        engine, _conn = _mock_engine()
 
-        # Mock Session context manager too
+        # Session mock
         mock_session = MagicMock()
         mock_session.__enter__ = lambda s: s
         mock_session.__exit__ = MagicMock(return_value=False)
@@ -404,10 +412,10 @@ class TestDemo:
         mock_session.commit = MagicMock()
 
         with patch(
-            "services.api.services.api.routers.demo.get_engine",
+            "terra_db.session.get_engine",
             return_value=engine,
         ), patch(
-            "services.api.services.api.routers.demo.Session",
+            "sqlalchemy.orm.Session",
             return_value=mock_session,
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
