@@ -27,6 +27,8 @@ import sqlalchemy as sa
 
 from terra_db.session import get_engine
 
+from ..redis_cache import rcache_get, rcache_set, TTL_ICB_SUGGEST, TTL_INTELLIGENCE_SUMMARY
+
 router = APIRouter(prefix="/api/v2/icb", tags=["icb-advanced"])
 logger = logging.getLogger(__name__)
 
@@ -127,6 +129,12 @@ def suggest_icb(
     from ..intelligence.icb_service import get_latest_quarter
     rok, nr = get_latest_quarter()
 
+    # Redis cache: TTL 10min (suggest results change only quarterly)
+    _cache_key = f"icb:suggest:{q}:{typ_rms}:{limit}:{rok}:{nr}"
+    _cached = rcache_get(_cache_key)
+    if _cached is not None:
+        return _cached
+
     engine = get_engine()
     params: dict = {"rok": rok, "nr": nr, "limit": limit, "q_prefix": f"{q}%", "q_any": f"%{q}%"}
     typ_filter = ""
@@ -163,7 +171,7 @@ def suggest_icb(
             """), params2).fetchall()
             rows = rows + rows2
 
-    return [
+    result = [
         {
             "id": r[0],
             "nazwa": r[1],
@@ -175,6 +183,8 @@ def suggest_icb(
         }
         for r in rows
     ]
+    rcache_set(_cache_key, result, ttl=TTL_ICB_SUGGEST)
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -184,6 +194,11 @@ def suggest_icb(
 @router.get("/categories")
 def icb_categories() -> list[dict]:
     """Lista kategorii ICB z liczbą pozycji i średnimi cenami."""
+    _cache_key = "icb:categories"
+    _cached = rcache_get(_cache_key)
+    if _cached is not None:
+        return _cached
+
     engine = get_engine()
     with engine.connect() as conn:
         rows = conn.execute(sa.text("""
@@ -204,7 +219,7 @@ def icb_categories() -> list[dict]:
             ORDER BY count DESC
         """)).fetchall()
 
-    return [
+    result = [
         {
             "category": r[0], "count": r[1],
             "avg_price": float(r[2]) if r[2] else 0,
@@ -214,6 +229,8 @@ def icb_categories() -> list[dict]:
         }
         for r in rows
     ]
+    rcache_set(_cache_key, result, ttl=TTL_ICB_SUGGEST)
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

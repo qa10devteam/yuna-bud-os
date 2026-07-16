@@ -181,18 +181,49 @@ def predict_cost(
     from ..analytics.cost_estimation import _resolve_cpv_benchmark
     total = pred.get("total_net_pln", 0)
     bm = _resolve_cpv_benchmark(cpv)
+    price_per_m2 = bm.get("price_per_m2", 0)
+
+    # Fetch similar historical projects for context
+    similar_projects = []
+    try:
+        engine = get_engine()
+        cpv_prefix = cpv[:4] if len(cpv) >= 4 else cpv
+        with engine.connect() as conn:
+            rows = conn.execute(sa.text("""
+                SELECT title, estimated_value, date, province, offers_count
+                FROM historical_tenders
+                WHERE left(cpv_code, 4) = :cpv
+                  AND estimated_value BETWEEN :min_val AND :max_val
+                ORDER BY date DESC LIMIT 5
+            """), {
+                "cpv": cpv_prefix,
+                "min_val": total * 0.5 if total else 0,
+                "max_val": total * 2.0 if total else 999_999_999,
+            }).fetchall()
+        similar_projects = [
+            {"title": r[0][:80], "value_pln": float(r[1]) if r[1] else None,
+             "date": str(r[2])[:10], "province": r[3], "offers": r[4]}
+            for r in rows
+        ]
+    except Exception:
+        pass
+
     return {
-        "benchmark": round(bm["price_per_m2"] * area_m2, 2),
+        "benchmark": round(price_per_m2 * area_m2, 2),
+        "price_per_m2": round(price_per_m2, 2),
         "ai_estimate": total,
         "confidence_interval": {
-            "low95": pred.get("confidence_low", round(total * 0.7, 2)),
-            "high95": pred.get("confidence_high", round(total * 1.3, 2)),
+            "low95": pred.get("confidence_low", round(total * 0.72, 2)),
+            "high95": pred.get("confidence_high", round(total * 1.28, 2)),
         },
         "method": pred.get("method", "benchmark"),
         "variant": pred.get("variant", ""),
         "lines": pred.get("lines", []),
         "notes": pred.get("notes", ""),
-        "similar_projects": [],
+        "region": region,
+        "cpv": cpv,
+        "area_m2": area_m2,
+        "similar_projects": similar_projects,
     }
 
 

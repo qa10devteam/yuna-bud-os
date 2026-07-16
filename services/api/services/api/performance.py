@@ -111,6 +111,17 @@ RECOMMENDED_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_audit_log_actor_id ON audit_log(actor_id, created_at DESC);",
     "CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id) WHERE revoked = false;",
     "CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);",
+    # Perf audit additions — high seq_scan tables
+    "CREATE INDEX IF NOT EXISTS idx_agent_run_tenant_started ON agent_run(tenant_id, started_at DESC);",
+    "CREATE INDEX IF NOT EXISTS idx_agent_run_status ON agent_run(tenant_id, status);",
+    "CREATE INDEX IF NOT EXISTS idx_agent_run_input_tender_id ON agent_run((input->>'tender_id')) WHERE input->>'tender_id' IS NOT NULL;",
+    "CREATE INDEX IF NOT EXISTS idx_chat_session_tender_id ON chat_session(tender_id) WHERE tender_id IS NOT NULL;",
+    "CREATE INDEX IF NOT EXISTS idx_competency_tenant_id ON competency(tenant_id);",
+    "CREATE INDEX IF NOT EXISTS idx_availability_tenant_id ON availability(tenant_id);",
+    "CREATE INDEX IF NOT EXISTS idx_risk_run_tenant_id ON risk_run(tenant_id, created_at DESC);",
+    "CREATE INDEX IF NOT EXISTS idx_contract_tenant_id ON contract(tenant_id, created_at DESC NULLS LAST);",
+    "CREATE INDEX IF NOT EXISTS idx_rfq_tenant_id ON rfq(tenant_id, created_at DESC NULLS LAST);",
+    "CREATE INDEX IF NOT EXISTS idx_audit_log_tenant_action_created ON audit_log(tenant_id, action, created_at DESC) WHERE action IS NOT NULL;",
 ]
 
 
