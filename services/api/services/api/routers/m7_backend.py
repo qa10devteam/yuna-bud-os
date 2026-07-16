@@ -251,6 +251,8 @@ def create_alert(body: AlertRequest, user: AuthUser, tenant_id: str | None = Non
     if not resolved_tid:
         return {"error": "tenant_id required"}
     with engine.begin() as conn:
+        # Set RLS tenant context for this connection/transaction (uses app.current_tenant_id per policy)
+        conn.execute(sa.text("SELECT set_config('app.current_tenant_id', :tid, true)"), {"tid": resolved_tid})
         conn.execute(sa.text("""
             INSERT INTO tender_alert (id, tenant_id, name, cpv_prefixes, keywords, value_min, value_max)
             VALUES (:id, :tid, :name, :cpv, :kw, :min, :max)
