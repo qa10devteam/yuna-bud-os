@@ -15,12 +15,14 @@ import uuid
 from typing import Any, Generator
 
 import sqlalchemy as sa
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from terra_db.session import get_engine
 from services.ai.vllm_client import get_llm_client, VLLMClient, TERRA_SYSTEM_PROMPT
+from ..auth.deps import AuthUser
+from ..middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 
@@ -35,7 +37,8 @@ _VALID_OPS = {"set_param", "set_kp", "set_zysk", "set_robocizna"}
 
 
 @router.post("/estimates/{estimate_id}/chat")
-def estimate_chat(estimate_id: str, body: ChatRequest) -> StreamingResponse:
+@limiter.limit("20/minute")
+def estimate_chat(request: Request, estimate_id: str, body: ChatRequest, _user: AuthUser) -> StreamingResponse:
     """Chat-brain edits for an estimate. Returns SSE stream.
 
     Flow:
@@ -232,7 +235,8 @@ class GeneralChatRequest(BaseModel):
 
 
 @router.post("/chat")
-def general_chat(body: GeneralChatRequest):
+@limiter.limit("20/minute")
+def general_chat(request: Request, body: GeneralChatRequest, _user: AuthUser):
     """Ogólny asystent budos — LLM-driven z fallbackiem na reguły."""
     from fastapi.responses import StreamingResponse as SR
 

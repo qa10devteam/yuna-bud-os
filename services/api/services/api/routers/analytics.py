@@ -14,6 +14,7 @@ from ..analytics.ahp import compute_ahp_score
 from ..analytics.bidding import optimal_markup as calc_optimal_markup
 from ..analytics.recommendation import generate_recommendation
 from ..cache import api_cache, invalidate
+from ..redis_cache import rcache_get, rcache_set, TTL_ANALYTICS_DASHBOARD
 
 router = APIRouter(prefix="/api/v2/analytics", tags=["analytics"])
 
@@ -28,13 +29,14 @@ def invalidate_analytics_cache(user: AuthUser) -> dict:
 
 @router.get("/dashboard")
 def analytics_dashboard(user: AuthUser) -> dict:
-    """KPIs: pipeline_value, win_rate, active_bids, avg_margin. Cache TTL=60s."""
+    """KPIs: pipeline_value, win_rate, active_bids, avg_margin. Cache TTL=120s (Redis) / 60s (in-process)."""
     if not user.org_id:
         raise HTTPException(status_code=403, detail={"error": "no_org", "message": "Brak org_id"})
 
     cache_key = f"analytics:{user.org_id}:dashboard"
-    from ..cache import get as cache_get, set as cache_set
-    cached = cache_get(cache_key)
+
+    # Try Redis first (2min TTL), then in-process
+    cached = rcache_get(cache_key)
     if cached is not None:
         return {**cached, "_cached": True}
 
@@ -92,7 +94,8 @@ def analytics_dashboard(user: AuthUser) -> dict:
         "total_lost": int(decisions.lost) if decisions else 0,
         "avg_margin": round(float(avg_margin.avg_margin), 2) if avg_margin and avg_margin.avg_margin else None,
     }
-    cache_set(cache_key, result, ttl=60)
+    # Cache in Redis (2min) + in-process (60s fallback)
+    rcache_set(cache_key, result, ttl=TTL_ANALYTICS_DASHBOARD)
     return result
 
 

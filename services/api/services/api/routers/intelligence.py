@@ -287,9 +287,15 @@ def api_benchmark(
     quarters: int = Query(8),
 ) -> dict:
     """CPV × region benchmark: rozkład wartości przetargów + win_ratio."""
+    _cache_key = f"intel:benchmark:{cpv_prefix}:{province}:{quarters}"
+    _cached = rcache_get(_cache_key)
+    if _cached is not None:
+        return _cached
     try:
         bi = _bi()
-        return bi["get_cpv_benchmark"](cpv_prefix, province, quarters)
+        result = bi["get_cpv_benchmark"](cpv_prefix, province, quarters)
+        rcache_set(_cache_key, result, ttl=TTL_INTELLIGENCE_SUMMARY)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
