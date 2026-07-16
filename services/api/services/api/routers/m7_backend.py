@@ -256,6 +256,9 @@ def create_alert(body: AlertRequest, user: AuthUser, tenant_id: str | None = Non
         conn.execute(sa.text("""
             INSERT INTO tender_alert (id, tenant_id, name, cpv_prefixes, keywords, value_min, value_max)
             VALUES (:id, :tid, :name, :cpv, :kw, :min, :max)
+            ON CONFLICT ON CONSTRAINT idx_alert_tenant_name_unique
+            DO UPDATE SET cpv_prefixes=EXCLUDED.cpv_prefixes, keywords=EXCLUDED.keywords,
+                          value_min=EXCLUDED.value_min, value_max=EXCLUDED.value_max
         """), {"id": alert_id, "tid": resolved_tid, "name": body.resolved_name(),
                "cpv": body.resolved_cpv_prefixes(), "kw": body.resolved_keywords(),
                "min": body.min_value, "max": body.max_value})

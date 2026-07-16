@@ -184,13 +184,11 @@ def _build_context(engine, session_data: dict, tenant_id: str) -> str:
                     )
                 # Analysis context if exists
                 analysis = conn.execute(sa.text(
-                    "SELECT summary_md AS summary, win_probability, recommended_margin FROM analysis WHERE tender_id=:id LIMIT 1"
+                    "SELECT summary_md AS summary FROM analysis WHERE tender_id=:id LIMIT 1"
                 ), {"id": session_data["tender_id"]}).fetchone()
                 if analysis:
                     parts.append(
-                        f"ANALIZA AI: szansa wygranej={analysis[1]}% | "
-                        f"rekomendowana marża={analysis[2]}%\n"
-                        f"  {str(analysis[0])[:300]}"
+                        f"ANALIZA AI: {str(analysis[0])[:400]}"
                     )
         except Exception as e:
             logger.warning("Context build failed: %s", e)
