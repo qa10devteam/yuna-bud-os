@@ -19,9 +19,13 @@ Pobiera dokumenty SWZ z publicznego API ezamowienia.gov.pl (bez autoryzacji).
    UWAGA: tylko NoticeType=ContractNotice zwraca 200. Inne typy → 400.
    htmlBody zawiera link do zewnętrznej platformy SWZ w sekcji 3.1.
 
+=== DZIAŁA bez autoryzacji (zweryfikowano 2026-07-17) ===
+  /mp-readmodels/api/Search/GetTenderDocuments?tenderId=<ocds-id>  → JSON lista dokumentów
+  /mp-readmodels/api/Tender/DownloadDocument/<tender_id>/<obj_id>  → plik (docx/pdf/zip)
+  Obsługiwane przez EZamiowieniaGovHandler w platform_document_scraper.py
+
 === NIE DZIAŁA (wymaga OAuth2) ===
-  /mp-readmodels/api/Search/GetTenderDocuments  → 400 anonimowo
-  /mp-readmodels/api/Tender/DownloadDocument    → 401 anonimowo
+  Inne API administracyjne (składanie ofert, komunikacja)
   authIssuer: https://ezamowienia.gov.pl/oauth2/token (clientId: epzp_MP_FE)
 
 === ARCHITEKTURA ===

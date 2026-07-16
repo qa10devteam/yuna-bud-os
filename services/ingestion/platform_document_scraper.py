@@ -153,6 +153,8 @@ class PlatformDocumentScraper:
         """Zwraca najlepszy handler dla danej domeny."""
         if "platformazakupowa.pl" in host:
             return OpenNexusHandler()
+        if "ezamowienia.gov.pl" in host:
+            return EZamiowieniaGovHandler()
         if "ezamawiajacy.pl" in host:
             return MarketplanetHandler()
         if "logintrade.net" in host or "logintrade.pl" in host:
@@ -954,6 +956,85 @@ class MarketplanetOneplaceHandler(_BaseHandler):
 # ─────────────────────────────────────────────────────────────────
 # Handler: Generic HTML — fallback dla nieznanych platform
 # ─────────────────────────────────────────────────────────────────
+
+class EZamiowieniaGovHandler(_BaseHandler):
+    """Handler dla ezamowienia.gov.pl (Angular SPA z publicznym REST API).
+
+    URL wejściowy: https://ezamowienia.gov.pl/mp-client/search/list/<tender_id>
+    Endpointy (bez autoryzacji):
+      GET /mp-readmodels/api/Search/GetTenderDocuments?tenderId=<id>   → JSON lista
+      GET /mp-readmodels/api/Tender/DownloadDocument/<tender_id>/<obj_id> → plik
+    """
+
+    BASE = "https://ezamowienia.gov.pl"
+    LIST_API = BASE + "/mp-readmodels/api/Search/GetTenderDocuments"
+    DOWNLOAD_API = BASE + "/mp-readmodels/api/Tender/DownloadDocument"
+
+    _OCDS_RE = re.compile(r"(ocds-[a-z0-9]+-[a-f0-9-]{32,})", re.IGNORECASE)
+
+    def fetch(self, url: str, client: httpx.Client) -> list[PlatformDocument]:
+        m = self._OCDS_RE.search(url)
+        if not m:
+            logger.warning("ezamowienia handler: brak OCDS ID w URL: %s", url)
+            return []
+
+        tender_id = m.group(1)
+
+        # Krok 1: Pobierz listę dokumentów
+        try:
+            resp = client.get(
+                self.LIST_API,
+                params={"tenderId": tender_id},
+                timeout=20,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            logger.warning("ezamowienia GetTenderDocuments failed: %s", exc)
+            return []
+
+        docs: list[PlatformDocument] = []
+
+        # data może być listą lub dict z listą
+        items = data if isinstance(data, list) else data.get("tenderDocuments", data.get("documents", []))
+        if not isinstance(items, list):
+            logger.warning("ezamowienia: nieznana struktura odpowiedzi: %s", str(data)[:200])
+            return []
+
+        for item in items:
+            obj_id = item.get("objectId") or item.get("id") or item.get("objectID")
+            name = item.get("name") or item.get("fileName") or item.get("filename") or str(obj_id)
+            filename = item.get("fileName") or item.get("filename") or name
+            if not obj_id:
+                continue
+
+            download_url = f"{self.DOWNLOAD_API}/{tender_id}/{obj_id}"
+
+            # Wykryj typ dokumentu
+            name_lower = name.lower()
+            if "swz" in name_lower or "specyfikacja" in name_lower:
+                doc_type = "SWZ"
+            elif "opz" in name_lower or "opis przedmiotu" in name_lower:
+                doc_type = "OPZ"
+            elif "umow" in name_lower or "kontrakt" in name_lower:
+                doc_type = "CONTRACT"
+            elif "formularz" in name_lower or "ofert" in name_lower:
+                doc_type = "FORM"
+            else:
+                doc_type = "OTHER"
+
+            docs.append(PlatformDocument(
+                name=name,
+                filename=filename,
+                url=download_url,
+                doc_type=doc_type,
+                platform="ezamowienia",
+                file_size=item.get("size") or item.get("fileSize"),
+            ))
+
+        logger.info("ezamowienia: znaleziono %d dokumentów dla %s", len(docs), tender_id)
+        return docs
+
 
 class GenericHTMLHandler(_BaseHandler):
     """Generyczny handler — parsuje HTML i wyciąga wszystkie linki do plików.
