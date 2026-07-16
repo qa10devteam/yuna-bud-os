@@ -90,6 +90,12 @@ def list_estimates(tender_id: str, user: AuthUser) -> dict:
     tenant_id = _require_org(user)
     engine = get_engine()
 
+    # Validate tender_id is a valid UUID to avoid DB cast errors
+    try:
+        uuid.UUID(tender_id)
+    except (ValueError, AttributeError):
+        return {"items": [], "total": 0}
+
     with engine.connect() as conn:
         rows = conn.execute(
             sa.text(

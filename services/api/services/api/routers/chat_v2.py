@@ -12,6 +12,8 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+from typing import Optional
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -19,13 +21,14 @@ import sqlalchemy as sa
 
 from terra_db.session import get_engine
 from services.ai.vllm_client import get_llm_client, TERRA_SYSTEM_PROMPT
+from ..auth.deps import AuthUser
 
 router = APIRouter(prefix="/api/v2/chat", tags=["chat-v2"])
 logger = logging.getLogger(__name__)
 
 
 class CreateSessionRequest(BaseModel):
-    tenant_id: str
+    tenant_id: Optional[str] = None  # ignored — tenant resolved from auth token
     page_context: str | None = None
     tender_id: str | None = None
 
@@ -160,15 +163,17 @@ def _build_context(engine, session_data: dict) -> str:
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/sessions")
-def create_session(body: CreateSessionRequest) -> dict:
+def create_session(body: CreateSessionRequest, user: AuthUser) -> dict:
     """Create a new chat session."""
     engine = get_engine()
     session_id = str(uuid.uuid4())
+    # Resolve tenant from auth token, not body
+    tenant_id = str(user.org_id) if user.org_id else "demo"
     with engine.begin() as conn:
         conn.execute(sa.text("""
             INSERT INTO chat_session (id, tenant_id, page_context, tender_id)
             VALUES (:id, :tid, :ctx, :tender)
-        """), {"id": session_id, "tid": body.tenant_id,
+        """), {"id": session_id, "tid": tenant_id,
                "ctx": body.page_context, "tender": body.tender_id})
     return {"session_id": session_id}
 

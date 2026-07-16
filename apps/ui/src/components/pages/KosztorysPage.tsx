@@ -25,7 +25,7 @@ import { PageShell } from '@/components/PageShell';
 interface TenderItem {
   id: string;
   title: string;
-  buyer: string;
+  buyer: string | null;
   cpv: string[];
   value_pln: number | string | null;
 }
@@ -1125,7 +1125,7 @@ export function KosztorysPage() {
 
   // ── Filtered tenders ───────────────────────────────────────────────────────
   const filteredTenders = tenders.filter(t =>
-    !tenderSearch || t.title.toLowerCase().includes(tenderSearch.toLowerCase()) || t.buyer.toLowerCase().includes(tenderSearch.toLowerCase())
+    !tenderSearch || (t.title ?? '').toLowerCase().includes(tenderSearch.toLowerCase()) || (t.buyer ?? '').toLowerCase().includes(tenderSearch.toLowerCase())
   );
 
   // ── ATH Import handler ─────────────────────────────────────────────────────
