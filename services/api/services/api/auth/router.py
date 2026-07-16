@@ -62,9 +62,22 @@ class RegisterRequest(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_strength(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Hasło musi mieć co najmniej 8 znaków")
+    def password_strength(cls, v: str, info) -> str:
+        errors = []
+        if len(v) < 12:
+            errors.append("min. 12 znaków")
+        if not re.search(r"[A-Z]", v):
+            errors.append("min. 1 wielka litera")
+        if not re.search(r"[0-9]", v):
+            errors.append("min. 1 cyfra")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            errors.append("min. 1 znak specjalny")
+        # Check password != email (info.data may have email already validated)
+        email_val = info.data.get("email", "")
+        if email_val and v.lower() == email_val.lower():
+            errors.append("hasło nie może być identyczne z adresem email")
+        if errors:
+            raise ValueError(f"Hasło nie spełnia wymagań: {', '.join(errors)}")
         return v
 
 
@@ -200,7 +213,7 @@ def _seed_new_org(db: Session, org_id: str) -> None:
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 def register(request: Request, body: RegisterRequest, response: Response, db: DB):
     # Check duplicate
     existing = db.execute(
@@ -256,7 +269,7 @@ def register(request: Request, body: RegisterRequest, response: Response, db: DB
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 def login(request: Request, body: LoginRequest, response: Response, db: DB):
     user_row = db.execute(
         text("SELECT id, email, name, password_hash, org_id, role, is_active FROM users WHERE email = :email"),
@@ -339,8 +352,17 @@ class ResetPasswordRequest(BaseModel):
     @field_validator("new_password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Hasło musi mieć co najmniej 8 znaków")
+        errors = []
+        if len(v) < 12:
+            errors.append("min. 12 znaków")
+        if not re.search(r"[A-Z]", v):
+            errors.append("min. 1 wielka litera")
+        if not re.search(r"[0-9]", v):
+            errors.append("min. 1 cyfra")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            errors.append("min. 1 znak specjalny")
+        if errors:
+            raise ValueError(f"Hasło nie spełnia wymagań: {', '.join(errors)}")
         return v
 
 

@@ -1,45 +1,65 @@
-"""S34 — In-memory per-user/IP rate limiter middleware (100 req/min).
+"""Redis-based per-IP rate limiter middleware (60 req/min general, 5 req/min auth).
 
-Complements the global slowapi limiter with a per-org_id sliding window.
-Falls back to client IP when no authenticated user is present.
+Uses Redis sliding window counters. No localhost whitelist (reverse proxy scenario).
 """
 from __future__ import annotations
-
-from collections import defaultdict, deque
 
 import time
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-_buckets: dict = defaultdict(lambda: deque(maxlen=120))
+import redis
+
+_redis = redis.Redis(host="localhost", port=6379, db=1, decode_responses=True)
+
+# Limits
+_AUTH_LIMIT = 5
+_GENERAL_LIMIT = 60
+_WINDOW = 60  # seconds
 
 
-_WHITELIST_IPS = {"127.0.0.1", "::1", "localhost"}
+def _is_auth_endpoint(path: str) -> bool:
+    """Check if the path is an auth endpoint that needs stricter limiting."""
+    return path.startswith("/api/v2/auth/login") or path.startswith("/api/v2/auth/register")
 
 
 async def rate_limit_middleware(request: Request, call_next):
-    """Sliding-window 100 req/min per org_id (or IP for anonymous).
-    Localhost and internal IPs are whitelisted.
-    """
-    client_ip = request.client.host if request.client else None
-
-    # Whitelist localhost / internal traffic
-    if client_ip in _WHITELIST_IPS:
+    """Redis sliding-window rate limiter. No whitelist."""
+    import os
+    if os.environ.get("TESTING") == "1":
         return await call_next(request)
 
-    uid = (
-        getattr(getattr(request.state, "user", None), "org_id", None)
-        or client_ip
-        or "anon"
-    )
+    client_ip = request.client.host if request.client else "unknown"
+    path = request.url.path
+
+    is_auth = _is_auth_endpoint(path)
+    limit = _AUTH_LIMIT if is_auth else _GENERAL_LIMIT
+
+    # Redis key with endpoint category
+    category = "auth" if is_auth else "general"
+    key = f"rate:{client_ip}:{category}"
+
     now = time.time()
-    bucket = _buckets[str(uid)]
-    bucket.append(now)
-    window_count = sum(1 for t in bucket if now - t < 60)
-    if window_count > 100:
+    window_start = now - _WINDOW
+
+    pipe = _redis.pipeline()
+    # Remove old entries outside window
+    pipe.zremrangebyscore(key, 0, window_start)
+    # Count current entries
+    pipe.zcard(key)
+    # Add current request
+    pipe.zadd(key, {f"{now}:{id(request)}": now})
+    # Set TTL
+    pipe.expire(key, _WINDOW + 1)
+    results = pipe.execute()
+
+    current_count = results[1]
+
+    if current_count >= limit:
         return JSONResponse(
             status_code=429,
-            content={"detail": "Rate limit 100 req/min exceeded"},
+            content={"detail": f"Rate limit exceeded: {limit} req/min"},
         )
+
     return await call_next(request)

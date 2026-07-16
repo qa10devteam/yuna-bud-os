@@ -101,7 +101,7 @@ async def test_reset_password_invalid_token_returns_400(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         resp = await ac.post(
             "/api/v2/auth/reset-password",
-            json={"token": "totally-invalid-token-that-does-not-exist", "new_password": "newpass99"},
+            json={"token": "totally-invalid-token-that-does-not-exist", "new_password": "NewPass99!Secure"},
         )
     assert resp.status_code == 400
     detail = resp.json().get("detail", "")
@@ -123,7 +123,7 @@ async def test_reset_password_expired_token_returns_400(app):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post(
                 "/api/v2/auth/reset-password",
-                json={"token": expired_token, "new_password": "newpass99"},
+                json={"token": expired_token, "new_password": "NewPass99!Secure"},
             )
         assert resp.status_code == 400
         detail = resp.json().get("detail", "")

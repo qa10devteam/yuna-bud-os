@@ -989,7 +989,7 @@ class TestAuthForgotPassword:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v2/auth/reset-password",
-                    json={"token": "bad-token", "new_password": "newpass123"},
+                    json={"token": "bad-token", "new_password": "NewPass123!Secure"},
                 )
         assert resp.status_code == 400
 
@@ -1012,7 +1012,7 @@ class TestAuthForgotPassword:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v2/auth/reset-password",
-                    json={"token": "expired-token", "new_password": "newpass123"},
+                    json={"token": "expired-token", "new_password": "NewPass123!Secure"},
                 )
         assert resp.status_code == 400
         assert "wygasł" in resp.json()["detail"]
@@ -1036,7 +1036,7 @@ class TestAuthForgotPassword:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v2/auth/reset-password",
-                    json={"token": "used-token", "new_password": "newpass123"},
+                    json={"token": "used-token", "new_password": "NewPass123!Secure"},
                 )
         assert resp.status_code == 400
         assert "wykorzystany" in resp.json()["detail"]
@@ -1064,7 +1064,7 @@ class TestAuthForgotPassword:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v2/auth/reset-password",
-                    json={"token": "valid-token", "new_password": "newpass123"},
+                    json={"token": "valid-token", "new_password": "NewPass123!Secure"},
                 )
         assert resp.status_code == 200
         assert "zmienione" in resp.json()["message"]
@@ -1090,7 +1090,7 @@ class TestAuthForgotPassword:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v2/auth/reset-password",
-                    json={"token": "valid-token-no-user", "new_password": "newpass123"},
+                    json={"token": "valid-token-no-user", "new_password": "NewPass123!Secure"},
                 )
         assert resp.status_code == 400
 

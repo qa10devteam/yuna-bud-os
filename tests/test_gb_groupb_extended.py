@@ -1917,7 +1917,7 @@ async def test_auth_reset_password_invalid_token(app):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
                     "/api/v2/auth/reset-password",
-                    json={"token": "invalid_token", "new_password": "newpassword123"},
+                    json={"token": "invalid_token", "new_password": "NewPassword123!"},
                 )
     assert resp.status_code in (400, 422, 500)
 

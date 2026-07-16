@@ -327,30 +327,49 @@ def logistics_optimize(body: OptimizeRequest) -> OptimizeResponse:
             "SELECT id, name FROM employee WHERE tenant_id=:tid AND active=true"
         ), {"tid": tid}).fetchall()
 
+        # Bulk load all skills for tenant (eliminates N+1)
+        all_skills = conn.execute(sa.text(
+            "SELECT employee_id, skill FROM competency WHERE tenant_id=:tid"
+        ), {"tid": tid}).fetchall()
+        skills_by_emp: dict[str, list[str]] = {}
+        for row in all_skills:
+            skills_by_emp.setdefault(str(row[0]), []).append(row[1])
+
+        # Bulk load all employee availability for tenant (eliminates N+1)
+        all_emp_avail = conn.execute(sa.text(
+            "SELECT employee_id, day FROM availability WHERE tenant_id=:tid AND employee_id IS NOT NULL AND available=true"
+        ), {"tid": tid}).fetchall()
+        avail_by_emp: dict[str, list[str]] = {}
+        for row in all_emp_avail:
+            avail_by_emp.setdefault(str(row[0]), []).append(str(row[1]))
+
         employees = []
         for er in emp_rows:
             eid = str(er[0])
-            skills = [r[0] for r in conn.execute(sa.text(
-                "SELECT skill FROM competency WHERE tenant_id=:tid AND employee_id=:eid"
-            ), {"tid": tid, "eid": eid}).fetchall()]
-            avail_days = [str(r[0]) for r in conn.execute(sa.text(
-                "SELECT day FROM availability WHERE tenant_id=:tid AND employee_id=:eid AND available=true"
-            ), {"tid": tid, "eid": eid}).fetchall()]
+            skills = skills_by_emp.get(eid, [])
+            avail_days = avail_by_emp.get(eid, [])
             # If no explicit availability set, assume available on all days
             if not avail_days:
                 avail_days = days
             employees.append(EmployeeSpec(id=eid, name=er[1], skills=skills, available_days=avail_days))
 
-        # Load equipment + availability
+        # Load equipment + availability (bulk)
         eq_rows = conn.execute(sa.text(
             "SELECT id, type FROM resource_equipment WHERE tenant_id=:tid AND active=true"
         ), {"tid": tid}).fetchall()
+
+        # Bulk load all equipment availability for tenant (eliminates N+1)
+        all_eq_avail = conn.execute(sa.text(
+            "SELECT equipment_id, day FROM availability WHERE tenant_id=:tid AND equipment_id IS NOT NULL AND available=true"
+        ), {"tid": tid}).fetchall()
+        avail_by_eq: dict[str, list[str]] = {}
+        for row in all_eq_avail:
+            avail_by_eq.setdefault(str(row[0]), []).append(str(row[1]))
+
         equipment = []
         for qr in eq_rows:
             qid = str(qr[0])
-            avail_days = [str(r[0]) for r in conn.execute(sa.text(
-                "SELECT day FROM availability WHERE tenant_id=:tid AND equipment_id=:qid AND available=true"
-            ), {"tid": tid, "qid": qid}).fetchall()]
+            avail_days = avail_by_eq.get(qid, [])
             if not avail_days:
                 avail_days = days
             equipment.append(EquipmentSpec(id=qid, type=qr[1], available_days=avail_days))

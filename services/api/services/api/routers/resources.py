@@ -55,12 +55,12 @@ def list_subcontractors(
     offset: int = Query(0, ge=0),
 ) -> dict:
     engine = get_engine()
-    filters = []
-    params: dict = {"limit": limit, "offset": offset}
+    filters = ["org_id = :org_id"]
+    params: dict = {"limit": limit, "offset": offset, "org_id": user.org_id}
     if active is not None:
         filters.append("active = :active")
         params["active"] = active
-    where = "WHERE " + " AND ".join(filters) if filters else ""
+    where = "WHERE " + " AND ".join(filters)
     with engine.connect() as conn:
         rows = conn.execute(
             sa.text(f"""

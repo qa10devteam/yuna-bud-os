@@ -198,7 +198,7 @@ class TestResetPassword:
             app.dependency_overrides[get_db] = lambda: db
             resp = TestClient(app, raise_server_exceptions=False).post(
                 "/api/v2/auth/reset-password",
-                json={"token": "not-a-real-token", "new_password": "newpassword123"},
+                json={"token": "not-a-real-token", "new_password": "NewPassword123!"},
             )
         assert resp.status_code == 400
         assert "detail" in resp.json()
@@ -231,7 +231,7 @@ class TestResetPassword:
             app.dependency_overrides[get_db] = lambda: _make_db_session()
             resp = TestClient(app, raise_server_exceptions=False).post(
                 "/api/v2/auth/reset-password",
-                json={"token": "expired-token", "new_password": "newpassword123"},
+                json={"token": "expired-token", "new_password": "NewPassword123!"},
             )
 
         assert resp.status_code == 400
@@ -260,7 +260,7 @@ class TestResetPassword:
             app.dependency_overrides[get_db] = lambda: _make_db_session()
             resp = TestClient(app, raise_server_exceptions=False).post(
                 "/api/v2/auth/reset-password",
-                json={"token": "used-token", "new_password": "newpassword123"},
+                json={"token": "used-token", "new_password": "NewPassword123!"},
             )
 
         assert resp.status_code == 400
@@ -305,7 +305,7 @@ class TestResetPassword:
             app.dependency_overrides[get_db] = lambda: _make_db_session()
             resp = TestClient(app, raise_server_exceptions=False).post(
                 "/api/v2/auth/reset-password",
-                json={"token": "valid-token", "new_password": "mynewpassword"},
+                json={"token": "valid-token", "new_password": "MyNewPassword123!"},
             )
 
         assert resp.status_code == 200
