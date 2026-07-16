@@ -184,7 +184,7 @@ def _build_context(engine, session_data: dict, tenant_id: str) -> str:
                     )
                 # Analysis context if exists
                 analysis = conn.execute(sa.text(
-                    "SELECT summary, win_probability, recommended_margin FROM analysis WHERE tender_id=:id LIMIT 1"
+                    "SELECT summary_md AS summary, win_probability, recommended_margin FROM analysis WHERE tender_id=:id LIMIT 1"
                 ), {"id": session_data["tender_id"]}).fetchone()
                 if analysis:
                     parts.append(

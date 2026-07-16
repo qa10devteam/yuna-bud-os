@@ -10,13 +10,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import sqlalchemy as sa
 
 from terra_db.session import get_engine
 from services.ai.vllm_client import get_llm_client
+from ..auth.deps import AuthUser
 
 router = APIRouter(prefix="/api/v2", tags=["m7-backend"])
 logger = logging.getLogger(__name__)
@@ -236,15 +237,22 @@ class AlertRequest(BaseModel):
 
 
 @router.post("/alerts")
-def create_alert(body: AlertRequest, tenant_id: str | None = None) -> dict:
+def create_alert(body: AlertRequest, user: AuthUser, tenant_id: str | None = None) -> dict:
     """Create a tender alert. tenant_id is optional (legacy query param).
     Accepts both the original schema and convenience fields (keyword/cpv/region)."""
     engine = get_engine()
     alert_id = str(uuid.uuid4())
-    resolved_tid = tenant_id or "demo"
+    # Prefer auth org_id; fall back to query param; finally use first available tenant
+    resolved_tid = (user.org_id if user and user.org_id else None) or tenant_id
+    if not resolved_tid:
+        with engine.connect() as conn:
+            row = conn.execute(sa.text("SELECT id FROM tenant LIMIT 1")).fetchone()
+            resolved_tid = str(row[0]) if row else None
+    if not resolved_tid:
+        return {"error": "tenant_id required"}
     with engine.begin() as conn:
         conn.execute(sa.text("""
-            INSERT INTO tender_alert (id, tenant_id, name, cpv_prefixes, keywords, min_value, max_value)
+            INSERT INTO tender_alert (id, tenant_id, name, cpv_prefixes, keywords, value_min, value_max)
             VALUES (:id, :tid, :name, :cpv, :kw, :min, :max)
         """), {"id": alert_id, "tid": resolved_tid, "name": body.resolved_name(),
                "cpv": body.resolved_cpv_prefixes(), "kw": body.resolved_keywords(),
