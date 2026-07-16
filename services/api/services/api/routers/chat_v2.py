@@ -271,7 +271,7 @@ def send_message(session_id: str, body: SendMessageRequest) -> StreamingResponse
         with engine.begin() as conn:
             conn.execute(sa.text("""
                 UPDATE chat_session
-                SET messages=:msgs::jsonb, summary=:sum, updated_at=NOW()
+                SET messages=cast(:msgs as jsonb), summary=:sum, updated_at=NOW()
                 WHERE id=:id
             """), {"id": session_id, "msgs": json.dumps(messages_to_save),
                    "sum": new_summary})

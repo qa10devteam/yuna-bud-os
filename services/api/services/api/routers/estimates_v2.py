@@ -177,11 +177,21 @@ def predict_cost(
     estimator = get_estimator()
     pred = estimator.predict({"cpv": cpv, "region": region, "area_m2": area_m2, "floors": floors})
 
+    # pred = EstimateResult.to_dict() → keys: total_net_pln, confidence_low, confidence_high, method, variant, lines
+    from ..analytics.cost_estimation import _resolve_cpv_benchmark
+    total = pred.get("total_net_pln", 0)
+    bm = _resolve_cpv_benchmark(cpv)
     return {
-        "benchmark": pred["benchmark"],
-        "ai_estimate": pred["estimate"],
-        "confidence_interval": {"low95": pred["low95"], "high95": pred["high95"]},
-        "method": pred["method"],
+        "benchmark": round(bm["price_per_m2"] * area_m2, 2),
+        "ai_estimate": total,
+        "confidence_interval": {
+            "low95": pred.get("confidence_low", round(total * 0.7, 2)),
+            "high95": pred.get("confidence_high", round(total * 1.3, 2)),
+        },
+        "method": pred.get("method", "benchmark"),
+        "variant": pred.get("variant", ""),
+        "lines": pred.get("lines", []),
+        "notes": pred.get("notes", ""),
         "similar_projects": [],
     }
 

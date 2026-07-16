@@ -58,7 +58,7 @@ def _run_pipeline_sse(tender_id: str, version: str = "v1"):
         # Mark done
         with engine.begin() as conn:
             conn.execute(sa.text("""
-                UPDATE agent_run SET status='done', output=:out, finished_at=NOW()
+                UPDATE agent_run SET status='succeeded', output=:out, finished_at=NOW()
                 WHERE id=:id
             """), {"id": run_id, "out": json.dumps(result_state, default=str)})
 
@@ -68,7 +68,7 @@ def _run_pipeline_sse(tender_id: str, version: str = "v1"):
         logger.error(f"Pipeline {version} error: {e}")
         with engine.begin() as conn:
             conn.execute(sa.text("""
-                UPDATE agent_run SET status='error', output=:out, finished_at=NOW()
+                UPDATE agent_run SET status='failed', output=:out, finished_at=NOW()
                 WHERE id=:id
             """), {"id": run_id, "out": json.dumps({"error": str(e)})})
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
@@ -124,7 +124,7 @@ def get_brief(tender_id: str) -> dict:
         row = conn.execute(
             sa.text("""
                 SELECT id, output, finished_at FROM agent_run
-                WHERE pipeline='v2' AND status='done'
+                WHERE status='succeeded'
                   AND input::jsonb->>'tender_id' = :tid
                 ORDER BY finished_at DESC LIMIT 1
             """),

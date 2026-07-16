@@ -159,7 +159,7 @@ async def import_tenders_xlsx(
     with engine.connect() as conn:
         conn.execute(
             sa.text("""
-                UPDATE excel_imports SET rows_imported=:rows, errors=:errs::jsonb, status=:status
+                UPDATE excel_imports SET rows_imported=:rows, errors=cast(:errs as jsonb), status=:status
                 WHERE id=:id
             """),
             {
