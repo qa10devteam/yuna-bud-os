@@ -200,23 +200,54 @@ def get_alerts(tenant_id: str) -> list[dict]:
 
 
 class AlertRequest(BaseModel):
-    name: str
+    name: str | None = None
     cpv_prefixes: list[str] = []
     keywords: list[str] = []
     min_value: float | None = None
     max_value: float | None = None
+    # convenience aliases accepted from external callers
+    keyword: str | None = None   # single keyword shorthand → appended to keywords
+    cpv: str | None = None       # CPV prefix shorthand → appended to cpv_prefixes
+    region: str | None = None    # region / province shorthand (informational)
+
+    def resolved_name(self) -> str:
+        if self.name:
+            return self.name
+        parts = []
+        if self.keyword:
+            parts.append(self.keyword)
+        if self.cpv:
+            parts.append(f"CPV:{self.cpv}")
+        if self.region:
+            parts.append(self.region)
+        return " | ".join(parts) if parts else "Alert"
+
+    def resolved_keywords(self) -> list[str]:
+        kws = list(self.keywords)
+        if self.keyword and self.keyword not in kws:
+            kws.append(self.keyword)
+        return kws
+
+    def resolved_cpv_prefixes(self) -> list[str]:
+        pfx = list(self.cpv_prefixes)
+        if self.cpv and self.cpv not in pfx:
+            pfx.append(self.cpv)
+        return pfx
 
 
 @router.post("/alerts")
-def create_alert(tenant_id: str, body: AlertRequest) -> dict:
+def create_alert(body: AlertRequest, tenant_id: str | None = None) -> dict:
+    """Create a tender alert. tenant_id is optional (legacy query param).
+    Accepts both the original schema and convenience fields (keyword/cpv/region)."""
     engine = get_engine()
     alert_id = str(uuid.uuid4())
+    resolved_tid = tenant_id or "demo"
     with engine.begin() as conn:
         conn.execute(sa.text("""
             INSERT INTO tender_alert (id, tenant_id, name, cpv_prefixes, keywords, min_value, max_value)
             VALUES (:id, :tid, :name, :cpv, :kw, :min, :max)
-        """), {"id": alert_id, "tid": tenant_id, "name": body.name,
-               "cpv": body.cpv_prefixes, "kw": body.keywords,
+        """), {"id": alert_id, "tid": resolved_tid, "name": body.resolved_name(),
+               "cpv": body.resolved_cpv_prefixes(), "kw": body.resolved_keywords(),
                "min": body.min_value, "max": body.max_value})
     return {"id": alert_id, "status": "created"}
 

@@ -379,3 +379,35 @@ def get_win_prob_ml(tender_id: str, user: AuthUser) -> dict:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Agent Brief proxy — /api/v2/intelligence/agent/brief ─────────────────────
+
+@router.get("/agent/brief")
+def get_agent_brief_by_query(tender_id: str = Query(...)) -> dict:
+    """Proxy to agent_pipeline brief: GET /api/v2/intelligence/agent/brief?tender_id=<id>.
+
+    Delegates to agent_run table — same logic as /api/v2/agent/brief/{tender_id}.
+    """
+    from sqlalchemy import text as _text
+    engine = _get_engine()
+    with engine.connect() as conn:
+        row = conn.execute(_text("""
+            SELECT id, output, finished_at FROM agent_run
+            WHERE status='succeeded'
+              AND input::jsonb->>'tender_id' = :tid
+            ORDER BY finished_at DESC LIMIT 1
+        """), {"tid": tender_id}).fetchone()
+
+    if not row:
+        return {"tender_id": tender_id, "brief": None, "status": "not_found"}
+
+    output = row[1] if isinstance(row[1], dict) else {}
+    return {
+        "tender_id": tender_id,
+        "agent_run_id": str(row[0]),
+        "brief": output.get("brief"),
+        "go_decision": output.get("go_decision"),
+        "finished_at": str(row[2]) if row[2] else None,
+        "status": "ok",
+    }

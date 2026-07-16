@@ -120,6 +120,29 @@ def calc_cost_estimate(body: CostEstimateRequest, current_user: AuthUser):
     return result
 
 
+@router.get("/cost-estimate")
+def get_cost_estimate_via_query(
+    cpv: str = "",
+    nuts: str = "",
+    value: float = 0.0,
+    region: str = "",
+    area_m2: float = 0.0,
+    description: str = "",
+):
+    """GET convenience wrapper for cost-estimate — accepts query params, no auth required."""
+    from ..analytics import estimate_cost
+    # Map NUTS code to region name if region not explicitly provided
+    _region = region or nuts or "mazowieckie"
+    result = estimate_cost(
+        cpv=cpv,
+        region=_region,
+        area_m2=area_m2,
+        value_estimated=value,
+        description=description,
+    )
+    return result
+
+
 @router.get("/win-probability")
 def calc_win_probability(
     current_user: AuthUser,
@@ -239,6 +262,77 @@ def get_analytics_dashboard(current_user: AuthUser):
             "win_rate_pct": 0.0,
             "avg_margin_pct": 0.0,
             "funnel": [],
+            "error": str(exc),
+        }
+
+
+@router.get("/market-overview")
+def get_market_overview():
+    """Market overview — aggregate tender statistics. No auth required."""
+    engine = get_engine()
+    try:
+        with engine.connect() as conn:
+            # Detect the most recent year with data
+            year_row = conn.execute(text("""
+                SELECT COALESCE(MAX(EXTRACT(YEAR FROM published_at)), MAX(EXTRACT(YEAR FROM created_at)), 2024)::int
+                FROM tender
+            """)).scalar()
+            data_year = int(year_row) if year_row else 2024
+
+            # Total tenders + value
+            totals = conn.execute(text("""
+                SELECT COUNT(*) AS total_tenders,
+                       COALESCE(SUM(value_pln), 0) AS total_value_pln
+                FROM tender
+                WHERE EXTRACT(YEAR FROM published_at) = :yr
+                   OR (published_at IS NULL AND EXTRACT(YEAR FROM created_at) = :yr)
+            """), {"yr": data_year}).fetchone()
+
+            # Top CPV codes (cpv is an array; unnest it)
+            top_cpv = conn.execute(text("""
+                SELECT unnest(cpv) AS cpv_code, COUNT(*) AS cnt
+                FROM tender
+                WHERE cpv IS NOT NULL AND array_length(cpv, 1) > 0
+                  AND (EXTRACT(YEAR FROM published_at) = :yr
+                       OR (published_at IS NULL AND EXTRACT(YEAR FROM created_at) = :yr))
+                GROUP BY cpv_code
+                ORDER BY cnt DESC
+                LIMIT 5
+            """), {"yr": data_year}).fetchall()
+
+            # Top regions
+            top_regions = conn.execute(text("""
+                SELECT voivodeship, COUNT(*) AS cnt
+                FROM tender
+                WHERE voivodeship IS NOT NULL AND voivodeship <> ''
+                  AND (EXTRACT(YEAR FROM published_at) = :yr
+                       OR (published_at IS NULL AND EXTRACT(YEAR FROM created_at) = :yr))
+                GROUP BY voivodeship
+                ORDER BY cnt DESC
+                LIMIT 5
+            """), {"yr": data_year}).fetchall()
+
+        total_tenders = int(totals[0]) if totals else 0
+        total_value = float(totals[1]) if totals else 0.0
+        avg_per_tender = round(total_value / total_tenders, 2) if total_tenders > 0 else 0.0
+
+        return {
+            "total_tenders": total_tenders,
+            "total_value_pln": total_value,
+            "avg_per_tender": avg_per_tender,
+            "top_cpv": [{"cpv": r[0], "count": r[1]} for r in top_cpv],
+            "top_regions": [{"region": r[0], "count": r[1]} for r in top_regions],
+            "period": str(data_year),
+        }
+    except Exception as exc:
+        logger.warning("market-overview error: %s", exc, exc_info=True)
+        return {
+            "total_tenders": 0,
+            "total_value_pln": 0.0,
+            "avg_per_tender": 0.0,
+            "top_cpv": [],
+            "top_regions": [],
+            "period": "2024",
             "error": str(exc),
         }
 

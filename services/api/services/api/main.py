@@ -706,3 +706,33 @@ async def v1_tenders_list(_req: _Request):
     async with _httpx.AsyncClient(base_url="http://127.0.0.1:8000") as client:
         resp = await client.get(target, headers={"Authorization": token})
     return _JSONResponse(content=resp.json(), status_code=resp.status_code)
+
+
+# ── v1 ICB compat aliases — /api/v1/icb/suggest and /api/v1/icb/prices ──────
+@app.get("/api/v1/icb/suggest", include_in_schema=False)
+async def v1_icb_suggest(_req: _Request):
+    """v1 alias → /api/v2/icb/suggest (passes through all query params)."""
+    import httpx as _httpx
+    qs = str(_req.url.query)
+    target = f"/api/v2/icb/suggest{'?' + qs if qs else ''}"
+    async with _httpx.AsyncClient(base_url="http://127.0.0.1:8000") as client:
+        resp = await client.get(target)
+    return _JSONResponse(content=resp.json(), status_code=resp.status_code)
+
+
+@app.get("/api/v1/icb/prices", include_in_schema=False)
+async def v1_icb_prices(_req: _Request):
+    """v1 alias → /api/v2/icb/search (maps q/limit params, returns {count, items} shape)."""
+    import httpx as _httpx
+    qs = str(_req.url.query)
+    target = f"/api/v2/icb/search{'?' + qs if qs else ''}"
+    async with _httpx.AsyncClient(base_url="http://127.0.0.1:8000") as client:
+        resp = await client.get(target)
+    if resp.status_code == 200:
+        data = resp.json()
+        # Normalise: v2/search returns {count, results, ...}; v1 expects {count, items}
+        return _JSONResponse(
+            content={"count": data.get("count", 0), "items": data.get("results", [])},
+            status_code=200,
+        )
+    return _JSONResponse(content=resp.json(), status_code=resp.status_code)

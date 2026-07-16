@@ -22,6 +22,7 @@ import {
   Hammer,
   Wrench,
   PackageSearch,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -51,6 +52,8 @@ const moduleGroups: ModuleGroup[] = [
       { id: 'kosztorys', icon: Calculator, name: 'Kosztorys', desc: 'Wycena KNR i materiały' },
       { id: 'oferta',    icon: FileText,   name: 'Oferta',    desc: 'Kreator oferty PDF' },
       { id: 'contracts', icon: FileText,   name: 'Kontrakty', desc: 'Tracker + cashflow' },
+      { id: 'logistyka', icon: Wrench,     name: 'Logistyka', desc: 'Zasoby, sprzęt, harmonogram' },
+      { id: 'resources', icon: Users,      name: 'Zasoby',    desc: 'Pracownicy i maszyny' },
     ],
   },
   {
