@@ -1,0 +1,37 @@
+WYKAZ ROBÓT BUDOWLANYCH
+składany w celu potwierdzenia spełnienia warunku udziału w postępowaniu
+
+Postępowanie: {{ tender.tytul }}
+Nr sprawy: {{ tender.nr_sprawy }}
+Zamawiający: {{ tender.zamawiajacy_nazwa }}
+
+========================================================
+
+Ja/My, niżej podpisany/i:
+{{ company.nazwa_pelna }}, NIP: {{ company.nip }}
+
+oświadczam/y, że wykonałem/y następujące roboty budowlane w wymaganym
+przez Zamawiającego okresie:
+
+{% for ref in referencje %}
+{{ loop.index }}. ROBOTA BUDOWLANA
+   Przedmiot:     {{ ref.przedmiot }}
+   Zamawiający:   {{ ref.zamawiajacy }}
+   Wartość brutto: {{ ref.wartosc_brutto | format_pln }} PLN
+   Data realizacji: {{ ref.data_rozpoczecia }} – {{ ref.data_zakonczenia }}
+   Nr umowy:      {{ ref.nr_kontraktu | default('—') }}
+   Zakończono terminowo: {{ 'TAK' if ref.czy_zakonczono_terminowo else 'NIE' }}
+   {% if ref.get('osoba_kontaktowa') %}Osoba do kontaktu: {{ ref.osoba_kontaktowa }}{% endif %}
+
+   Do wykazu dołączono: referencje/protokół odbioru końcowego ✓
+
+{% else %}
+   BRAK WYMAGANYCH REFERENCJI — uzupełnij dane firmy!
+{% endfor %}
+
+========================================================
+
+Miejscowość i data: {{ company.adres_miasto }}, {{ today }}
+
+Podpis: ..........................................
+{{ company.nazwa_pelna }}

@@ -1,0 +1,48 @@
+OŚWIADCZENIE WYKONAWCY
+składane na podstawie art. 125 ust. 1 ustawy PZP
+dotyczące SPEŁNIANIA WARUNKÓW UDZIAŁU w postępowaniu
+
+Postępowanie: {{ tender.tytul }}
+Nr sprawy: {{ tender.nr_sprawy }}
+Zamawiający: {{ tender.zamawiajacy_nazwa }}
+
+========================================================
+
+Ja/My, niżej podpisany/i:
+{{ company.nazwa_pelna }}
+{{ company.adres_ulica }} {{ company.adres_nr_budynku }}, {{ company.adres_kod_pocztowy }} {{ company.adres_miasto }}
+NIP: {{ company.nip }}
+
+OŚWIADCZAM/Y, że spełniam/y warunki udziału w postępowaniu określone przez
+Zamawiającego w Rozdziale [dot. warunków udziału] SWZ, tj.:
+
+{% if warunki.zdolnosc_techniczna %}
+1. ZDOLNOŚĆ TECHNICZNA LUB ZAWODOWA
+
+{{ warunki.zdolnosc_techniczna }}
+
+   Oświadczam/y, że spełniam/y powyższy warunek. ✓
+{% endif %}
+
+{% if warunki.sytuacja_finansowa %}
+2. SYTUACJA EKONOMICZNA LUB FINANSOWA
+
+{{ warunki.sytuacja_finansowa }}
+
+   Oświadczam/y, że spełniam/y powyższy warunek. ✓
+{% endif %}
+
+{% if warunki.uprawnienia %}
+3. UPRAWNIENIA DO PROWADZENIA DZIAŁALNOŚCI
+
+{{ warunki.uprawnienia }}
+
+   Oświadczam/y, że spełniam/y powyższy warunek. ✓
+{% endif %}
+
+========================================================
+
+Miejscowość i data: {{ company.adres_miasto }}, {{ today }}
+
+Podpis: ..........................................
+{{ company.nazwa_pelna }}

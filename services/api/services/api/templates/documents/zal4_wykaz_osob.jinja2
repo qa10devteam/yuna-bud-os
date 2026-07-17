@@ -1,0 +1,34 @@
+WYKAZ OSÓB
+skierowanych do realizacji zamówienia publicznego,
+w szczególności odpowiedzialnych za kierowanie robotami budowlanymi
+
+Postępowanie: {{ tender.tytul }}
+Nr sprawy: {{ tender.nr_sprawy }}
+Zamawiający: {{ tender.zamawiajacy_nazwa }}
+
+========================================================
+
+Ja/My, niżej podpisany/i:
+{{ company.nazwa_pelna }}, NIP: {{ company.nip }}
+
+oświadczam/y, że do realizacji zamówienia skierujemy następujące osoby:
+
+{% for osoba in osoby %}
+{{ loop.index }}. {{ osoba.imie_nazwisko }}
+   Funkcja:          {{ osoba.funkcja }}
+   Uprawnienia:      {{ osoba.uprawnienia | default('—') }}
+   Nr uprawnień:     {{ osoba.nr_uprawnien | default('—') }}
+   Izba zawodowa:    {{ osoba.izba | default('—') }}
+   Doświadczenie:    {{ osoba.doswiadczenie_lat | default('—') }} lat
+   Podstawa dysponowania: {{ osoba.podstawa | default('umowa o pracę') }}
+
+{% else %}
+   BRAK DANYCH PERSONALNYCH — uzupełnij profil firmy (kadra kierownicza)!
+{% endfor %}
+
+========================================================
+
+Miejscowość i data: {{ company.adres_miasto }}, {{ today }}
+
+Podpis: ..........................................
+{{ company.nazwa_pelna }}

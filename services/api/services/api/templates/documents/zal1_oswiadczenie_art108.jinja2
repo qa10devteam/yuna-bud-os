@@ -1,0 +1,48 @@
+OŚWIADCZENIE WYKONAWCY
+składane na podstawie art. 125 ust. 1 ustawy z dnia 11 września 2019 r.
+Prawo zamówień publicznych (PZP)
+dotyczące PODSTAW WYKLUCZENIA z postępowania
+
+Postępowanie: {{ tender.tytul }}
+Nr sprawy: {{ tender.nr_sprawy }}
+Zamawiający: {{ tender.zamawiajacy_nazwa }}
+
+========================================================
+
+Ja/My, niżej podpisany/i:
+{{ company.nazwa_pelna }}
+{{ company.adres_ulica }} {{ company.adres_nr_budynku }}, {{ company.adres_kod_pocztowy }} {{ company.adres_miasto }}
+NIP: {{ company.nip }}
+
+OŚWIADCZAM/Y, że nie podlegam/y wykluczeniu z postępowania o udzielenie
+zamówienia na podstawie:
+
+□ art. 108 ust. 1 PZP (przesłanki obligatoryjne):
+  - pkt 1: skazanie za przestępstwa wymienione w przepisie — NIE DOTYCZY
+  - pkt 2: zaleganie z podatkami lub składkami ZUS — NIE DOTYCZY
+  - pkt 3: naruszenie zakazu ubiegania się o zamówienie — NIE DOTYCZY
+  - pkt 4: wprowadzenie zamawiającego w błąd — NIE DOTYCZY
+  - pkt 5: zakłócenie konkurencji — NIE DOTYCZY
+  - pkt 6: konflikt interesów — NIE DOTYCZY
+
+{% if tender.wykluczenie_art109 %}
+□ art. 109 ust. 1 PZP (przesłanki fakultatywne wskazane w SWZ):
+  Zgodnie z SWZ Zamawiający przewiduje wykluczenie na podstawie:
+  {{ tender.wykluczenie_art109 }}
+  Oświadczam, że nie zachodzą wobec mnie wskazane przesłanki — NIE DOTYCZY
+{% endif %}
+
+OŚWIADCZAM/Y, że zachodzące na mnie okoliczności wskazane w art. 108 ust. 1
+pkt 1, 2 i 5 lub art. 109 ust. 1 pkt 2-5 i 7-10 PZP nie zachodzą*):
+
+*) niepotrzebne skreślić
+
+========================================================
+
+Miejscowość i data: {{ company.adres_miasto }}, {{ today }}
+
+Podpis: ..........................................
+{{ company.nazwa_pelna }}
+
+UWAGA: Oświadczenie składane jest pod rygorem odpowiedzialności karnej
+za złożenie fałszywego oświadczenia (art. 233 Kodeksu karnego).

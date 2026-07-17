@@ -1,0 +1,61 @@
+FORMULARZ OFERTY
+
+Zamawiający: {{ tender.zamawiajacy_nazwa }}
+Nr postępowania: {{ tender.nr_sprawy }}
+Data: {{ today }}
+
+========================================================
+OFERTA
+
+Działając w imieniu i na rzecz:
+{{ company.nazwa_pelna }}
+{{ company.adres_ulica }} {{ company.adres_nr_budynku }}, {{ company.adres_kod_pocztowy }} {{ company.adres_miasto }}
+NIP: {{ company.nip }}{% if company.regon %}
+REGON: {{ company.regon }}{% endif %}{% if company.krs %}
+KRS: {{ company.krs }}{% endif %}
+
+składamy ofertę na wykonanie zamówienia pn.:
+„{{ tender.tytul }}"
+
+========================================================
+1. CENA OFERTY
+
+   Wartość netto:  {{ cost.total_netto | format_pln }} PLN
+   VAT ({{ cost.vat_stawka }}%): {{ cost.vat_kwota | format_pln }} PLN
+   Wartość brutto: {{ cost.total_brutto | format_pln }} PLN
+   (słownie: {{ cost.total_brutto | kwota_slownie }})
+
+2. TERMIN REALIZACJI
+
+   {{ bid.termin_realizacji_dni }} dni kalendarzowych od daty podpisania umowy.
+
+3. OKRES GWARANCJI I RĘKOJMI
+
+   {{ bid.gwarancja_miesiecy }} miesięcy od daty odbioru końcowego.
+
+4. WARUNKI PŁATNOŚCI
+
+   Zgodnie z projektem umowy stanowiącym Załącznik do SWZ.
+
+{% if bid.wadium_forma %}
+5. WADIUM
+
+   Wadium zostało wniesione w formie: {{ bid.wadium_forma }}
+   w wysokości: {{ bid.wadium_kwota | format_pln }} PLN
+{% endif %}
+
+6. OŚWIADCZENIA
+
+   Oświadczamy, że:
+   a) zapoznaliśmy się z SWZ i nie wnosimy do niej zastrzeżeń,
+   b) zdobyliśmy wszelkie informacje niezbędne do przygotowania oferty,
+   c) akceptujemy warunki płatności określone w projekcie umowy,
+   d) uważamy się za związanych niniejszą ofertą przez okres {{ bid.termin_zwiazania_dni | default(30) }} dni,
+   e) zamówienie zamierzamy wykonać{% if bid.podwykonawcy %} przy udziale podwykonawców w zakresie: {{ bid.podwykonawcy }}{% else %} samodzielnie, bez udziału podwykonawców{% endif %}.
+
+========================================================
+
+Miejscowość i data: {{ company.adres_miasto }}, {{ today }}
+
+Podpis osoby upoważnionej: ..........................................
+{{ company.nazwa_pelna }}
