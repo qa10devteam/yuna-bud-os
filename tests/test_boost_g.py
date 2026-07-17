@@ -121,7 +121,7 @@ class TestMultimodalMissingLines:
         engine, _ = _mock_engine(fetchone=None)
         with patch("services.api.services.api.routers.multimodal.get_engine", return_value=engine):
             with pytest.raises(HTTPException) as exc:
-                asyncio.get_event_loop().run_until_complete(analyze_document(str(uuid.uuid4())))
+                asyncio.run(analyze_document(str(uuid.uuid4())))
         assert exc.value.status_code == 404
 
     def test_analyze_document_file_not_on_disk_404(self):
@@ -135,7 +135,7 @@ class TestMultimodalMissingLines:
         engine, _ = _mock_engine(fetchone=row)
         with patch("services.api.services.api.routers.multimodal.get_engine", return_value=engine):
             with pytest.raises(HTTPException) as exc:
-                asyncio.get_event_loop().run_until_complete(analyze_document(str(uuid.uuid4())))
+                asyncio.run(analyze_document(str(uuid.uuid4())))
         assert exc.value.status_code == 404
 
     # ── analyze_document — lines 146-148 (generic Exception path) ────────────
