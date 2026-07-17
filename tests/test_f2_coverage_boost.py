@@ -2809,3 +2809,143 @@ def test_billing_usage_tenant_id_none_direct():
         result = get_usage(current_user=user, db=db)
 
     assert result["usage"]["tenders"]["used"] == 0
+
+
+# ══════════════════════════════════════════════════════════════
+# zwiad.py — last 4 missing lines (196, 372, 393-394) → 100%
+# ══════════════════════════════════════════════════════════════
+
+# ── line 196: logger.info after successful ingest ─────────────
+def test_zwiad_ingest_background_success_logs(app):
+    """_run_ingest_worker logs on success — covers line 196.
+    run_ingest is imported locally inside the function, so patch at source module.
+    """
+    import uuid
+    from unittest.mock import MagicMock, patch
+    from services.api.services.api.routers.zwiad import _run_ingest_worker
+
+    engine = MagicMock()
+    conn_ctx = MagicMock()
+    conn_ctx.__enter__ = MagicMock(return_value=MagicMock())
+    conn_ctx.__exit__ = MagicMock(return_value=False)
+    engine.connect.return_value = conn_ctx
+
+    fake_result = MagicMock(
+        created=5, raw_fetched=10, updated=1,
+        dropped_filter=2, errors=0,
+        bip_stored=0, dedup_pairs=0,
+    )
+
+    with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
+        # run_ingest is imported locally — patch in its source module
+        with patch("services.ingestion.pipeline.run_ingest", return_value=fake_result):
+            with patch("services.api.services.api.routers.zwiad.logger") as mock_logger:
+                _run_ingest_worker(
+                    task_id=str(uuid.uuid4()),
+                    tenant_id=str(uuid.uuid4()),
+                    params={},
+                )
+                # line 196: logger.info("Ingest task %s done: %s", ...)
+                assert mock_logger.info.called
+
+
+# ── lines 372, 393-394: SSE stream disconnect + sleep/ticks ──
+import asyncio
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_zwiad_sse_stream_disconnect(app):
+    """SSE generator: request.is_disconnected() → break covers line 372.
+    Generator is lazy — must fully drain to hit the disconnect check.
+    """
+    from services.api.services.api.routers.zwiad import stream_ingest_task
+
+    task_id = str(__import__("uuid").uuid4())
+
+    # Mock request: disconnected=True on first check inside loop
+    mock_request = MagicMock()
+    mock_request.is_disconnected = AsyncMock(return_value=True)
+
+    # DB returns "running" (not done) so loop doesn't break before disconnect check
+    mock_row = MagicMock()
+    mock_row.__getitem__ = lambda self, i: "running"
+    conn_ctx = MagicMock()
+    result_mock = MagicMock()
+    result_mock.fetchone.return_value = mock_row
+    conn_ctx.__enter__ = MagicMock(return_value=MagicMock(execute=MagicMock(return_value=result_mock)))
+    conn_ctx.__exit__ = MagicMock(return_value=False)
+    engine = MagicMock()
+    engine.connect.return_value = conn_ctx
+
+    with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
+        response = await stream_ingest_task(task_id=task_id, request=mock_request)
+
+    # Drain the full generator — only then does is_disconnected get called
+    chunks = []
+    async for chunk in response.body_iterator:
+        chunks.append(chunk)
+
+    # line 372: break on disconnect
+    assert mock_request.is_disconnected.called
+
+
+@pytest.mark.asyncio
+async def test_zwiad_sse_stream_sleep_and_ticks(app):
+    """SSE generator: asyncio.sleep + ticks++ covers lines 393-394.
+    Loop runs 1 iteration (running → sleep), then 2nd iteration done → break.
+    """
+    from services.api.services.api.routers.zwiad import stream_ingest_task, _set_progress
+
+    task_id = str(__import__("uuid").uuid4())
+    _set_progress(task_id, "running", 50, "In progress...")
+
+    call_count = {"n": 0}
+
+    async def not_disconnected():
+        return False  # never disconnect
+
+    mock_request = MagicMock()
+    mock_request.is_disconnected = not_disconnected
+
+    # Shared result_mock so fetchone_side call_count increments correctly
+    result_mock = MagicMock()
+
+    def fetchone_side():
+        call_count["n"] += 1
+        row = MagicMock()
+        # First call → "running" → sleep; second call → "done" → break
+        row.__getitem__ = lambda self, i: "running" if call_count["n"] <= 1 else "done"
+        return row
+
+    result_mock.fetchone.side_effect = fetchone_side
+
+    inner_conn = MagicMock()
+    inner_conn.execute.return_value = result_mock
+
+    conn_ctx = MagicMock()
+    conn_ctx.__enter__ = MagicMock(return_value=inner_conn)
+    conn_ctx.__exit__ = MagicMock(return_value=False)
+
+    engine = MagicMock()
+    engine.connect.return_value = conn_ctx  # same conn_ctx every time
+
+    slept = []
+
+    async def fake_sleep(n):
+        slept.append(n)
+        # Mark done so next iteration exits loop
+        _set_progress(task_id, "done", 100, "Done")
+
+    # Generator is lazy — drain INSIDE the patch context so asyncio.sleep is mocked
+    with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
+        with patch("services.api.services.api.routers.zwiad.asyncio.sleep", side_effect=fake_sleep):
+            response = await stream_ingest_task(task_id=task_id, request=mock_request)
+            # Drain inside patch context — otherwise asyncio.sleep runs unmocked
+            chunks = []
+            async for chunk in response.body_iterator:
+                chunks.append(chunk)
+
+    # lines 393-394: asyncio.sleep was called (ticks += 1 follows immediately)
+    assert len(slept) >= 1, f"asyncio.sleep not called — lines 393-394 not covered. chunks={chunks}"
+
