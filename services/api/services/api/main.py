@@ -290,13 +290,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # pragma: no co
 
 # ─── App ───────────────────────────────────────────────────────────────────────
 
+_env = os.getenv("ENVIRONMENT", "").lower()
+_docs_url = "/docs" if _env in ("dev", "test", "") else None
+_redoc_url = "/redoc" if _env in ("dev", "test", "") else None
+_openapi_url = "/openapi.json" if _env in ("dev", "test", "") else None
+
 app = FastAPI(
     title="YU-NA API",
     version="0.1.0",
     description="YU-NA — platforma decyzyjna dla wykonawców robót budowlanych (przetargi publiczne)",
     lifespan=lifespan,
-    docs_url="/docs" if os.getenv("ENVIRONMENT", "dev") == "dev" else None,
-    redoc_url=None,
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    openapi_url=_openapi_url,
 )
 
 # ─── Prometheus metrics (Task 112) ────────────────────────────────────────────

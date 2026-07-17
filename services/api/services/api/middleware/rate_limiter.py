@@ -5,6 +5,7 @@ Adds X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers.
 """
 from __future__ import annotations
 
+import os
 import time
 
 from fastapi import Request
@@ -12,7 +13,13 @@ from fastapi.responses import JSONResponse
 
 import redis
 
-_redis = redis.Redis(host="localhost", port=6379, db=1, decode_responses=True)
+_redis = redis.Redis(
+    host=os.getenv("REDIS_HOST", "localhost"),
+    port=int(os.getenv("REDIS_PORT", 6379)),
+    password=os.getenv("REDIS_PASSWORD"),
+    db=1,
+    decode_responses=True,
+)
 
 # Limits
 _AUTH_LIMIT = 5
@@ -27,7 +34,6 @@ def _is_auth_endpoint(path: str) -> bool:
 
 async def rate_limit_middleware(request: Request, call_next):
     """Redis sliding-window rate limiter. No whitelist."""
-    import os
     if os.environ.get("TESTING") == "1":
         return await call_next(request)
 

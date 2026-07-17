@@ -213,7 +213,7 @@ def _seed_new_org(db: Session, org_id: str) -> None:
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
+@limiter.limit("3/minute")
 def register(request: Request, body: RegisterRequest, response: Response, db: DB):
     # Check duplicate
     existing = db.execute(
@@ -288,7 +288,8 @@ def login(request: Request, body: LoginRequest, response: Response, db: DB):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh(body: RefreshRequest, db: DB):
+@limiter.limit("10/minute")
+def refresh(request: Request, body: RefreshRequest, db: DB):
     token_hash = hash_refresh_token(body.refresh_token)
     rt = db.execute(
         text(
@@ -330,7 +331,8 @@ def refresh(body: RefreshRequest, db: DB):
 
 
 @router.post("/logout", status_code=204)
-def logout(body: RefreshRequest, db: DB):
+@limiter.limit("30/minute")
+def logout(request: Request, body: RefreshRequest, db: DB):
     token_hash = hash_refresh_token(body.refresh_token)
     db.execute(
         text("UPDATE refresh_tokens SET revoked = true WHERE token_hash = :th"),
@@ -367,7 +369,7 @@ class ResetPasswordRequest(BaseModel):
 
 
 @router.post("/forgot-password", status_code=200)
-@limiter.limit("5/minute")
+@limiter.limit("3/hour")
 def forgot_password(request: Request, body: ForgotPasswordRequest, db: DB):
     """Generate password reset token and send email. Always returns 200 to avoid email enumeration."""
     user = db.execute(
@@ -377,6 +379,7 @@ def forgot_password(request: Request, body: ForgotPasswordRequest, db: DB):
 
     if user:
         token = token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
         expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
         engine = get_engine()
         with engine.begin() as conn:
@@ -385,7 +388,7 @@ def forgot_password(request: Request, body: ForgotPasswordRequest, db: DB):
                     "INSERT INTO password_reset_tokens (user_id, token, expires_at) "
                     "VALUES (:uid, :token, :exp)"
                 ),
-                {"uid": str(user.id), "token": token, "exp": expires_at},
+                {"uid": str(user.id), "token": token_hash, "exp": expires_at},
             )
         send_password_reset_email(user.email, token)
 
@@ -399,13 +402,14 @@ def reset_password(request: Request, body: ResetPasswordRequest, db: DB):
     """Validate reset token and update password."""
     engine = get_engine()
     with engine.begin() as conn:
+        token_hash = hashlib.sha256(body.token.encode()).hexdigest()
         row = conn.execute(
             text(
                 "SELECT id, user_id, expires_at, used_at "
                 "FROM password_reset_tokens "
                 "WHERE token = :token"
             ),
-            {"token": body.token},
+            {"token": token_hash},
         ).fetchone()
 
         if not row:
@@ -434,6 +438,12 @@ def reset_password(request: Request, body: ResetPasswordRequest, db: DB):
             text("UPDATE users SET password_hash = :ph WHERE id = :uid RETURNING id"),
             {"ph": new_hash, "uid": str(row.user_id)},
         ).fetchone()
+
+        # Revoke all existing refresh tokens for this user (session invalidation)
+        conn.execute(
+            text("UPDATE refresh_tokens SET revoked = true WHERE user_id = :uid AND revoked = false"),
+            {"uid": str(row.user_id)},
+        )
 
     if not result:
         raise HTTPException(status_code=400, detail="Nie znaleziono użytkownika")

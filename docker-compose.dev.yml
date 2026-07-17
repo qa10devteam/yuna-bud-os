@@ -14,6 +14,10 @@ services:
     volumes: ["terraos_ollama:/root/.ollama"]
     # GPU passthrough on Path B hosts:
     # deploy: { resources: { reservations: { devices: [{ capabilities: ["gpu"] }] } } }
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --requirepass ${REDIS_PASSWORD:-change-me-redis-password}
 volumes:
   terraos_pg:
   terraos_ollama:

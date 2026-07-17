@@ -9,9 +9,12 @@ Simply-clever philosophy:
 import uuid
 import asyncio
 import logging
+import ipaddress
+import socket
 from datetime import datetime, timezone
 from typing import Any
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 import httpx
 import sqlalchemy as sa
@@ -78,6 +81,46 @@ EVENTS = {
 }
 
 
+# ─── SSRF Protection ──────────────────────────────────────────────────────────
+
+def _validate_webhook_url(url: str) -> None:
+    """Block SSRF — reject private/loopback/reserved IPs and non-HTTPS."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise ValueError(f"Invalid URL: {url}")
+
+    # Only allow HTTPS
+    if parsed.scheme not in ("https",):
+        raise ValueError(f"Webhook URL must use HTTPS, got: {parsed.scheme}")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("Missing hostname")
+
+    # Block cloud metadata endpoints and well-known private hostnames
+    BLOCKED_HOSTS = {
+        "169.254.169.254",          # AWS/GCP/Azure IMDS
+        "metadata.google.internal",
+        "instance-data",
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "0.0.0.0",
+    }
+    if hostname.lower() in BLOCKED_HOSTS:
+        raise ValueError(f"Blocked hostname: {hostname}")
+
+    # Resolve DNS and check if IP is private/reserved
+    try:
+        resolved_ip = socket.gethostbyname(hostname)
+        ip = ipaddress.ip_address(resolved_ip)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            raise ValueError(f"Webhook URL resolves to private/reserved IP: {resolved_ip}")
+    except (socket.gaierror, ValueError) as e:
+        raise ValueError(f"Cannot resolve or blocked: {e}")
+
+
 # ─── Webhook CRUD ─────────────────────────────────────────────────────────────
 
 def _get_tenant(user: CurrentUser) -> str:
@@ -101,6 +144,11 @@ def list_webhooks(user: CurrentUser = Depends(get_current_user)) -> list[dict]:
 @router.post("/webhooks", status_code=201)
 def create_webhook(body: WebhookConfig, user: CurrentUser = Depends(get_current_user)) -> dict:
     """Zarejestruj nowy webhook (np. URL n8n workflow)."""
+    # SSRF guard — validate URL before persisting
+    try:
+        _validate_webhook_url(body.url)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid webhook URL (SSRF guard): {e}")
     tenant_id = _get_tenant(user)
     wid = str(uuid.uuid4())
     with get_engine().connect() as conn:
@@ -120,6 +168,12 @@ def create_webhook(body: WebhookConfig, user: CurrentUser = Depends(get_current_
 @router.patch("/webhooks/{wid}")
 def update_webhook(wid: str, body: WebhookUpdate, user: CurrentUser = Depends(get_current_user)) -> dict:
     """Aktualizuj webhook."""
+    # SSRF guard — validate new URL if being updated
+    if body.url is not None:
+        try:
+            _validate_webhook_url(body.url)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=f"Invalid webhook URL (SSRF guard): {e}")
     tenant_id = _get_tenant(user)
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
@@ -411,6 +465,14 @@ async def _dispatch_webhooks(tenant_id: str, event: str, payload: dict) -> None:
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         for wh in rows:
+            # SSRF guard — block private/reserved IPs at dispatch time
+            try:
+                _validate_webhook_url(wh.url)
+            except ValueError as e:
+                logger.warning(f"Webhook {wh.id} blocked (SSRF guard): {e}")
+                _update_event_log(tenant_id, event, 0)
+                continue
+
             headers = {"Content-Type": "application/json", "X-Terra-Event": event}
             if wh.secret:
                 body_bytes = json.dumps(payload, default=str).encode()

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import DOMPurify from 'dompurify';
 import { useStore } from '@/store/useStore';
 import { useAuthFetch } from '@/lib/api-v2';
 import { showToast } from '@/components/Toast';
@@ -746,7 +747,7 @@ export function DecyzjaPage() {
                       <p className="section-label mb-3">Decision Brief</p>
                       <div
                         className="space-y-1"
-                        dangerouslySetInnerHTML={{ __html: renderMarkdown(brief) }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderMarkdown(brief)) }}
                       />
                     </motion.div>
                   )}

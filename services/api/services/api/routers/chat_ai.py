@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 from typing import Any, Annotated
@@ -127,10 +128,10 @@ def generate_kosztorys(body: dict, user: AuthUser, db: DB):
 @router.get('/stream')
 async def chat_stream(q: str, user: AuthUser):
     async def generator():
-        yield f'data: {{"type": "start", "q": "{q}"}}\n\n'
+        yield f'data: {json.dumps({"type": "start", "q": q})}\n\n'
         await asyncio.sleep(0.1)
-        yield f'data: {{"type": "thinking"}}\n\n'
+        yield f'data: {json.dumps({"type": "thinking"})}\n\n'
         await asyncio.sleep(0.1)
-        yield f'data: {{"type": "result", "answer": "Szukam przetargów dla: {q}"}}\n\n'
-        yield f'data: {{"type": "done"}}\n\n'
+        yield f'data: {json.dumps({"type": "result", "answer": f"Szukam przetargów dla: {q}"})}\n\n'
+        yield f'data: {json.dumps({"type": "done"})}\n\n'
     return StreamingResponse(generator(), media_type='text/event-stream')

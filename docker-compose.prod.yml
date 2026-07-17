@@ -54,8 +54,9 @@ services:
     restart: unless-stopped
     env_file: .env.prod
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-terraos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-terraos}"
-      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:***@postgres:5432/${POSTGRES_DB:-terraos}"
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-change-me-redis-password}@redis:6379/0"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
       ENVIRONMENT: "production"
     command:
       - python
@@ -91,8 +92,9 @@ services:
     restart: unless-stopped
     env_file: .env.prod
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-terraos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-terraos}"
-      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:***@postgres:5432/${POSTGRES_DB:-terraos}"
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-change-me-redis-password}@redis:6379/0"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
       ENVIRONMENT: "production"
     command:
       - python
@@ -138,13 +140,14 @@ services:
     restart: unless-stopped
     command: >
       redis-server
+      --requirepass ${REDIS_PASSWORD:-change-me-redis-password}
       --appendonly yes
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me-redis-password}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

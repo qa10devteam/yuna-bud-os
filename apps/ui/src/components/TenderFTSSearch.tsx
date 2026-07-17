@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion } from 'motion/react';
+import DOMPurify from 'dompurify';
 import { Search, FileText, MapPin, Calendar, DollarSign } from 'lucide-react';
 import { useAuthFetch } from '@/lib/api-v2';
 
@@ -89,7 +90,7 @@ export default function TenderFTSSearch() {
               <div key={r.id || i} className="p-3 rounded-token bg-earth-800/50 hover:bg-earth-800 transition-colors">
                 <p className="text-sm text-earth-100 font-medium line-clamp-2">
                   {r.headline ? (
-                    <span dangerouslySetInnerHTML={{ __html: r.headline }} />
+                    <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(r.headline) }} />
                   ) : r.title}
                 </p>
                 <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-earth-500">

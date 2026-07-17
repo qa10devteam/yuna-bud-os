@@ -120,10 +120,10 @@ def get_subcontractor(sub_id: str, user: AuthUser) -> dict:
     engine = get_engine()
     with engine.connect() as conn:
         row = conn.execute(
-            sa.text("SELECT * FROM subcontractors WHERE id = :id"), {"id": sub_id}
+            sa.text("SELECT * FROM subcontractors WHERE id = :id AND org_id = :org"), {"id": sub_id, "org": user.org_id}
         ).fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="Podwykonawca nie istnieje")
+        raise HTTPException(status_code=404, detail="Nie znaleziono lub brak dostępu")
     return {
         "id": str(row.id),
         "name": row.name,
@@ -141,7 +141,7 @@ def get_subcontractor(sub_id: str, user: AuthUser) -> dict:
 def delete_subcontractor(sub_id: str, user: AuthUser) -> dict:
     engine = get_engine()
     with engine.connect() as conn:
-        conn.execute(sa.text("DELETE FROM subcontractors WHERE id = :id"), {"id": sub_id})
+        conn.execute(sa.text("DELETE FROM subcontractors WHERE id = :id AND org_id = :org"), {"id": sub_id, "org": user.org_id})
         conn.commit()
     return {"status": "deleted"}
 
@@ -286,7 +286,7 @@ def create_equipment(eq: EquipmentCreate, user: AuthUser) -> dict:
 def delete_equipment(eq_id: str, user: AuthUser) -> dict:
     engine = get_engine()
     with engine.connect() as conn:
-        conn.execute(sa.text("DELETE FROM equipment WHERE id = :id"), {"id": eq_id})
+        conn.execute(sa.text("DELETE FROM equipment WHERE id = :id AND org_id = :org"), {"id": eq_id, "org": user.org_id})
         conn.commit()
     return {"status": "deleted"}
 
@@ -517,7 +517,7 @@ def create_calendar_event(event: CalendarEventCreate, user: AuthUser) -> dict:
 def delete_calendar_event(event_id: str, user: AuthUser) -> dict:
     engine = get_engine()
     with engine.connect() as conn:
-        conn.execute(sa.text("DELETE FROM calendar_events WHERE id=:id"), {"id": event_id})
+        conn.execute(sa.text("DELETE FROM calendar_events WHERE id=:id AND org_id=:org"), {"id": event_id, "org": user.org_id})
         conn.commit()
     return {"status": "deleted"}
 

@@ -4,6 +4,13 @@ Mock get_engine/get_db to avoid real DB.
 from __future__ import annotations
 import uuid
 import json
+
+from unittest.mock import MagicMock as _MagicMock
+_MOCK_USER = _MagicMock()
+_MOCK_USER.user_id = "test-user-id"
+_MOCK_USER.org_id = "test-org-id"
+_MOCK_USER.role = "owner"
+
 from unittest.mock import patch, MagicMock
 import pytest
 
@@ -45,7 +52,7 @@ def test_get_agent_run_found():
     row = (str(uuid.uuid4()), "pipeline_supervisor", "succeeded", 100, 50, 0.25, None)
     engine = _mock_engine(fetchone=row)
     with patch(f"{MOD_SYS}.get_engine", return_value=engine):
-        result = get_agent_run("test-id")
+        result = get_agent_run("test-id", _MOCK_USER)
     assert result.status == "succeeded"
     assert result.tokens_in == 100
 
@@ -66,7 +73,7 @@ def test_resume_agent():
     row = (str(uuid.uuid4()), "paused")
     engine = _mock_engine(fetchone=row)
     with patch(f"{MOD_SYS}.get_engine", return_value=engine):
-        result = resume_agent("test-id")
+        result = resume_agent("test-id", _MOCK_USER)
     assert result["status"] == "running"
 
 
@@ -76,7 +83,7 @@ def test_cancel_agent():
     row = (str(uuid.uuid4()), "running")
     engine = _mock_engine(fetchone=row)
     with patch(f"{MOD_SYS}.get_engine", return_value=engine):
-        result = cancel_agent("test-id")
+        result = cancel_agent("test-id", _MOCK_USER)
     assert result["status"] == "cancelled"
 
 
@@ -87,7 +94,7 @@ def test_trigger_pipeline():
     engine = _mock_engine(fetchone=tenant_row)
     with patch(f"{MOD_SYS}.get_engine", return_value=engine), \
          patch(f"{MOD_SYS}._run_pipeline_sync"):
-        result = trigger_pipeline()
+        result = trigger_pipeline(_MOCK_USER)
     assert "agent_run_id" in result
 
 
@@ -122,7 +129,7 @@ def test_close_contract_endpoint():
     mock_close = MagicMock(return_value={"status": "closed"})
     with patch(f"{MOD_SYS}.get_engine", return_value=engine), \
          patch("services.agents.learning_loop.close_contract", mock_close):
-        result = close_contract_endpoint(contract_id, body)
+        result = close_contract_endpoint(contract_id, body, _MOCK_USER)
     assert result is not None
 
 
@@ -176,7 +183,7 @@ def test_read_audit():
     ]
     engine = _mock_engine(rows=rows)
     with patch(f"{MOD_SYS}.get_engine", return_value=engine):
-        result = read_audit()
+        result = read_audit(_MOCK_USER)
     assert len(result) == 2
 
 

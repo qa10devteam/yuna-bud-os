@@ -4,19 +4,26 @@ from __future__ import annotations
 import logging
 import traceback
 
-from fastapi import Request
+from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
 
 async def error_boundary_handler(request: Request, exc: Exception) -> JSONResponse:
-    tb = traceback.format_exc()
+    # Let HTTPException propagate normally (FastAPI handles it)
+    if isinstance(exc, HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
+    # Log full traceback server-side only — never expose to client
     logger.error(
-        "Unhandled: %s %s — %s",
+        "Unhandled exception: %s %s — %s",
         request.method,
         request.url.path,
-        tb,
+        traceback.format_exc(),
+        exc_info=True,
     )
     try:
         from ..services.audit_service import log_audit  # jeśli brak — skip
@@ -25,8 +32,5 @@ async def error_boundary_handler(request: Request, exc: Exception) -> JSONRespon
         pass
     return JSONResponse(
         status_code=500,
-        content={
-            "detail": "Internal server error",
-            "path": str(request.url.path),
-        },
+        content={"detail": "Wewnętrzny błąd serwera"},
     )
