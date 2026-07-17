@@ -1,0 +1,15 @@
+[Unit]
+Description=Terra.OS FastAPI Backend
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/terra-os
+Environment=PYTHONPATH=.:packages/vendor:packages/db:packages/shared:services/estimator:services/api
+ExecStart=/home/ubuntu/terra-os/.venv/bin/uvicorn services.api.services.api.main:app --host 0.0.0.0 --port 8000 --workers 2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
