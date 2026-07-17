@@ -38,11 +38,11 @@ test.describe('Navigation – authenticated user', () => {
   test('main dashboard is visible after login', async ({ page }) => {
     // The sidebar must be visible
     await expect(
-      page.locator('[aria-label="Zwiń menu"], [aria-label="Rozwiń menu"]')
+      page.locator('[aria-label="Zwiń menu"], [aria-label="Rozwiń menu"]').first()
     ).toBeVisible();
 
-    // Main content area must exist
-    await expect(page.locator('main, [class*="content"], [class*="page"], h1, h2')).toBeVisible({ timeout: 10_000 });
+    // Main content area must exist — use .first() to avoid strict-mode violation
+    await expect(page.locator('main, [class*="content"], [class*="page"], h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     // Page title should not be an error
     await expect(page).not.toHaveTitle(/error|404|500/i);
@@ -63,8 +63,8 @@ test.describe('Navigation – authenticated user', () => {
     // Page content should load
     await page.waitForTimeout(2_000);
 
-    // The page should show some content area
-    await expect(page.locator('main, [class*="page"], h1, h2, [class*="Market"], [class*="market"]')).toBeVisible({ timeout: 10_000 });
+    // The page should show some content area — use .first() to avoid strict-mode violation
+    await expect(page.locator('main, [class*="page"], h1, h2, [class*="Market"], [class*="market"]').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('navigate to Kosztorys module', async ({ page }) => {
@@ -80,7 +80,7 @@ test.describe('Navigation – authenticated user', () => {
 
     await page.waitForTimeout(2_000);
 
-    await expect(page.locator('main, [class*="page"], h1, h2, [class*="Kosztorys"], [class*="kosztorys"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('main, [class*="page"], h1, h2, [class*="Kosztorys"], [class*="kosztorys"]').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('navigate to Zwiad module', async ({ page }) => {
@@ -96,7 +96,7 @@ test.describe('Navigation – authenticated user', () => {
 
     await page.waitForTimeout(2_000);
 
-    await expect(page.locator('main, [class*="page"], h1, h2, [class*="Zwiad"], [class*="zwiad"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('main, [class*="page"], h1, h2, [class*="Zwiad"], [class*="zwiad"]').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('no unhandled JS errors across module navigation', async ({ page }) => {
