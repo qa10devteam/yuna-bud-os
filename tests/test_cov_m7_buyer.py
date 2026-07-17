@@ -19,15 +19,18 @@ import pytest
 def _make_conn(one_or_none=None, fetchall=None, scalar=0, rowcount=1):
     """Build a flexible MagicMock DB connection.
 
-    All execute() chains (.one_or_none(), .mappings().all(), .scalar()) are
-    pre-wired from the same result object so tests don't need per-call setup.
+    All execute() chains (.one_or_none(), .fetchall(), .mappings().all(), .scalar())
+    are pre-wired from the same result object so tests don't need per-call setup.
     """
     result = MagicMock()
     result.one_or_none.return_value = one_or_none
+    result.fetchone.return_value = one_or_none
     result.scalar.return_value = scalar
     result.rowcount = rowcount
+    # Direct .fetchall() used by m7_phase2 routes
+    result.fetchall.return_value = fetchall or []
 
-    # .mappings().all() and .mappings().one_or_none() chains
+    # .mappings().all() and .mappings().one_or_none() chains (buyer_crm routes)
     mappings_mock = MagicMock()
     mappings_mock.all.return_value = fetchall or []
     mappings_mock.one_or_none.return_value = one_or_none
@@ -348,7 +351,8 @@ def test_buyer_crm_list_with_priority_filter():
     user = _demo_user()
     conn = _make_conn(fetchall=[], scalar=0)
 
-    result = list_crm(user=user, db=conn, priority=1, limit=20, offset=0)
+    # Must pass stage=None explicitly — default Query(None) object is truthy when called directly
+    result = list_crm(user=user, db=conn, stage=None, priority=1, territory=None, limit=20, offset=0)
 
     assert result["total"] == 0
     assert result["items"] == []
@@ -361,7 +365,7 @@ def test_buyer_crm_list_with_territory_filter():
     user = _demo_user()
     conn = _make_conn(fetchall=[], scalar=0)
 
-    result = list_crm(user=user, db=conn, territory="mazowieckie", limit=20, offset=0)
+    result = list_crm(user=user, db=conn, stage=None, priority=None, territory="mazowieckie", limit=20, offset=0)
 
     assert result["total"] == 0
     assert result["limit"] == 20
@@ -384,7 +388,7 @@ def test_buyer_crm_list_no_filters_returns_data():
     ]
     conn = _make_conn(fetchall=rows, scalar=3)
 
-    result = list_crm(user=user, db=conn, limit=50, offset=0)
+    result = list_crm(user=user, db=conn, stage=None, priority=None, territory=None, limit=50, offset=0)
 
     assert result["total"] == 3
     assert len(result["items"]) == 3

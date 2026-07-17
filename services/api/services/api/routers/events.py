@@ -112,9 +112,9 @@ async def emit_event(event: EmitEvent) -> dict[str, Any]:
 
 @router.get("/notifications")
 def get_notifications(
+    user: AuthUser,
     limit: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False),
-    user: AuthUser = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
     """Get user notifications from DB."""
     engine = get_engine()
@@ -142,7 +142,7 @@ def get_notifications(
 
 
 @router.post("/notifications/mark-read")
-def mark_read(notification_ids: list[str] = [], user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
+def mark_read(user: AuthUser, notification_ids: list[str] = []) -> dict[str, Any]:
     """Mark notifications as read."""
     engine = get_engine()
     

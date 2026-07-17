@@ -205,7 +205,7 @@ def _run_ingest_worker(task_id: str, tenant_id: str, params: dict) -> None:
 @router.post("/ingest/run", response_model=IngestTaskResponse, status_code=202)
 def ingest_run(
     background_tasks: BackgroundTasks,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser,
     offline: bool = Query(default=False),
     days_back: int = Query(default=7, ge=1, le=90),
     include_bip: bool = Query(default=False),
@@ -295,7 +295,7 @@ def _jsonb(val) -> dict | None:
 
 
 @router.get("/ingest/tasks/{task_id}", response_model=IngestTaskResponse)
-def get_ingest_task(task_id: str, user: AuthUser = Depends(get_current_user)) -> IngestTaskResponse:
+def get_ingest_task(task_id: str, user: AuthUser) -> IngestTaskResponse:
     """Poll single ingest task status."""
     engine = get_engine()
     with engine.connect() as conn:
@@ -326,7 +326,7 @@ def get_ingest_task(task_id: str, user: AuthUser = Depends(get_current_user)) ->
 
 
 @router.get("/ingest/tasks", response_model=list[IngestTaskResponse])
-def list_ingest_tasks(limit: int = Query(default=20, ge=1, le=100), user: AuthUser = Depends(get_current_user)) -> list[IngestTaskResponse]:
+def list_ingest_tasks(user: AuthUser, limit: int = Query(default=20, ge=1, le=100)) -> list[IngestTaskResponse]:
     """List recent ingest tasks, newest first."""
     engine = get_engine()
     with engine.connect() as conn:

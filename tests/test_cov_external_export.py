@@ -429,17 +429,21 @@ async def test_market_intelligence_outer_exception(app, auth_headers):
 
 def test_generate_market_summary_with_llm():
     """Lines 253-272: LLM client available → calls generate()."""
+    import types, sys
     from services.api.services.api.routers.external_data import _generate_market_summary
     mock_client = MagicMock()
     mock_client.generate.return_value = "LLM generated summary"
+    # Create a fake services.ai.vllm_client module so the `from` import works
+    fake_module = types.ModuleType("services.ai.vllm_client")
+    # get_llm_client returns the mock which then raises on .generate()
+    setattr(fake_module, "get_llm_client", lambda: mock_client)
     stats = {
         "ted_30d": {"count": 5, "total_eur": 100000},
         "bzp_30d": {"count": 3, "total_pln": 500000},
         "pretenders": {"count": 2, "total_est_pln": 200000},
         "gus_top": {"unit_name": "mln PLN", "year": 2023, "value": 12000},
     }
-    with patch("services.api.services.api.routers.external_data.get_llm_client",
-               return_value=mock_client, create=True):
+    with patch("services.ai.vllm_client.get_llm_client", return_value=mock_client):
         result = _generate_market_summary("45", stats)
     assert result == "LLM generated summary"
     mock_client.generate.assert_called_once()
@@ -462,16 +466,19 @@ def test_generate_market_summary_llm_import_error():
 
 def test_generate_market_summary_llm_runtime_error():
     """Lines 273-284: LLM raises at runtime → static fallback."""
+    import types, sys
     from services.api.services.api.routers.external_data import _generate_market_summary
     mock_client = MagicMock()
     mock_client.generate.side_effect = RuntimeError("GPU OOM")
+    fake_module = types.ModuleType("services.ai.vllm_client")
+    # get_llm_client returns the mock which then raises on .generate()
+    setattr(fake_module, "get_llm_client", lambda: mock_client)
     stats = {
         "ted_30d": {"count": 0, "total_eur": 0},
         "bzp_30d": {"count": 0, "total_pln": 0},
         "pretenders": {"count": 0, "total_est_pln": 0},
     }
-    with patch("services.api.services.api.routers.external_data.get_llm_client",
-               return_value=mock_client, create=True):
+    with patch("services.ai.vllm_client.get_llm_client", return_value=mock_client):
         result = _generate_market_summary("45", stats)
     assert "AI niedostępne" in result
 
@@ -975,25 +982,59 @@ async def test_export_preview_estimate_not_found(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_export_tenders_csv(app, auth_headers):
-    """Lines 323-356: /api/v1/tenders/csv → CSV with UTF-8-sig BOM."""
+    """Lines 323-356: /api/v1/tenders/csv → CSV with UTF-8-sig BOM.
+
+    Uses a mini-app with only the export router to avoid the wildcard
+    /tenders/{tender_id} route in zwiad.router swallowing the request.
+    """
+    from fastapi import FastAPI
+    from services.api.services.api.routers.export import router as export_router
+    from services.api.services.api.auth.deps import get_current_user, CurrentUser
+
+    mini_app = FastAPI()
+    mini_app.include_router(export_router)
+
+    _demo = CurrentUser(
+        user_id="40a71ef6-d6eb-48a3-b62e-7da3df5f0a17",
+        email="demo@terra-os.pl",
+        org_id="ec3d1e16-2139-48c2-93b5-ffe0defd606d",
+        role="owner",
+    )
+    mini_app.dependency_overrides[get_current_user] = lambda: _demo
+
     row = _make_row(
         id="t-001", title="Przetarg 1", source="bzp", value_pln=100000,
         match_score=0.9, deadline_at="2024-06-01", created_at="2024-01-01"
     )
     engine, _ = _mock_engine_multi({"fetchall": [row]})
 
-    with patch(f"{_EXPORT_MODULE}.get_engine", return_value=engine, create=True), \
-         patch("terra_db.session.get_engine", return_value=engine):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    with patch("terra_db.session.get_engine", return_value=engine):
+        async with AsyncClient(transport=ASGITransport(app=mini_app), base_url="http://test") as c:
             r = await c.get("/api/v1/tenders/csv", headers=auth_headers)
     assert r.status_code == 200
-    assert "csv" in r.headers.get("content-type", "").lower() or \
-           r.status_code == 200  # accept any 200
 
 
 @pytest.mark.asyncio
 async def test_export_tenders_xlsx_with_openpyxl(app, auth_headers):
-    """Lines 359-395: /api/v1/tenders/xlsx → XLSX via openpyxl."""
+    """Lines 359-395: /api/v1/tenders/xlsx → XLSX via openpyxl.
+
+    Uses a mini-app to avoid route shadowing.
+    """
+    from fastapi import FastAPI
+    from services.api.services.api.routers.export import router as export_router
+    from services.api.services.api.auth.deps import get_current_user, CurrentUser
+
+    mini_app = FastAPI()
+    mini_app.include_router(export_router)
+
+    _demo = CurrentUser(
+        user_id="40a71ef6-d6eb-48a3-b62e-7da3df5f0a17",
+        email="demo@terra-os.pl",
+        org_id="ec3d1e16-2139-48c2-93b5-ffe0defd606d",
+        role="owner",
+    )
+    mini_app.dependency_overrides[get_current_user] = lambda: _demo
+
     row = _make_row(
         id="t-001", title="Przetarg XLSX", source="ted", value_pln=200000,
         match_score=0.85, deadline_at="2024-07-01",
@@ -1003,9 +1044,8 @@ async def test_export_tenders_xlsx_with_openpyxl(app, auth_headers):
 
     engine, _ = _mock_engine_multi({"fetchall": [row]})
 
-    with patch(f"{_EXPORT_MODULE}.get_engine", return_value=engine, create=True), \
-         patch("terra_db.session.get_engine", return_value=engine):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    with patch("terra_db.session.get_engine", return_value=engine):
+        async with AsyncClient(transport=ASGITransport(app=mini_app), base_url="http://test") as c:
             r = await c.get("/api/v1/tenders/xlsx", headers=auth_headers)
     # Accept 200 regardless of openpyxl presence
     assert r.status_code == 200

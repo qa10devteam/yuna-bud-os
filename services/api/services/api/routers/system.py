@@ -326,10 +326,10 @@ def health_detailed() -> dict:
 
 @router.get("/audit", response_model=list[AuditEntry])
 def read_audit(
+    user: AuthUser,
     entity: str | None = Query(default=None),
     cursor: int | None = Query(default=None),
     limit: int = Query(default=20, le=100),
-    user: AuthUser = Depends(get_current_user),
 ) -> list[AuditEntry]:
     engine = get_engine()
     with engine.connect() as conn:
