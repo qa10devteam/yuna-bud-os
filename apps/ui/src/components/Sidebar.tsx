@@ -64,6 +64,7 @@ const moduleGroups: ModuleGroup[] = [
       { id: 'analytics',    icon: BarChart3,       name: 'Analityka',  desc: 'AHP, Friedman, Ryzyko' },
       { id: 'icb',          icon: PackageSearch,   name: 'Cennik ICB', desc: 'Baza cen InterCenBud' },
       { id: 'market-intel', icon: TrendingUp,      name: 'Rynek',      desc: 'Trendy i benchmarki CPV' },
+      { id: 'rynek',        icon: BarChart3,        name: 'Rynek S6',   desc: 'Dashboard BZP · TED · GUS' },
     ],
   },
   {

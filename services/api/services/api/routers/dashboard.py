@@ -318,3 +318,184 @@ def get_pipeline_kpi(user: AuthUser) -> dict:
         "new_today": int(agg.new_today) if agg and agg.new_today is not None else 0,
         "source": "tender_inline",
     }
+
+
+@router.get("/api/v2/dashboard/market-charts")
+def get_market_charts(user: AuthUser) -> dict:
+    """S6 — dane do wykresów Market Dashboard (BZP + TED + GUS).
+
+    Zwraca:
+    - kpi: KPI nagłówkowe (liczby na top-bar)
+    - bzp_weekly: trend tygodniowy 26 tyg (AreaChart)
+    - ted_types: podział notice_type (PieChart)
+    - ted_cpv: top 10 CPV w TED (HorizontalBar)
+    - gus_production: produkcja budowlana top-5 woj (MultiLine)
+    - gus_wages: wynagrodzenia w budownictwie (AreaChart)
+    - bzp_cpv: top 10 CPV w BZP (HorizontalBar)
+    - bzp_voivodeship: rozkład wg NUTS2 (PolandHeatmap)
+    - pretender_monthly: pre-tender sygnały wg miesiąca (BarChart)
+    """
+    engine = get_engine()
+    with engine.connect() as conn:
+
+        # ── 0. KPI header ────────────────────────────────────────────────────
+        bzp_kpi = conn.execute(sa.text("""
+            SELECT
+                COUNT(*)                                              AS bzp_30d,
+                COUNT(DISTINCT contractor_nip)                        AS unique_contractors,
+                ROUND(AVG(awarded_value)::numeric / 1000, 1)         AS avg_value_k,
+                ROUND(SUM(awarded_value)::numeric / 1e9, 2)          AS total_value_bln
+            FROM bzp_results
+            WHERE publication_date >= NOW() - INTERVAL '30 days'
+              AND awarded_value IS NOT NULL
+        """)).fetchone()
+
+        ted_kpi = conn.execute(sa.text("""
+            SELECT COUNT(*) AS ted_30d
+            FROM ted_notices
+            WHERE publication_date >= NOW() - INTERVAL '30 days'
+        """)).fetchone()
+
+        pretender_kpi = conn.execute(sa.text("""
+            SELECT COUNT(*) AS pretender_30d
+            FROM pretender_signals
+            WHERE published_at >= NOW() - INTERVAL '30 days'
+        """)).fetchone()
+
+        gus_latest = conn.execute(sa.text("""
+            SELECT ROUND(AVG(value)::numeric / 1e6, 1) AS avg_production_mln
+            FROM gus_indicators
+            WHERE variable_name ILIKE '%produkcja%'
+              AND year = (SELECT MAX(year) FROM gus_indicators WHERE variable_name ILIKE '%produkcja%')
+        """)).fetchone()
+
+        # ── 1. BZP — trend tygodniowy 26 tyg ────────────────────────────────
+        bzp_weekly = conn.execute(sa.text("""
+            SELECT
+                TO_CHAR(DATE_TRUNC('week', publication_date), 'YYYY-MM-DD') AS week,
+                COUNT(*)                                                      AS count
+            FROM bzp_results
+            WHERE publication_date >= NOW() - INTERVAL '182 days'
+            GROUP BY DATE_TRUNC('week', publication_date)
+            ORDER BY week ASC
+        """)).fetchall()
+
+        # ── 2. TED — podział notice_type ─────────────────────────────────────
+        ted_types = conn.execute(sa.text("""
+            SELECT notice_type, COUNT(*) AS count
+            FROM ted_notices
+            WHERE notice_type IS NOT NULL
+            GROUP BY notice_type
+            ORDER BY count DESC
+        """)).fetchall()
+
+        # ── 3. TED — top 10 CPV (2-cyfrowy prefix dla czytelności) ──────────
+        ted_cpv = conn.execute(sa.text("""
+            SELECT
+                COALESCE(SUBSTRING(cpv_codes[1], 1, 2), 'NN') AS cpv_prefix,
+                COUNT(*)                                        AS count
+            FROM ted_notices
+            WHERE notice_type = 'contract_notice'
+              AND cpv_codes IS NOT NULL
+              AND cpv_codes[1] IS NOT NULL
+            GROUP BY cpv_prefix
+            ORDER BY count DESC
+            LIMIT 10
+        """)).fetchall()
+
+        # ── 4. GUS — produkcja budowlano-montażowa top-5 woj (od 2015) ──────
+        gus_production = conn.execute(sa.text("""
+            SELECT year, value, unit_name AS province
+            FROM gus_indicators
+            WHERE variable_name ILIKE '%produkcja%'
+              AND unit_name IN ('MAZOWIECKIE','ŚLĄSKIE','MAŁOPOLSKIE','DOLNOŚLĄSKIE','WIELKOPOLSKIE')
+              AND year >= 2015
+            ORDER BY unit_name ASC, year ASC
+        """)).fetchall()
+
+        # ── 5. GUS — wynagrodzenia w budownictwie ────────────────────────────
+        gus_wages = conn.execute(sa.text("""
+            SELECT year, ROUND(AVG(value)::numeric, 2) AS avg_value
+            FROM gus_indicators
+            WHERE variable_name ILIKE '%wynagrodzen%'
+            GROUP BY year
+            ORDER BY year ASC
+        """)).fetchall()
+
+        # ── 6. BZP — top 10 CPV (8-znakowy prefix) ──────────────────────────
+        bzp_cpv = conn.execute(sa.text("""
+            SELECT
+                SUBSTRING(cpv_main, 1, 8) AS cpv_code,
+                COUNT(*)                   AS count
+            FROM bzp_results
+            WHERE cpv_main IS NOT NULL
+            GROUP BY cpv_code
+            ORDER BY count DESC
+            LIMIT 10
+        """)).fetchall()
+
+        # ── 7. BZP — rozkład wg województwa (kody NUTS2/PL) ─────────────────
+        # Normalizacja: kod PL02/PL04..  → mapujemy na pełną nazwę w frontendzie
+        bzp_voivodeship = conn.execute(sa.text("""
+            SELECT voivodeship AS province, COUNT(*) AS n
+            FROM bzp_results
+            WHERE voivodeship IS NOT NULL
+              AND voivodeship != ''
+            GROUP BY voivodeship
+            ORDER BY n DESC
+        """)).fetchall()
+
+        # ── 8. Pre-tender — sygnały wg miesiąca ─────────────────────────────
+        pretender_monthly = conn.execute(sa.text("""
+            SELECT
+                TO_CHAR(published_at, 'YYYY-MM') AS month,
+                COUNT(*)                          AS count
+            FROM pretender_signals
+            WHERE published_at IS NOT NULL
+            GROUP BY month
+            ORDER BY month ASC
+        """)).fetchall()
+
+    return {
+        "kpi": {
+            "bzp_30d":             int(bzp_kpi.bzp_30d or 0),
+            "unique_contractors":  int(bzp_kpi.unique_contractors or 0),
+            "avg_value_k":         float(bzp_kpi.avg_value_k or 0),
+            "total_value_bln":     float(bzp_kpi.total_value_bln or 0),
+            "ted_30d":             int(ted_kpi.ted_30d or 0),
+            "pretender_30d":       int(pretender_kpi.pretender_30d or 0),
+            "gus_production_mln":  float(gus_latest.avg_production_mln or 0) if gus_latest else 0,
+        },
+        "bzp_weekly": [
+            {"week": str(r.week), "count": r.count}
+            for r in bzp_weekly
+        ],
+        "ted_types": [
+            {"type": r.notice_type, "count": r.count}
+            for r in ted_types
+        ],
+        "ted_cpv": [
+            {"cpv": r.cpv_prefix, "count": r.count}
+            for r in ted_cpv
+        ],
+        "gus_production": [
+            {"period": str(r.year), "value": float(r.value or 0), "province": r.province}
+            for r in gus_production
+        ],
+        "gus_wages": [
+            {"period": str(r.year), "value": float(r.avg_value or 0)}
+            for r in gus_wages
+        ],
+        "bzp_cpv": [
+            {"cpv": r.cpv_code, "count": r.count}
+            for r in bzp_cpv
+        ],
+        "bzp_voivodeship": [
+            {"province": r.province, "n": r.n}
+            for r in bzp_voivodeship
+        ],
+        "pretender_monthly": [
+            {"month": r.month, "count": r.count}
+            for r in pretender_monthly
+        ],
+    }

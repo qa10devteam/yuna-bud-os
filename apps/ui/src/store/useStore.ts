@@ -13,7 +13,7 @@ import type {
 
 // ── Module names used in navigation ────────────────────────────────────────
 
-export type ModuleName = 'dashboard' | 'zwiad' | 'kosztorys' | 'silnik' | 'decyzja' | 'logistyka' | 'oferta' | 'rfq' | 'pipeline' | 'system' | 'pogoda' | 'analytics' | 'market-intel' | 'competitors' | 'bookmarks' | 'buyer-crm' | 'notifications' | 'export' | 'settings' | 'automations' | 'resources' | 'contracts' | 'team' | 'reports' | 'icb' | 'proactive' | 'documents' | 'import' | 'alerts' | 'axiom' | 'bid-intelligence' | 'webhooks' | 'pricing';
+export type ModuleName = 'dashboard' | 'zwiad' | 'kosztorys' | 'silnik' | 'decyzja' | 'logistyka' | 'oferta' | 'rfq' | 'pipeline' | 'system' | 'pogoda' | 'analytics' | 'market-intel' | 'rynek' | 'competitors' | 'bookmarks' | 'buyer-crm' | 'notifications' | 'export' | 'settings' | 'automations' | 'resources' | 'contracts' | 'team' | 'reports' | 'icb' | 'proactive' | 'documents' | 'import' | 'alerts' | 'axiom' | 'bid-intelligence' | 'webhooks' | 'pricing';
 
 // ── Auth types ──────────────────────────────────────────────────────────────
 
