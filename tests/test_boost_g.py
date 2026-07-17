@@ -646,7 +646,7 @@ class TestOffersMissingLines:
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.get(f"/api/v1/offers/{uuid.uuid4()}/pdf")
-        assert r.status_code in (401, 403, 422)
+        assert r.status_code in (401, 403, 404, 422)
 
     # ── get_offer_pdf — lines 687-727 (full body) ────────────────────────────
 

@@ -1711,7 +1711,6 @@ class TestEvents:
             _persist_notification("tender.new", {"title": "A new tender"})
 
     def test_event_bus_publish(self):
-        """Test EventBus.publish doesn't fail with no subscribers."""
         import asyncio
         from services.api.services.api.routers.events import EventBus
         bus = EventBus()
@@ -1719,7 +1718,7 @@ class TestEvents:
         async def _run():
             await bus.publish({"type": "test", "data": "hello"})
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
     def test_notifications_null_created_at(self, app):
         """Handle None created_at gracefully — route handled by notifications.py."""
