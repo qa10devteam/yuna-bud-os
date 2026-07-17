@@ -165,3 +165,39 @@ def notify_task(user_id: str, org_id: str, notif_type: str, title: str, body: st
     except Exception as exc:
         logger.error("Notify task failed: %s", exc)
         return {"status": "error", "message": str(exc)}
+
+
+@celery_app.task(name="uzp.sync")
+def sync_uzp_task():
+    """Synchronizuje zmiany UZP — uruchamiany co 6 godzin przez Beat."""
+    import subprocess
+    result = subprocess.run(
+        ['/home/ubuntu/terra-os/.venv/bin/python3.12', '/home/ubuntu/terra-os/scripts/uzp_tracker.py'],
+        capture_output=True, text=True, timeout=300
+    )
+    return {'stdout': result.stdout[-500:], 'returncode': result.returncode}
+
+
+@celery_app.task(name="ted.sync")
+def sync_ted_task():
+    """Synchronizuje ogłoszenia TED (UE) — uruchamiany raz dziennie."""
+    import subprocess
+    result = subprocess.run(
+        ['/home/ubuntu/terra-os/.venv/bin/python3.12', '/home/ubuntu/terra-os/scripts/ted_importer.py', '--days-back', '7'],
+        capture_output=True, text=True, timeout=600,
+        cwd='/home/ubuntu/terra-os'
+    )
+    return {'returncode': result.returncode, 'stdout': result.stdout[-300:]}
+
+
+@celery_app.task(name="pretender.sync")
+def sync_pretender_task():
+    """Synchronizuje sygnały pre-przetargowe — uruchamiany co 12 godzin."""
+    import subprocess
+    result = subprocess.run(
+        ['/home/ubuntu/terra-os/.venv/bin/python3.12', '/home/ubuntu/terra-os/scripts/pretender_scanner.py'],
+        capture_output=True, text=True, timeout=300,
+        cwd='/home/ubuntu/terra-os'
+    )
+    return {'returncode': result.returncode, 'stdout': result.stdout[-300:]}
+

@@ -224,6 +224,16 @@ try:
     _optional_routers.append(('icb_advanced', icb_advanced))
 except Exception as e:  # pragma: no cover
     logging.getLogger(__name__).warning("icb_advanced router: %s", e)
+try:
+    from .routers import uzp_tracker
+    _optional_routers.append(('uzp_tracker', uzp_tracker))
+except Exception as e:  # pragma: no cover
+    logging.getLogger(__name__).warning("uzp_tracker router: %s", e)
+try:
+    from .routers import external_data
+    _optional_routers.append(('external_data', external_data))
+except Exception as e:  # pragma: no cover
+    logging.getLogger(__name__).warning("external_data router: %s", e)
 
 from .auth import router as auth_router
 
@@ -715,6 +725,28 @@ try:
     app.include_router(_offer_assembly_mod.router)
 except Exception as _e:
     logging.getLogger(__name__).warning("offer_assembly router error: %s", _e)
+
+# AI Bid Writing — szkielet oferty technicznej
+try:
+    from .routers import bid_writing as _bid_writing_mod
+    app.include_router(_bid_writing_mod.router)
+except Exception as _e:
+    logging.getLogger(__name__).warning("bid_writing router error: %s", _e)
+
+# S3 — UZP Change Tracker
+try:
+    from .routers import uzp_tracker as _uzp_tracker_mod
+    app.include_router(_uzp_tracker_mod.router)
+except Exception as _e:
+    logging.getLogger(__name__).warning("uzp_tracker router error: %s", _e)
+
+# S4 — External Data Intelligence (TED, GUS, Pre-tender)
+try:
+    from .routers import external_data as _external_data_mod
+    app.include_router(_external_data_mod.router)
+except Exception as _e:
+    logging.getLogger(__name__).warning("external_data router error: %s", _e)
+
 
 # ── v1 compat aliases — frontend używa /api/v1/tenders ──────────────────────
 from fastapi import Request as _Request

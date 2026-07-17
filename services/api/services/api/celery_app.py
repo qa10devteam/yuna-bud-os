@@ -42,5 +42,19 @@ celery_app.conf.update(
             "schedule": 900.0,  # 15 minutes
             "options": {"queue": "normal"},
         },
+        "sync-uzp-every-6h": {
+            "task": "uzp.sync",
+            "schedule": 21600.0,  # 6 godzin
+        },
+        "sync-ted-daily": {
+            "task": "ted.sync",
+            "schedule": 86400.0,  # 24 godziny
+            "options": {"queue": "batch"},
+        },
+        "sync-pretender-every-12h": {
+            "task": "pretender.sync",
+            "schedule": 43200.0,  # 12 godzin
+            "options": {"queue": "normal"},
+        },
     },
 )
