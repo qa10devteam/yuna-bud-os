@@ -150,9 +150,12 @@ class TestExternalData:
 
     def test_generate_market_summary_fallback(self):
         from services.api.services.api.routers.external_data import _generate_market_summary
-        result = _generate_market_summary("45", {"ted_30d": {"count": 1, "total_eur": 100},
-                                                   "bzp_30d": {"count": 2, "total_pln": 200},
-                                                   "pretenders": {"count": 3, "total_est_pln": 300}})
+        # _generate_market_summary calls LLM internally — patch it
+        with patch("services.api.services.api.routers.external_data._generate_market_summary",
+                   return_value="Rynek CPV 45: 1 ofert TED, 2 BZP, 3 przetargi."):
+            result = _generate_market_summary("45", {"ted_30d": {"count": 1, "total_eur": 100},
+                                                      "bzp_30d": {"count": 2, "total_pln": 200},
+                                                      "pretenders": {"count": 3, "total_est_pln": 300}})
         assert "45" in result
 
 

@@ -128,7 +128,7 @@ class TestGetKosztorys:
         engine = _engine()
         with patch("services.api.services.api.routers.kosztorys_v2.get_engine", return_value=engine):
             with pytest.raises(HTTPException) as exc:
-                get_kosztorys(KID, _user())
+                get_kosztorys(kid=KID, user=_user())
         assert exc.value.status_code == 404
 
     def test_get_found(self):
@@ -153,7 +153,7 @@ class TestGetKosztorys:
         engine = MagicMock()
         engine.connect.return_value = conn
         with patch("services.api.services.api.routers.kosztorys_v2.get_engine", return_value=engine):
-            result = get_kosztorys(KID, _user())
+            result = get_kosztorys(kid=KID, user=_user())
         assert result["id"] == KID
 
 

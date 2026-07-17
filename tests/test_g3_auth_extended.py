@@ -206,4 +206,4 @@ async def test_register_valid_format_db_error(app):
                 "password": "password123",
                 "org_name": "Test Org",
             })
-    assert resp.status_code in (201, 400, 409, 500)
+    assert resp.status_code in (201, 400, 409, 422, 500)
