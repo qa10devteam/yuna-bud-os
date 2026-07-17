@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+from unittest.mock import MagicMock, patch
 from httpx import ASGITransport, AsyncClient
 
 
@@ -11,12 +12,45 @@ def app():
     return _app
 
 
+def _make_gus_row(**kwargs):
+    """Create a mock row that matches the attributes the gus_bdl router accesses."""
+    row = MagicMock()
+    row.id = kwargs.get("id", "test-id-1")
+    row.variable_id = kwargs.get("variable_id", "P3808")
+    row.name = kwargs.get("name", "Test indicator")
+    row.unit = kwargs.get("unit", "%")
+    row.year = kwargs.get("year", 2024)
+    row.period = kwargs.get("period", "rok")
+    row.value = kwargs.get("value", 1.5)
+    row.fetched_at = None
+    return row
+
+
+def _make_gus_engine(rows=None):
+    """Return a mocked SQLAlchemy engine returning given rows."""
+    if rows is None:
+        rows = [_make_gus_row()]
+    conn = MagicMock()
+    res = MagicMock()
+    res.fetchall.return_value = rows
+    res.fetchone.return_value = rows[0] if rows else None
+    conn.execute.return_value = res
+    conn.__enter__ = MagicMock(return_value=conn)
+    conn.__exit__ = MagicMock(return_value=False)
+    engine = MagicMock()
+    engine.connect.return_value = conn
+    engine.begin.return_value = conn
+    return engine
+
+
 # ── GET /api/v1/gus/indicators ────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_list_indicators_ok(app, auth_headers):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        r = await ac.get("/api/v1/gus/indicators", headers=auth_headers)
+    with patch("services.api.services.api.routers.gus_bdl.get_engine",
+               return_value=_make_gus_engine()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.get("/api/v1/gus/indicators", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert "items" in data
@@ -24,22 +58,28 @@ async def test_list_indicators_ok(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_list_indicators_filter_variable(app, auth_headers):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        r = await ac.get("/api/v1/gus/indicators?variable_id=P3808", headers=auth_headers)
+    with patch("services.api.services.api.routers.gus_bdl.get_engine",
+               return_value=_make_gus_engine()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.get("/api/v1/gus/indicators?variable_id=P3808", headers=auth_headers)
     assert r.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_list_indicators_filter_year(app, auth_headers):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        r = await ac.get("/api/v1/gus/indicators?year=2024", headers=auth_headers)
+    with patch("services.api.services.api.routers.gus_bdl.get_engine",
+               return_value=_make_gus_engine()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.get("/api/v1/gus/indicators?year=2024", headers=auth_headers)
     assert r.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_list_indicators_no_auth(app):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        r = await ac.get("/api/v1/gus/indicators")
+    with patch("services.api.services.api.routers.gus_bdl.get_engine",
+               return_value=_make_gus_engine()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.get("/api/v1/gus/indicators")
     # conftest overrides auth so ASGI calls get demo user
     assert r.status_code in (200, 401, 403)
 
@@ -48,8 +88,11 @@ async def test_list_indicators_no_auth(app):
 
 @pytest.mark.asyncio
 async def test_get_inflation_summary_ok(app, auth_headers):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        r = await ac.get("/api/v1/gus/inflation", headers=auth_headers)
+    rows = [_make_gus_row(variable_id="P1774", name="CPI", year=2024, value=3.5)]
+    with patch("services.api.services.api.routers.gus_bdl.get_engine",
+               return_value=_make_gus_engine(rows=rows)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.get("/api/v1/gus/inflation", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert "summary" in data

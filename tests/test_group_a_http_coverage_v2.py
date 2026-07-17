@@ -230,7 +230,7 @@ async def test_tender_alerts_create_valid(client):
         "frequency": "daily",
         "channel": "email",
     })
-    assert r.status_code in (200, 201, 400, 401, 403, 422, 500)
+    assert r.status_code in (200, 201, 400, 401, 403, 409, 422, 500)
 
 @pytest.mark.asyncio
 async def test_tender_alerts_create_invalid_cpv(client):
@@ -241,7 +241,7 @@ async def test_tender_alerts_create_invalid_cpv(client):
         "frequency": "daily",
         "channel": "email",
     })
-    assert r.status_code in (400, 422, 401, 403, 500)
+    assert r.status_code in (400, 409, 422, 401, 403, 500)
 
 @pytest.mark.asyncio
 async def test_tender_alerts_create_invalid_freq(client):

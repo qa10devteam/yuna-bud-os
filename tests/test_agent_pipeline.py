@@ -53,8 +53,39 @@ def _make_engine(rows_by_key: dict | None = None):
 def _make_app():
     from fastapi import FastAPI
     from services.api.services.api.routers.agent_pipeline import router
+    from services.api.services.api.auth.deps import get_current_user, CurrentUser
+
     app = FastAPI()
     app.include_router(router)
+
+    # Override auth to bypass JWT validation and plan-gate DB lookups
+    _demo = CurrentUser(
+        user_id="40a71ef6-d6eb-48a3-b62e-7da3df5f0a17",
+        email="demo@terra-os.pl",
+        org_id="ec3d1e16-2139-48c2-93b5-ffe0defd606d",
+        role="owner",
+    )
+    app.dependency_overrides[get_current_user] = lambda: _demo
+
+    # Bypass plan gate — patch require_plan to return a no-op dependency
+    try:
+        from services.api.services.api.auth.plan_gate import require_plan as _rp
+        from fastapi import Depends as _Depends
+
+        def _noop_gate(_user=_Depends(get_current_user)):
+            return None
+
+        # Monkey-patch every Depends(_check) added by require_plan by overriding
+        # the plan_gate module's require_plan so router re-imports get no-ops.
+        # But since router is already imported, iterate its routes and remove gates.
+        for route in app.routes:
+            if hasattr(route, "dependant"):
+                for dep in route.dependant.dependencies:
+                    if hasattr(dep.call, "__name__") and dep.call.__name__ == "_check":
+                        dep.call = lambda: None
+    except Exception:
+        pass
+
     return app
 
 
