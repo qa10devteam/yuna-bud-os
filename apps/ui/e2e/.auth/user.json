@@ -14,7 +14,7 @@
         },
         {
           "name": "terra-auth",
-          "value": "{\"state\":{\"user\":{\"id\":\"86612f21-3b5a-4a43-a857-1831849aee3f\",\"email\":\"e2e_test@terra.os\",\"name\":\"E2E Tester\",\"org_id\":\"d7ea6ed4-3275-4b57-94b1-ca4debb0364a\",\"role\":\"owner\"},\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4NjYxMmYyMS0zYjVhLTRhNDMtYTg1Ny0xODMxODQ5YWVlM2YiLCJlbWFpbCI6ImUyZV90ZXN0QHRlcnJhLm9zIiwib3JnX2lkIjoiZDdlYTZlZDQtMzI3NS00YjU3LTk0YjEtY2E0ZGViYjAzNjRhIiwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0MjkyNTk4LCJleHAiOjE3ODQyOTM0OTgsInR5cGUiOiJhY2Nlc3MifQ.-ta37RjTeNasSOx9iZTK3uCLQOZpmDLUtIyBQKa9qh0\",\"refreshToken\":\"ccc53a98-ed1a-4d0e-8157-d3429eb3cc1a\"},\"version\":0}"
+          "value": "{\"state\":{\"user\":{\"id\":\"86612f21-3b5a-4a43-a857-1831849aee3f\",\"email\":\"e2e_test@terra.os\",\"name\":\"E2E Tester\",\"org_id\":\"d7ea6ed4-3275-4b57-94b1-ca4debb0364a\",\"role\":\"owner\"},\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4NjYxMmYyMS0zYjVhLTRhNDMtYTg1Ny0xODMxODQ5YWVlM2YiLCJlbWFpbCI6ImUyZV90ZXN0QHRlcnJhLm9zIiwib3JnX2lkIjoiZDdlYTZlZDQtMzI3NS00YjU3LTk0YjEtY2E0ZGViYjAzNjRhIiwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0Mjk0MDQ2LCJleHAiOjE3ODQyOTQ5NDYsInR5cGUiOiJhY2Nlc3MifQ.BApNK4d2ZGRamlWIK8KAlzVa_ICypExl9XfOvczwYQo\",\"refreshToken\":\"70131c3e-2ba5-4bc2-b569-701813e5a438\"},\"version\":0}"
         }
       ]
     }

@@ -358,8 +358,8 @@ def get_market_charts(user: AuthUser) -> dict:
     - bzp_voivodeship: rozkład wg NUTS2 (PolandHeatmap)
     - pretender_monthly: pre-tender sygnały wg miesiąca (BarChart)
     """
-    engine = get_engine()
     try:
+        engine = get_engine()
         with engine.connect() as conn:
 
             # ── 0. KPI header ────────────────────────────────────────────────────

@@ -4,8 +4,8 @@
 // Catches render errors in route segments and shows a recovery UI.
 // See: https://nextjs.org/docs/app/api-reference/file-conventions/error
 
-import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, RefreshCw, Clipboard, ClipboardCheck } from 'lucide-react';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -13,10 +13,30 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     // Log to console so it shows in CI / server logs
     console.error('[YU-NA] Unhandled render error:', error);
   }, [error]);
+
+  async function handleReport() {
+    const text = [
+      `Błąd: ${error.message || 'Nieznany błąd'}`,
+      error.digest ? `ID błędu (digest): ${error.digest}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Fallback for environments without clipboard API
+      console.warn('[YU-NA] Clipboard unavailable. Error info:', text);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-earth-950 flex items-center justify-center p-8">
@@ -31,13 +51,17 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         <p className="text-earth-400 text-sm mb-1">
           {error.message || 'Coś poszło nie tak po stronie aplikacji.'}
         </p>
+
+        {/* Digest / error code */}
         {error.digest && (
-          <p className="text-earth-600 text-xs font-mono mb-5">
-            ID błędu: {error.digest}
-          </p>
+          <div className="inline-flex items-center gap-2 mt-2 mb-5 px-3 py-1.5 rounded-lg bg-earth-900 border border-earth-800">
+            <span className="text-earth-500 text-xs">Kod błędu:</span>
+            <code className="text-earth-300 text-xs font-mono">{error.digest}</code>
+          </div>
         )}
 
-        <div className="flex gap-3 justify-center mt-6">
+        <div className="flex flex-wrap gap-3 justify-center mt-6">
+          {/* Primary: retry */}
           <button
             onClick={reset}
             className="flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-earth-950 rounded-xl font-semibold text-sm hover:bg-emerald-400 transition-colors"
@@ -45,8 +69,28 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             <RefreshCw className="w-4 h-4" />
             Spróbuj ponownie
           </button>
+
+          {/* Secondary: copy error info */}
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={handleReport}
+            className="flex items-center gap-2 px-5 py-2.5 bg-earth-800 text-earth-300 rounded-xl font-medium text-sm hover:bg-earth-700 transition-colors"
+          >
+            {copied ? (
+              <>
+                <ClipboardCheck className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">Skopiowano!</span>
+              </>
+            ) : (
+              <>
+                <Clipboard className="w-4 h-4" />
+                Zgłoś błąd
+              </>
+            )}
+          </button>
+
+          {/* Tertiary: back to dashboard */}
+          <button
+            onClick={() => (window.location.href = '/')}
             className="px-5 py-2.5 bg-earth-800 text-earth-300 rounded-xl font-medium text-sm hover:bg-earth-700 transition-colors"
           >
             Wróć do dashboardu

@@ -283,3 +283,72 @@ async def health_system() -> dict:
         result["subsystems"]["ingest_lag"] = {"status": "unavailable", "detail": str(_exc_lag)}
 
     return result
+
+
+# ─── F3: Production /health — DB + Redis + vLLM checks ──────────────────────
+
+class ServicesHealth(BaseModel):
+    db: bool
+    redis: bool
+    vllm: bool
+
+
+class ProductionHealthResponse(BaseModel):
+    status: str  # "ok" | "degraded" | "down"
+    services: ServicesHealth
+
+
+@router.get("/health", response_model=ProductionHealthResponse, include_in_schema=True)
+async def health_production() -> ProductionHealthResponse:
+    """Production health check: DB (SELECT 1), Redis (PING), vLLM (/health).
+
+    Returns:
+        status: "ok" — all services up
+                "degraded" — some services down
+                "down" — all services down
+        services: per-service boolean
+    """
+    services: dict[str, bool] = {"db": False, "redis": False, "vllm": False}
+
+    # 1. PostgreSQL — SELECT 1
+    try:
+        from terra_db.session import get_engine
+        from sqlalchemy import text
+        _engine = get_engine()
+        with _engine.connect() as _conn:
+            _conn.execute(text("SELECT 1"))
+        services["db"] = True
+    except Exception:
+        services["db"] = False
+
+    # 2. Redis — PING on port 6379
+    try:
+        import socket as _socket
+        _sock = _socket.create_connection(("127.0.0.1", 6379), timeout=1)
+        _sock.sendall(b"PING\r\n")
+        _resp = _sock.recv(16)
+        _sock.close()
+        services["redis"] = _resp.startswith(b"+PONG")
+    except Exception:
+        services["redis"] = False
+
+    # 3. vLLM — GET http://localhost:8001/health
+    try:
+        import urllib.request as _urllib_req
+        _req = _urllib_req.urlopen("http://localhost:8001/health", timeout=2)
+        services["vllm"] = _req.status == 200
+    except Exception:
+        services["vllm"] = False
+
+    up_count = sum(services.values())
+    if up_count == 3:
+        overall = "ok"
+    elif up_count == 0:
+        overall = "down"
+    else:
+        overall = "degraded"
+
+    return ProductionHealthResponse(
+        status=overall,
+        services=ServicesHealth(**services),
+    )

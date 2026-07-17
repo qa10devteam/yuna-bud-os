@@ -7,6 +7,10 @@
  *  - Typed API errors (ApiError with status, detail, etc.)
  *  - Automatic JSON parsing + error extraction
  *  - Abort controller support
+ *  - Interceptors:
+ *      401 → clear localStorage auth tokens + redirect to /auth/login
+ *      429 → show toast 'Za dużo żądań. Poczekaj chwilę.'
+ *      500/503 → swallow error, return null gracefully
  */
 
 // ── Typed errors ────────────────────────────────────────────────────────────────
@@ -36,6 +40,45 @@ export class NetworkError extends Error {
 
 // Map of in-flight GET requests: url → Promise<unknown>
 const inflight = new Map<string, Promise<unknown>>();
+
+// ── Response interceptors ────────────────────────────────────────────────────
+
+/**
+ * handle401 — clears stored auth tokens and redirects to the login page.
+ * Safe to call on the server (window guard) — does nothing in SSR context.
+ */
+function handle401(): void {
+  if (typeof window === 'undefined') return;
+  // Clear all known auth storage keys
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  // Avoid redirect loops if already on auth pages
+  if (!window.location.pathname.startsWith('/auth')) {
+    window.location.href = '/auth/login';
+  }
+}
+
+/**
+ * handle429 — shows a user-facing warning toast via the global Toast system.
+ * Falls back to console.warn when the DOM is not available (SSR/tests).
+ */
+function handle429(): void {
+  const message = 'Za dużo żądań. Poczekaj chwilę.';
+  if (typeof window === 'undefined') {
+    console.warn('[api-client] 429:', message);
+    return;
+  }
+  // Dynamically import to avoid pulling React module into SSR bundle
+  // showToast is a side-effect-only function exported from Toast.tsx
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { showToast } = require('@/components/Toast');
+    showToast('warning', message);
+  } catch {
+    console.warn('[api-client] 429:', message);
+  }
+}
 
 // ── Auth token helper ────────────────────────────────────────────────────────
 
@@ -125,6 +168,28 @@ export async function apiRequest<T = unknown>(
     }
 
     if (!response.ok) {
+      // ── Response interceptors ──────────────────────────────────────────────
+
+      // 401 Unauthorized — expired or missing token → auto-logout
+      if (response.status === 401) {
+        handle401();
+        // Still throw so callers can handle (e.g. clear local state)
+        throw new ApiError(401, 'Nieautoryzowany. Zostałeś wylogowany.', null);
+      }
+
+      // 429 Too Many Requests — rate-limited → warn user via toast
+      if (response.status === 429) {
+        handle429();
+        throw new ApiError(429, 'Za dużo żądań. Poczekaj chwilę.', null);
+      }
+
+      // 500/503 Server Error — backend down / transient — return null gracefully
+      if (response.status === 500 || response.status === 503) {
+        console.error(`[api-client] ${response.status} on ${url} — returning null`);
+        return null as unknown as T;
+      }
+
+      // ── All other errors ───────────────────────────────────────────────────
       let raw: unknown;
       try {
         raw = await response.json();
