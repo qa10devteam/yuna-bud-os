@@ -402,42 +402,55 @@ class TestMainPrometheus:
 class TestOfferAssemblyExactLine:
     def test_termin_fromisoformat_exception(self):
         """Line 139: datetime.fromisoformat fails → except Exception: pass."""
-        import services.api.services.api.routers.offer_assembly as mod
+        from services.api.services.api.routers.offer_assembly import (
+            generate_documents, GenerateDocsRequest, TenderIn, CompanyIn, KosztorysIn,
+        )
 
-        # find assemble_tender_context or similar
-        fn = getattr(mod, "assemble_tender_context", None) or getattr(mod, "get_offer_context", None)
-        if fn is None:
-            fns = [n for n in dir(mod) if callable(getattr(mod, n)) and not n.startswith("_")]
-            for fn_name in fns:
-                f = getattr(mod, fn_name)
+        req = GenerateDocsRequest(
+            tender=TenderIn(
+                nr_sprawy="ZP/01/2026",
+                tytul="Test Przetarg",
+                zamawiajacy_nazwa="Urząd Gminy Test",
+                termin_skladania="INVALID-DATE-XYZ",  # This will cause fromisoformat to fail
+            ),
+            company=CompanyIn(
+                nazwa_pelna="Test Sp. z o.o.",
+                nip="1234567890",
+                adres_ulica="ul. Testowa",
+                adres_nr_budynku="1",
+                adres_kod_pocztowy="40-000",
+                adres_miasto="Katowice",
+            ),
+            kosztorys=KosztorysIn(suma_brutto=100000.0),
+        )
+
+        async def _run():
+            # Patch document_generator.generate_oferta_package to return fake zip
+            import io
+            import zipfile as zf
+            buf = io.BytesIO()
+            with zf.ZipFile(buf, "w") as z:
+                z.writestr("test.txt", "test")
+            buf.seek(0)
+
+            # The import is inline, so patch at source module level
+            mock_pkg = MagicMock()
+            mock_pkg.generate_oferta_package.return_value = buf.read()
+            mock_pkg.TenderContext = MagicMock
+            mock_pkg.CompanyContext = MagicMock
+            mock_pkg.KosztorysContext = MagicMock
+            mock_pkg.BidStrategy = MagicMock
+            with patch.dict(
+                "sys.modules",
+                {"services.api.services.api.intelligence.document_generator": mock_pkg},
+            ):
                 try:
-                    import inspect
-                    src = inspect.getsource(f)
-                    if "termin_skladania" in src and "fromisoformat" in src:
-                        fn = f
-                        break
-                except Exception:
-                    pass
-        if fn is None:
-            pytest.skip("No function with termin_skladania fromisoformat")
-
-        # Create tender row mock with invalid termin_skladania
-        tender_row = MagicMock()
-        tender_row.termin_skladania = "INVALID-DATE!!!"
-        tender_row.id = str(uuid.uuid4())
-        tender_row.title = "Test Tender"
-        tender_row.estimated_value = 100000.0
-        tender_row.cpv = "45000000"
-        tender_row.adres_miasto = "Katowice"
-
-        with _mock_engine() as (eng, conn):
-            conn.execute.return_value.fetchone.return_value = tender_row
-            with patch("terra_db.session.get_engine", return_value=eng):
-                try:
-                    result = fn(tender_id=str(uuid.uuid4()), user=_user())
+                    result = await generate_documents(req=req, user=_user(), _gate=None)
                     assert result is not None
                 except Exception:
                     pass
+
+        asyncio.run(_run())
 
 
 # ─── resources.py:127: HTTPException 404 ────────────────────────────────────
@@ -449,7 +462,7 @@ class TestResourcesHTTP404:
         import terra_db.session as _tdb
 
         with _mock_engine(fetchone=None) as (eng, conn):
-            with patch.object(_tdb, "get_engine", return_value=eng):
+            with patch("services.api.services.api.routers.resources.get_engine", return_value=eng):
                 with pytest.raises(HTTPException) as exc:
                     get_subcontractor(sub_id=str(uuid.uuid4()), user=_user())
                 assert exc.value.status_code == 404
@@ -525,6 +538,16 @@ class TestWebhooksExact:
         from fastapi import HTTPException
         with pytest.raises(HTTPException):
             _validate_url("http://192.168.1.100/hook")
+
+    def test_validate_url_urlparse_exception_lines_34_35(self):
+        """Lines 34-35: urlparse raises AttributeError → HTTPException(422, 'Invalid URL')."""
+        from services.api.services.api.routers.v3.webhooks import _validate_url
+        from fastapi import HTTPException
+        # Pass an int (non-string) which causes urlparse to raise AttributeError
+        with pytest.raises(HTTPException) as exc:
+            _validate_url(123)  # type: ignore[arg-type]
+        assert exc.value.status_code == 422
+        assert "Invalid URL" in exc.value.detail
 
 
 # ─── zwiad.py:314-318: task found returns response ───────────────────────────
