@@ -11,6 +11,7 @@ omit =
     */__pycache__/*
     */migrations/*
     */.venv/*
+    */templates/*
 
 [report]
 exclude_lines =

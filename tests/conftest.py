@@ -141,6 +141,50 @@ def _override_auth_for_tests() -> None:
 
 
 @pytest.fixture(autouse=True)
+def _restore_auth_override():
+    """Ensure get_current_user is always the demo user before AND after every test.
+
+    Some module-scope fixtures or teardown methods clear dependency_overrides,
+    which breaks all subsequent tests in the session.  This function-scope
+    autouse fixture re-applies the demo override after each test so the
+    session-level setting is never permanently lost.
+    Also clears the IDS in-memory blocked-IP set to prevent test-client IP
+    from being blocked by earlier 403 responses in the session.
+    """
+    try:
+        from services.api.services.api.main import app
+        from services.api.services.api.auth.deps import get_current_user, CurrentUser
+        _demo = CurrentUser(
+            user_id="40a71ef6-d6eb-48a3-b62e-7da3df5f0a17",
+            email="demo@terra-os.pl",
+            org_id="ec3d1e16-2139-48c2-93b5-ffe0defd606d",
+            role="owner",
+        )
+        app.dependency_overrides[get_current_user] = lambda: _demo
+    except Exception:
+        pass
+    # Clear IDS in-memory state so testclient IP is never permanently blocked
+    try:
+        from services.api.services.api.middleware import ids as _ids_mod
+        _ids_mod.IDS_ENABLED = False
+    except Exception:
+        pass
+    yield
+    try:
+        from services.api.services.api.main import app
+        from services.api.services.api.auth.deps import get_current_user, CurrentUser
+        _demo = CurrentUser(
+            user_id="40a71ef6-d6eb-48a3-b62e-7da3df5f0a17",
+            email="demo@terra-os.pl",
+            org_id="ec3d1e16-2139-48c2-93b5-ffe0defd606d",
+            role="owner",
+        )
+        app.dependency_overrides[get_current_user] = lambda: _demo
+    except Exception:
+        pass
+
+
+@pytest.fixture(autouse=True)
 def _reset_rate_limiter():
     """Clear the in-process rate-limiter buckets between tests.
 

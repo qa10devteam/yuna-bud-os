@@ -408,6 +408,8 @@ class TestTasksW11:
             sys.modules.pop("services.ingestion.pipeline", None)
         if _orig_ingestion is not None:
             sys.modules["services.ingestion"] = _orig_ingestion
+        else:
+            sys.modules.pop("services.ingestion", None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

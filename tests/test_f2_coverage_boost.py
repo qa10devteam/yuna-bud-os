@@ -499,9 +499,9 @@ async def test_zwiad_cache_invalidate_200(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_zwiad_tender_detail_via_v1(app, auth_headers):
-    """GET /api/v1/tenders/{uuid} zwiad detail → 200 lub 404."""
+    """GET /api/v2/tenders/{uuid} zwiad detail → 200 lub 404."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.get(f"/api/v1/tenders/{FAKE_TENDER_ID}", headers=auth_headers)
+        resp = await c.get(f"/api/v2/tenders/{FAKE_TENDER_ID}", headers=auth_headers)
     assert resp.status_code in (200, 404)
 
 
@@ -744,14 +744,14 @@ async def test_zwiad_dedup_run(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_patch(app, auth_headers):
-    """PATCH /api/v1/tenders/{id} → 200/404/405 z mockiem get_engine."""
+    """PATCH /api/v2/tenders/{id} → 200/404/405 z mockiem get_engine."""
     engine, conn = _make_engine_mock()
     conn.execute.return_value.fetchone.return_value = None  # tender not found → 404
     conn.execute.return_value.rowcount = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.patch(
-                f"/api/v1/tenders/{FAKE_TENDER_ID}",
+                f"/api/v2/tenders/{FAKE_TENDER_ID}",
                 json={"status": "shortlisted"},
                 headers=auth_headers,
             )
@@ -760,9 +760,9 @@ async def test_zwiad_tenders_patch(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_delete(app, auth_headers):
-    """DELETE /api/v1/tenders/{id} → 200/204/404/405."""
+    """DELETE /api/v2/tenders/{id} → 200/204/404/405."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.delete(f"/api/v1/tenders/{FAKE_TENDER_ID}", headers=auth_headers)
+        resp = await c.delete(f"/api/v2/tenders/{FAKE_TENDER_ID}", headers=auth_headers)
     assert resp.status_code in (200, 204, 404, 405)
 
 
@@ -1027,7 +1027,7 @@ async def test_billing_subscription_get(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_with_status(app, auth_headers):
-    """GET /api/v1/tenders?status=new → 200."""
+    """GET /api/v2/tenders?status=new → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1035,13 +1035,13 @@ async def test_zwiad_tenders_list_with_status(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?status=new", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?status=new", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_with_source(app, auth_headers):
-    """GET /api/v1/tenders?source=bzp → 200."""
+    """GET /api/v2/tenders?source=bzp → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1049,13 +1049,13 @@ async def test_zwiad_tenders_list_with_source(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?source=bzp", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?source=bzp", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_with_cpv_exact(app, auth_headers):
-    """GET /api/v1/tenders?cpv=45111200-0 (exact match) → 200."""
+    """GET /api/v2/tenders?cpv=45111200-0 (exact match) → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1063,13 +1063,13 @@ async def test_zwiad_tenders_list_with_cpv_exact(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?cpv=45111200-0", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?cpv=45111200-0", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_with_cpv_prefix(app, auth_headers):
-    """GET /api/v1/tenders?cpv=45 (prefix) → 200."""
+    """GET /api/v2/tenders?cpv=45 (prefix) → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1077,13 +1077,13 @@ async def test_zwiad_tenders_list_with_cpv_prefix(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?cpv=45", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?cpv=45", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_with_value_range(app, auth_headers):
-    """GET /api/v1/tenders?min_value=100000&max_value=5000000 → 200."""
+    """GET /api/v2/tenders?min_value=100000&max_value=5000000 → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1091,25 +1091,25 @@ async def test_zwiad_tenders_list_with_value_range(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?min_value=100000&max_value=5000000", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?min_value=100000&max_value=5000000", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_invalid_status(app, auth_headers):
-    """GET /api/v1/tenders?status=INVALID → 422."""
+    """GET /api/v2/tenders?status=INVALID → 422."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?status=INVALID_STATUS_XYZ", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?status=INVALID_STATUS_XYZ", headers=auth_headers)
     assert resp.status_code in (422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_with_voivodeship(app, auth_headers):
-    """GET /api/v1/tenders?voivodeship=śląskie → 200."""
+    """GET /api/v2/tenders?voivodeship=śląskie → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1117,13 +1117,13 @@ async def test_zwiad_tenders_list_with_voivodeship(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?voivodeship=śląskie", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?voivodeship=śląskie", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list_multi_cpv(app, auth_headers):
-    """GET /api/v1/tenders?cpv=45,71 (multiple CPV) → 200."""
+    """GET /api/v2/tenders?cpv=45,71 (multiple CPV) → 200."""
     engine, conn = _make_engine_mock()
     tenant_row = MagicMock(); tenant_row.tenant_id = FAKE_TENANT_ID
     conn.execute.return_value.fetchone.return_value = tenant_row
@@ -1131,7 +1131,7 @@ async def test_zwiad_tenders_list_multi_cpv(app, auth_headers):
     conn.execute.return_value.scalar.return_value = 0
     with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?cpv=45,71", headers=auth_headers)
+            resp = await c.get("/api/v2/tenders?cpv=45,71", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 

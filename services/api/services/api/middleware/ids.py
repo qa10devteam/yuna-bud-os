@@ -29,6 +29,7 @@ IDS_WINDOW = int(os.getenv("IDS_WINDOW", "300"))  # 5 minutes
 IDS_BLOCK_TTL = int(os.getenv("IDS_BLOCK_TTL", "3600"))  # 1 hour
 EXEMPT_IPS = frozenset({"127.0.0.1", "::1"})
 SKIP_PATHS = frozenset({"/health", "/metrics"})
+SKIP_PREFIXES = ("/health", "/api/v1/health", "/api/v2/health", "/metrics")
 
 
 def _get_redis():
@@ -62,11 +63,10 @@ class IDSMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         path = request.url.path
-        if path in SKIP_PATHS:
-            return await call_next(request)
-
         client_ip = request.client.host if request.client else "unknown"
-        if client_ip in EXEMPT_IPS:
+
+        # Health/metrics and localhost are always exempt (skip blocklist + tracking)
+        if path in SKIP_PATHS or path.startswith(SKIP_PREFIXES) or client_ip in EXEMPT_IPS:
             return await call_next(request)
 
         # Check dynamic blocklist BEFORE forwarding

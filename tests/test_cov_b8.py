@@ -94,7 +94,7 @@ class TestZwiadTenderList:
     @pytest.mark.asyncio
     async def test_list_tenders_200(self, app, auth_headers):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders", headers=auth_headers)
+            r = await c.get("/api/v2/tenders", headers=auth_headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
 
     @pytest.mark.asyncio
@@ -103,31 +103,31 @@ class TestZwiadTenderList:
             json.dumps({"created_at": "2026-01-01T00:00:00", "id": TENDER_ID}).encode()
         ).decode()
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"/api/v1/tenders?cursor={cursor}", headers=auth_headers)
+            r = await c.get(f"/api/v2/tenders?cursor={cursor}", headers=auth_headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
 
     @pytest.mark.asyncio
     async def test_list_tenders_filter_cpv(self, app, auth_headers):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?cpv=45111200", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?cpv=45111200", headers=auth_headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
 
     @pytest.mark.asyncio
     async def test_list_tenders_invalid_status_422(self, app, auth_headers):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?status=bogus_status", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?status=bogus_status", headers=auth_headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
 
     @pytest.mark.asyncio
     async def test_list_tenders_sort_score(self, app, auth_headers):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?sort=match_score", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?sort=match_score", headers=auth_headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
 
     @pytest.mark.asyncio
     async def test_list_tenders_sort_value(self, app, auth_headers):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?sort=value&cursor=" + base64.urlsafe_b64encode(
+            r = await c.get("/api/v2/tenders?sort=value&cursor=" + base64.urlsafe_b64encode(
                 json.dumps({"created_at": "5", "id": TENDER_ID}).encode()
             ).decode(), headers=auth_headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 500)

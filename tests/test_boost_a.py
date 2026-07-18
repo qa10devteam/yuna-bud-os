@@ -653,74 +653,74 @@ class TestZwiadExtra:
 
     @pytest.mark.asyncio
     async def test_tenders_cpv_prefix_filter(self, app, auth_headers):
-        """GET /api/v1/tenders?cpv=45111200 — prefix CPV filter."""
+        """GET /api/v2/tenders?cpv=45111200 — prefix CPV filter."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?cpv=45111200", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?cpv=45111200", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_cpv_exact_with_dash(self, app, auth_headers):
-        """GET /api/v1/tenders?cpv=45111200-0 — exact CPV with dash."""
+        """GET /api/v2/tenders?cpv=45111200-0 — exact CPV with dash."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?cpv=45111200-0", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?cpv=45111200-0", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_cpv_multiple(self, app, auth_headers):
-        """GET /api/v1/tenders?cpv=45111200,45112000 — multiple CPV."""
+        """GET /api/v2/tenders?cpv=45111200,45112000 — multiple CPV."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?cpv=45111200,45112000", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?cpv=45111200,45112000", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_value_range_filter(self, app, auth_headers):
-        """GET /api/v1/tenders?min_value=100000&max_value=5000000."""
+        """GET /api/v2/tenders?min_value=100000&max_value=5000000."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?min_value=100000&max_value=5000000", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?min_value=100000&max_value=5000000", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_sort_by_score(self, app, auth_headers):
-        """GET /api/v1/tenders?sort=match_score."""
+        """GET /api/v2/tenders?sort=match_score."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?sort=match_score", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?sort=match_score", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_sort_by_value(self, app, auth_headers):
-        """GET /api/v1/tenders?sort=value."""
+        """GET /api/v2/tenders?sort=value."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?sort=value", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?sort=value", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_sort_by_deadline(self, app, auth_headers):
-        """GET /api/v1/tenders?sort=deadline."""
+        """GET /api/v2/tenders?sort=deadline."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?sort=deadline", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?sort=deadline", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_invalid_status_422(self, app, auth_headers):
-        """GET /api/v1/tenders?status=bad_status → 422."""
+        """GET /api/v2/tenders?status=bad_status → 422."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?status=bad_status", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?status=bad_status", headers=auth_headers)
         assert r.status_code in (422, 500)
 
     @pytest.mark.asyncio
     async def test_tenders_hide_duplicates_false(self, app, auth_headers):
-        """GET /api/v1/tenders?hide_duplicates=false — shows duplicates."""
+        """GET /api/v2/tenders?hide_duplicates=false — shows duplicates."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders?hide_duplicates=false", headers=auth_headers)
+            r = await c.get("/api/v2/tenders?hide_duplicates=false", headers=auth_headers)
         assert r.status_code in (200, 422, 500)
 
     @pytest.mark.asyncio
@@ -729,22 +729,22 @@ class TestZwiadExtra:
         from httpx import ASGITransport, AsyncClient
         # First page
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r1 = await c.get("/api/v1/tenders?sort=match_score&limit=5", headers=auth_headers)
+            r1 = await c.get("/api/v2/tenders?sort=match_score&limit=5", headers=auth_headers)
         assert r1.status_code in (200, 422, 500)
 
     # ── detail ───────────────────────────────────────────────────────────────
 
     @pytest.mark.asyncio
     async def test_tender_detail_invalid_uuid_404(self, app, auth_headers):
-        """GET /api/v1/tenders/not-a-uuid → 404."""
+        """GET /api/v2/tenders/not-a-uuid → 404."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get("/api/v1/tenders/not-a-uuid", headers=auth_headers)
+            r = await c.get("/api/v2/tenders/not-a-uuid", headers=auth_headers)
         assert r.status_code == 404
 
     @pytest.mark.asyncio
     async def test_tender_detail_found(self, app, auth_headers):
-        """GET /api/v1/tenders/{id} — mocked DB returns row."""
+        """GET /api/v2/tenders/{id} — mocked DB returns row."""
         from httpx import ASGITransport, AsyncClient
         tid = str(uuid.uuid4())
         row = MagicMock()
@@ -759,18 +759,18 @@ class TestZwiadExtra:
         conn.execute.return_value.fetchone.return_value = row
         with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.get(f"/api/v1/tenders/{tid}", headers=auth_headers)
+                r = await c.get(f"/api/v2/tenders/{tid}", headers=auth_headers)
         assert r.status_code in (200, 404, 500)
 
     # ── patch ────────────────────────────────────────────────────────────────
 
     @pytest.mark.asyncio
     async def test_tender_patch_no_status_422(self, app, auth_headers):
-        """PATCH /api/v1/tenders/{id} with empty body → 422."""
+        """PATCH /api/v2/tenders/{id} with empty body → 422."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.patch(
-                f"/api/v1/tenders/{uuid.uuid4()}",
+                f"/api/v2/tenders/{uuid.uuid4()}",
                 json={},
                 headers=auth_headers,
             )
@@ -778,11 +778,11 @@ class TestZwiadExtra:
 
     @pytest.mark.asyncio
     async def test_tender_patch_invalid_uuid_404(self, app, auth_headers):
-        """PATCH /api/v1/tenders/not-a-uuid → 404."""
+        """PATCH /api/v2/tenders/not-a-uuid → 404."""
         from httpx import ASGITransport, AsyncClient
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.patch(
-                "/api/v1/tenders/not-a-uuid",
+                "/api/v2/tenders/not-a-uuid",
                 json={"status": "new"},
                 headers=auth_headers,
             )
@@ -812,13 +812,13 @@ class TestZwiadExtra:
 
     @pytest.mark.asyncio
     async def test_tender_documents_alias_empty(self, app, auth_headers):
-        """GET /api/v1/tenders/{id}/documents — returns documents list."""
+        """GET /api/v2/tenders/{id}/documents — returns documents list."""
         from httpx import ASGITransport, AsyncClient
         engine, _ = _mock_engine(fetchall=[])
         with patch("services.api.services.api.routers.zwiad.get_engine", return_value=engine):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
                 r = await c.get(
-                    f"/api/v1/tenders/{uuid.uuid4()}/documents",
+                    f"/api/v2/tenders/{uuid.uuid4()}/documents",
                     headers=auth_headers,
                 )
         assert r.status_code in (200, 404, 500)

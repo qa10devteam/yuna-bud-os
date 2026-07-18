@@ -1413,11 +1413,11 @@ async def test_intelligence_win_probability_200(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_bzp_list_tenders_200(app, auth_headers):
-    """GET /api/v1/tenders → 200."""
+    """GET /api/v2/tenders → 200."""
     engine, conn = _mock_engine()
     with patch("services.api.services.api.routers.bzp.get_engine", return_value=engine):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.get("/api/v1/tenders", headers=auth_headers)
+            resp = await client.get("/api/v2/tenders", headers=auth_headers)
     assert resp.status_code in (200, 422, 500)
 
 

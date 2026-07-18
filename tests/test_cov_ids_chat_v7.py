@@ -132,18 +132,37 @@ class TestIDSMiddleware:
 
     @pytest.mark.asyncio
     async def test_dispatch_blocked_ip(self, app):
-        """Lines 76-82: when Redis says IP is blocked → 403."""
-        from services.api.services.api.middleware.ids import IDSMiddleware
+        """Lines 76-82: when Redis says IP is blocked → 403.
+        Note: Starlette BaseHTTPMiddleware wraps IDSMiddleware in a way that
+        class-level patching of _get_r doesn't reach the running instance during
+        ASGITransport-based tests. We test the logic directly instead.
+        """
+        from services.api.services.api.middleware import ids as _ids_mod
+        from starlette.requests import Request as _Req
+        from starlette.responses import JSONResponse
 
         fake_redis = MagicMock()
         fake_redis.exists.return_value = True  # IP is blocked
 
-        # Patch _get_r at class level so any IDSMiddleware instance uses it
-        with patch.object(IDSMiddleware, "_get_r", return_value=fake_redis):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.get("/api/v1/tenders")
-        # IDS blocks with 403 — but auth middleware may intercept first (401) depending on order
-        assert r.status_code in (403, 401)
+        _ids_mod.IDS_ENABLED = True
+        try:
+            middleware = _ids_mod.IDSMiddleware(app=MagicMock())
+            middleware._redis = fake_redis
+
+            # Build a minimal ASGI scope
+            scope = {"type": "http", "method": "GET", "path": "/api/v2/tenders",
+                     "headers": [], "query_string": b"", "root_path": "",
+                     "server": ("test", 80), "client": ("1.2.3.4", 12345)}
+            request = _Req(scope)
+
+            # call_next should not be called
+            async def call_next(req):
+                return JSONResponse({"ok": True}, status_code=200)
+
+            response = await middleware.dispatch(request, call_next)
+            assert response.status_code == 403
+        finally:
+            _ids_mod.IDS_ENABLED = False
 
     @pytest.mark.asyncio
     async def test_dispatch_ids_redis_check_exception(self, app):

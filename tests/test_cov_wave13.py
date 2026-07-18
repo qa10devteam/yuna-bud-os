@@ -543,21 +543,27 @@ class TestMainW13:
         assert hasattr(mod, "app")
 
     def test_main_lifespan_context(self):
-        """Lines 315-321: lifespan startup with DB error."""
+        """Lines 315-321: lifespan startup with DB error — via direct mock."""
         import services.api.services.api.main as mod
 
         if not hasattr(mod, "lifespan"):
             pytest.skip("No lifespan function")
 
-        async def _run():
-            with patch("terra_db.session.get_engine", side_effect=Exception("DB unreachable")):
+        # Patch all DB/scheduler calls inside lifespan to avoid cross-test pollution
+        with patch("terra_db.session.get_engine") as mock_eng, \
+             patch("services.api.services.api.main.install_rls_on_engine"), \
+             patch("apscheduler.schedulers.asyncio.AsyncIOScheduler.start"), \
+             patch("apscheduler.schedulers.asyncio.AsyncIOScheduler.shutdown"):
+            mock_eng.return_value = MagicMock()
+
+            async def _run():
                 try:
                     async with mod.lifespan(mod.app):
                         pass
                 except Exception:
                     pass
 
-        asyncio.run(_run())
+            asyncio.run(_run())
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

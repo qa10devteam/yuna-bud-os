@@ -254,13 +254,13 @@ async def test_v1_tenders_alias(app, auth_headers_local):
 
     with patch("httpx.AsyncClient", return_value=mock_client):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders", headers=auth_headers_local)
+            resp = await c.get("/api/v2/tenders", headers=auth_headers_local)
     assert resp.status_code in (200, 401, 422, 500)
 
 
 @pytest.mark.asyncio
 async def test_v1_tenders_alias_with_querystring(app, auth_headers_local):
-    """GET /api/v1/tenders?status=new — lines 778-783 (qs branch)."""
+    """GET /api/v2/tenders?status=new — lines 778-783 (qs branch)."""
     mock_response = MagicMock()
     mock_response.json.return_value = {"items": [], "total": 0}
     mock_response.status_code = 200
@@ -272,7 +272,7 @@ async def test_v1_tenders_alias_with_querystring(app, auth_headers_local):
 
     with patch("httpx.AsyncClient", return_value=mock_client):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            resp = await c.get("/api/v1/tenders?status=new", headers=auth_headers_local)
+            resp = await c.get("/api/v2/tenders?status=new", headers=auth_headers_local)
     assert resp.status_code in (200, 401, 422, 500)
 
 

@@ -293,17 +293,17 @@ async def test_tender_alert_matches(client):
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_list(client):
-    r = await client.get("/api/v1/tenders")
+    r = await client.get("/api/v2/tenders")
     assert r.status_code in (200, 401, 403, 500)
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_with_filters(client):
-    r = await client.get("/api/v1/tenders?limit=5&status=new")
+    r = await client.get("/api/v2/tenders?limit=5&status=new")
     assert r.status_code in (200, 401, 403, 422, 500)
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_with_voivodeship(client):
-    r = await client.get("/api/v1/tenders?voivodeship=mazowieckie&limit=3")
+    r = await client.get("/api/v2/tenders?voivodeship=mazowieckie&limit=3")
     assert r.status_code in (200, 401, 403, 500)
 
 @pytest.mark.asyncio
@@ -318,12 +318,12 @@ async def test_zwiad_ingest_status(client):
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_search(client):
-    r = await client.get("/api/v1/tenders?q=budowa&limit=5")
+    r = await client.get("/api/v2/tenders?q=budowa&limit=5")
     assert r.status_code in (200, 401, 403, 422, 500)
 
 @pytest.mark.asyncio
 async def test_zwiad_tenders_pagination_cursor(client):
-    r = await client.get("/api/v1/tenders?cursor=invalid_cursor&limit=5")
+    r = await client.get("/api/v2/tenders?cursor=invalid_cursor&limit=5")
     assert r.status_code in (200, 400, 401, 403, 422, 500)
 
 

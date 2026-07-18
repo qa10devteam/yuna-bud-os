@@ -28,9 +28,9 @@ def auth_headers():
 
 @pytest.mark.asyncio
 async def test_tenders_list_200(app, auth_headers):
-    """GET /api/v1/tenders → 200 with items and total."""
+    """GET /api/v2/tenders → 200 with items and total."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.get("/api/v1/tenders", headers=auth_headers)
+        resp = await c.get("/api/v2/tenders", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data or "total" in data
@@ -38,25 +38,25 @@ async def test_tenders_list_200(app, auth_headers):
 
 @pytest.mark.asyncio
 async def test_tenders_list_with_limit(app, auth_headers):
-    """GET /api/v1/tenders?limit=5 → 200."""
+    """GET /api/v2/tenders?limit=5 → 200."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.get("/api/v1/tenders?limit=5", headers=auth_headers)
+        resp = await c.get("/api/v2/tenders?limit=5", headers=auth_headers)
     assert resp.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_tenders_list_filter_status(app, auth_headers):
-    """GET /api/v1/tenders?status=new → 200."""
+    """GET /api/v2/tenders?status=new → 200."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.get("/api/v1/tenders?status=new", headers=auth_headers)
+        resp = await c.get("/api/v2/tenders?status=new", headers=auth_headers)
     assert resp.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_tenders_list_filter_voivodeship(app, auth_headers):
-    """GET /api/v1/tenders?voivodeship=mazowieckie → 200."""
+    """GET /api/v2/tenders?voivodeship=mazowieckie → 200."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.get("/api/v1/tenders?voivodeship=mazowieckie", headers=auth_headers)
+        resp = await c.get("/api/v2/tenders?voivodeship=mazowieckie", headers=auth_headers)
     assert resp.status_code == 200
 
 

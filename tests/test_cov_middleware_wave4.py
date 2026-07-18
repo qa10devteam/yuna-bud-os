@@ -71,6 +71,16 @@ def _body(response) -> dict:
 class TestIDSMiddlewareThreshold:
     """Cover lines 99-106: IP block on threshold breach + Redis write failure."""
 
+    def setup_method(self, method):
+        """Enable IDS for threshold tests."""
+        from services.api.services.api.middleware import ids as ids_mod
+        ids_mod.IDS_ENABLED = True
+
+    def teardown_method(self, method):
+        """Restore IDS to disabled after threshold tests (avoid polluting other tests)."""
+        from services.api.services.api.middleware import ids as ids_mod
+        ids_mod.IDS_ENABLED = False
+
     def _get_middleware(self):
         from services.api.services.api.middleware.ids import IDSMiddleware
         mw = IDSMiddleware(app=MagicMock())

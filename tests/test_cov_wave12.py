@@ -593,7 +593,10 @@ class TestTasksW12:
         import sys
         from unittest.mock import MagicMock
 
-        # Mock the ingestion pipeline
+        # Mock the ingestion pipeline — save originals for cleanup
+        _orig_pipeline = sys.modules.get("services.ingestion.pipeline")
+        _orig_ingestion = sys.modules.get("services.ingestion")
+
         mock_pipeline = MagicMock()
         mock_result = MagicMock()
         mock_result.raw_fetched = 5
@@ -601,7 +604,8 @@ class TestTasksW12:
         mock_result.updated = 2
         mock_result.duplicates = 0
         mock_pipeline.run_ingest.return_value = mock_result
-        sys.modules.setdefault("services.ingestion", MagicMock())
+        if _orig_ingestion is None:
+            sys.modules["services.ingestion"] = MagicMock()
         sys.modules["services.ingestion.pipeline"] = mock_pipeline
 
         with _mock_engine() as (eng, conn):
@@ -614,7 +618,15 @@ class TestTasksW12:
                 except Exception:
                     pass  # Just import + attempt exercises the code path
 
-        sys.modules.pop("services.ingestion.pipeline", None)
+        # Cleanup — restore originals
+        if _orig_pipeline is not None:
+            sys.modules["services.ingestion.pipeline"] = _orig_pipeline
+        else:
+            sys.modules.pop("services.ingestion.pipeline", None)
+        if _orig_ingestion is not None:
+            sys.modules["services.ingestion"] = _orig_ingestion
+        else:
+            sys.modules.pop("services.ingestion", None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

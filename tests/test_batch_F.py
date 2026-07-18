@@ -55,8 +55,14 @@ def _row(**kwargs):
 def app():
     from starlette.testclient import TestClient
     from services.api.services.api.main import app as _app
+    from services.api.services.api.auth.deps import get_current_user, CurrentUser as _CU
+    _demo = _CU(user_id="40a71ef6-d6eb-48a3-b62e-7da3df5f0a17", email="demo@terra-os.pl",
+                org_id="ec3d1e16-2139-48c2-93b5-ffe0defd606d", role="owner")
+    _app.dependency_overrides[get_current_user] = lambda: _demo
     with TestClient(_app) as client:
         yield client
+    # Restore conftest demo user (don't clear — kills session-wide fixture)
+    _app.dependency_overrides[get_current_user] = lambda: _demo
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
