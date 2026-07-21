@@ -1,179 +1,324 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { motion, useReducedMotion } from 'motion/react';
 import Image from 'next/image';
-import { motion, useScroll, useTransform } from 'motion/react';
-import {
-  ArrowRight, ChevronRight, CheckCircle2,
-  Hexagon, Star, Quote, Zap, Play,
-} from 'lucide-react';
+import Link from 'next/link';
 
-// ─── Particle canvas ──────────────────────────────────────────────────────────
-function ParticleField() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const c = ref.current; if (!c) return;
-    const ctx = c.getContext('2d'); if (!ctx) return;
-    let raf: number;
-    const pts: { x: number; y: number; vx: number; vy: number; a: number }[] = [];
-    const resize = () => { c.width = c.offsetWidth; c.height = c.offsetHeight; };
-    resize(); window.addEventListener('resize', resize);
-    for (let i = 0; i < 55; i++) pts.push({ x: Math.random() * c.width, y: Math.random() * c.height, vx: (Math.random() - .5) * .25, vy: (Math.random() - .5) * .25, a: Math.random() * .4 + .05 });
-    const draw = () => {
-      ctx.clearRect(0, 0, c.width, c.height);
-      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
-        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
-        if (d < 130) { ctx.beginPath(); ctx.strokeStyle = `rgba(16,185,129,${.07 * (1 - d / 130)})`; ctx.lineWidth = .5; ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke(); }
-      }
-      pts.forEach(p => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = c.width; if (p.x > c.width) p.x = 0;
-        if (p.y < 0) p.y = c.height; if (p.y > c.height) p.y = 0;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(16,185,129,${p.a})`; ctx.fill();
-      });
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-  }, []);
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: .55 }} />;
+// ── Animation helpers ─────────────────────────────────────────────────────────
+
+function useFade(delay = 0) {
+  const reduce = useReducedMotion();
+  return {
+    initial:   { opacity: 0, y: reduce ? 0 : 18 },
+    animate:   { opacity: 1, y: 0 },
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as [number,number,number,number], delay },
+  };
 }
 
-// ─── Navbar ───────────────────────────────────────────────────────────────────
-function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => { const fn = () => setScrolled(window.scrollY > 48); window.addEventListener('scroll', fn, { passive: true }); return () => window.removeEventListener('scroll', fn); }, []);
+// ── Brand logo (inline SVG — exact brand bible spec) ──────────────────────────
+
+function LogoMark({ size = 28 }: { size?: number }) {
   return (
-    <motion.nav initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .4 }}
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'glass-2 border-b border-ink-800/60 py-3' : 'py-5'}`}>
-      <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="relative w-7 h-7">
-            <Hexagon className="w-7 h-7 text-em" strokeWidth={1.5} />
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-em">YN</span>
-          </div>
-          <span className="text-sm font-bold tracking-wide text-slate-200" style={{ fontFamily: 'var(--font-space)' }}>YU-NA</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/login" className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors">Logowanie</Link>
-          <Link href="/signup" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-em text-ink-950 text-xs font-bold hover:bg-em/90 transition-all glow-em-xs">
-            Zacznij za darmo <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-      </div>
-    </motion.nav>
+    <div
+      style={{
+        width: size, height: size,
+        background: '#07070d',
+        border: '1px solid rgba(16,185,129,0.3)',
+        borderRadius: 7,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 16 16" fill="none">
+        <path d="M4 3h5.5a2.5 2.5 0 010 5H4V3z" stroke="#f1f5f9" strokeWidth="1.5" strokeLinejoin="round"/>
+        <path d="M4 8h6a2.5 2.5 0 010 5H4V8z" stroke="#10b981" strokeWidth="1.5" strokeLinejoin="round"/>
+      </svg>
+    </div>
   );
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
+function BrandName() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, userSelect: 'none' }}>
+      <LogoMark size={28} />
+      <span style={{ fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 15, color: '#f1f5f9', letterSpacing: '-0.01em' }}>
+        YU-NA
+      </span>
+      <span style={{ color: '#10b981', fontWeight: 300, fontSize: 15, margin: '0 1px' }}>|</span>
+      <span style={{ fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 15, color: '#f1f5f9', letterSpacing: '-0.01em' }}>
+        BudOS
+      </span>
+    </div>
+  );
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+
+function Nav() {
+  return (
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(16px) saturate(180%)',
+      background: 'rgba(7,7,13,0.72)',
+    }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <BrandName />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          {['Funkcje', 'Jak to działa', 'Cennik'].map(l => (
+            <a key={l} href={`#${l.toLowerCase().replace(' ', '-')}`}
+              style={{ fontFamily: 'var(--font-space)', fontSize: 13, color: '#94a3b8', textDecoration: 'none', transition: 'color .2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#f1f5f9')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
+            >{l}</a>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link href="/auth/login" style={{
+            fontFamily: 'var(--font-space)', fontSize: 13, color: '#94a3b8',
+            textDecoration: 'none', padding: '6px 14px',
+          }}>Zaloguj się</Link>
+          <Link href="/auth/register" style={{
+            fontFamily: 'var(--font-space)', fontSize: 13, fontWeight: 600,
+            color: '#07070d', background: '#10b981',
+            padding: '7px 16px', borderRadius: 8,
+            textDecoration: 'none', letterSpacing: '-0.01em',
+          }}>Rozpocznij za darmo</Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// ── Hero ──────────────────────────────────────────────────────────────────────
+
 function Hero() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const imgY = useTransform(scrollYProgress, [0, 1], [0, 60]);
-  const textY = useTransform(scrollYProgress, [0, 1], [0, 40]);
-  const opacity = useTransform(scrollYProgress, [0, .65], [1, 0]);
+  const f0 = useFade(0);
+  const f1 = useFade(0.1);
+  const f2 = useFade(0.2);
+  const f3 = useFade(0.3);
+  const f4 = useFade(0.16);
 
   return (
-    <section ref={ref} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
-      <ParticleField />
-      {/* radial glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] rounded-full"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.07) 0%, transparent 60%)' }} />
-      </div>
+    <section style={{ paddingTop: 120, paddingBottom: 80, maxWidth: 1120, margin: '0 auto', padding: '120px 24px 80px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
 
-      <motion.div style={{ y: textY, opacity }} className="relative z-10 text-center max-w-4xl px-6 pt-24 pb-8">
-        {/* pill badge */}
-        <motion.div initial={{ opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .45 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-em/20 bg-em/5 text-em text-[11px] font-semibold mb-8 tracking-wide">
-          <span className="w-1.5 h-1.5 rounded-full bg-em animate-pulse" />
-          Platforma AI dla firm budowlanych — Premiera 2026
-        </motion.div>
+        {/* Left: copy */}
+        <div>
+          <motion.div {...f0} style={{ marginBottom: 20 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '5px 12px', borderRadius: 20,
+              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)',
+              fontFamily: 'var(--font-space)', fontSize: 12, fontWeight: 600,
+              color: '#10b981', letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              1 607 przetargów pod nadzorem AI
+            </span>
+          </motion.div>
 
-        {/* headline */}
-        <motion.h1 initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, delay: .08 }}
-          className="text-[clamp(2.6rem,8vw,5rem)] font-bold tracking-[-0.03em] leading-[1.06]" style={{ fontFamily: 'var(--font-space)' }}>
-          <span className="text-gradient-white">Przyszłość biznesu</span><br />
-          <span className="text-gradient-em">budowlanego</span>
-          <span className="text-gradient-white"> jest tutaj.</span>
-        </motion.h1>
+          <motion.h1 {...f1} style={{
+            fontFamily: 'var(--font-space)', fontWeight: 800,
+            fontSize: 'clamp(36px, 4vw, 52px)', lineHeight: 1.1,
+            color: '#f1f5f9', letterSpacing: '-0.03em', margin: '0 0 20px',
+          }}>
+            Wygraj przetarg<br />
+            <span style={{ color: '#10b981' }}>zanim inni</span><br />
+            złożą ofertę.
+          </motion.h1>
 
-        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .55, delay: .2 }}
-          className="text-[1.05rem] text-slate-500 max-w-lg mx-auto mt-6 leading-relaxed">
-          YU-NA to ekosystem narzędzi AI które zmieniają sposób w jaki firmy budowlane
-          wygrywają przetargi, liczą koszty i zarządzają ofertami.
-        </motion.p>
+          <motion.p {...f2} style={{
+            fontFamily: 'var(--font-space)', fontSize: 17, lineHeight: 1.65,
+            color: '#64748b', margin: '0 0 36px', maxWidth: 440,
+          }}>
+            YU-NA skanuje BZP i TED co 15 minut, ocenia przetargi przez AI,
+            wycenia przez ICB/Sekocenbud i generuje ofertę — wszystko w jednym systemie.
+          </motion.p>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5, delay: .32 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
-          <Link href="/signup" className="group flex items-center gap-2 px-7 py-3.5 rounded-xl bg-em text-ink-950 font-bold text-sm hover:bg-em/90 transition-all glow-em shadow-lg shadow-em/20">
-            Zacznij za darmo <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link href="/budos" className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-ink-700 text-slate-300 font-medium text-sm hover:border-em/30 hover:bg-ink-900/50 transition-all">
-            Poznaj BudOS <ChevronRight className="w-4 h-4 text-slate-500" />
-          </Link>
-        </motion.div>
+          <motion.div {...f3} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link href="/auth/register" style={{
+              fontFamily: 'var(--font-space)', fontSize: 15, fontWeight: 700,
+              color: '#07070d', background: '#10b981',
+              padding: '12px 24px', borderRadius: 10,
+              textDecoration: 'none', letterSpacing: '-0.01em',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}>
+              Zacznij teraz — bezpłatnie
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
+            <Link href="/demo" style={{
+              fontFamily: 'var(--font-space)', fontSize: 14,
+              color: '#94a3b8', textDecoration: 'none',
+              padding: '12px 20px',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 10,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M6 3.5L12 8l-6 4.5V3.5z" fill="currentColor"/>
+              </svg>
+              Zobacz demo
+            </Link>
+          </motion.div>
 
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .55 }}
-          className="text-[11px] text-slate-700 mt-5">
-          14 dni za darmo · Bez karty kredytowej · Anuluj kiedy chcesz
-        </motion.p>
-      </motion.div>
+          <motion.div {...useFade(0.38)} style={{ display: 'flex', gap: 24, marginTop: 40 }}>
+            {[
+              { val: '94%',     label: 'trafność GO/NO-GO' },
+              { val: '<3 min',  label: 'wycena ICB' },
+              { val: '1 607',   label: 'przetargów live' },
+            ].map(({ val, label }) => (
+              <div key={label}>
+                <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 600, fontSize: 20, color: '#f1f5f9' }}>{val}</div>
+                <div style={{ fontFamily: 'var(--font-space)', fontSize: 11, color: '#475569', marginTop: 2 }}>{label}</div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
 
-      {/* ── HERO PRODUCT IMAGE ── */}
-      <motion.div
-        style={{ y: imgY }}
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: .8, delay: .5, ease: [.16, 1, .3, 1] }}
-        className="relative z-10 w-full max-w-5xl px-6 pb-0"
-      >
-        {/* glow under image */}
-        <div className="absolute inset-x-16 bottom-0 h-24 rounded-full blur-3xl bg-em/10 pointer-events-none" />
-        <div className="relative rounded-2xl overflow-hidden border border-ink-700/60 shadow-2xl shadow-black/60"
-          style={{ boxShadow: '0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(16,185,129,.08), inset 0 1px 0 rgba(255,255,255,.03)' }}>
-          {/* browser chrome bar */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-ink-900 border-b border-ink-800/80">
-            <span className="w-2.5 h-2.5 rounded-full bg-ink-700" />
-            <span className="w-2.5 h-2.5 rounded-full bg-ink-700" />
-            <span className="w-2.5 h-2.5 rounded-full bg-ink-700" />
-            <div className="flex-1 mx-3 bg-ink-800 rounded-md h-5 flex items-center px-2.5">
-              <span className="text-[10px] text-slate-600 font-mono">app.yu-na.io/budos</span>
+        {/* Right: screenshot */}
+        <motion.div {...f4} style={{ position: 'relative' }}>
+          <div style={{
+            borderRadius: 16, overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.1)',
+          }}>
+            <Image
+              src="/brand/live-zwiad.png"
+              alt="Zwiad — monitoring przetargów BZP"
+              width={640} height={400}
+              style={{ display: 'block', width: '100%', height: 'auto' }}
+              priority
+            />
+          </div>
+          {/* floating badge */}
+          <div style={{
+            position: 'absolute', bottom: -16, left: -16,
+            background: 'rgba(13,13,22,0.92)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(16,185,129,0.25)',
+            borderRadius: 12, padding: '10px 16px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+            <div>
+              <div style={{ fontFamily: 'var(--font-space)', fontWeight: 600, fontSize: 13, color: '#f1f5f9' }}>Budowa obwodnicy S7</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#10b981' }}>AI Score 87 · GO</div>
             </div>
           </div>
-          <Image
-            src="/brand/B09-dashboard-preview.png"
-            alt="BudOS — panel przetargowy"
-            width={1200}
-            height={750}
-            className="w-full h-auto block"
-            priority
-          />
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </section>
   );
 }
 
-// ─── Stats bar ────────────────────────────────────────────────────────────────
-const STATS = [
-  { value: '2 137', label: 'przetargów monitorowanych' },
-  { value: '< 3 min', label: 'analiza SWZ' },
-  { value: '94%', label: 'trafność GO/NO-GO' },
-  { value: '+23%', label: 'skuteczność ofert' },
+// ── Trust logos ───────────────────────────────────────────────────────────────
+
+function TrustLogos() {
+  const firms = ['BUDIMEX', 'PORR', 'STRABAG', 'SKANSKA', 'WARBUD', 'UNIBEP'];
+  return (
+    <section style={{ borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '22px 24px' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'var(--font-space)', fontSize: 11, color: '#334155', letterSpacing: '0.1em', textTransform: 'uppercase', flexShrink: 0 }}>
+          Zaufali nam
+        </span>
+        {firms.map(f => (
+          <span key={f} style={{ fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 13, color: '#334155', letterSpacing: '0.06em' }}>{f}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Workflow section ──────────────────────────────────────────────────────────
+
+const STEPS = [
+  {
+    n: '01', color: '#10b981',
+    title: 'Zwiad — znajdź zanim inni',
+    body: 'AI skanuje BZP i TED co 15 minut. 1 607 przetargów. Filtry CPV, województwo, wartość. Każdy przetarg dostaje ocenę GO / UWAGA / NO-GO zanim zdążysz otworzyć maila.',
+    img: '/brand/live-zwiad.png',
+    imgAlt: 'Moduł Zwiad — monitoring przetargów',
+  },
+  {
+    n: '02', color: '#818cf8',
+    title: 'Silnik AI — wiedz czy warto',
+    body: 'Scoring wielokryterialny: dopasowanie CPV, zakres wartości, presja terminowa, historia zamawiającego, jakość SWZ. Heatmapa win rates per CPV i kwartał. Konfiguruj wagi pod swój profil.',
+    img: '/brand/live-silnik.png',
+    imgAlt: 'Silnik AI — analiza AHP',
+  },
+  {
+    n: '03', color: '#f59e0b',
+    title: 'Kosztorys — wycena w 3 minuty',
+    body: 'Kosztorys R/M/S z katalogu KNR. Auto-fill z bazy ICB/Sekocenbud. Import ATH, eksport PDF. Win probability i anomaly detection. Jeden klik — wiesz czy marża jest bezpieczna.',
+    img: '/brand/live-kosztorys.png',
+    imgAlt: 'Kosztorys — wycena KNR',
+  },
+  {
+    n: '04', color: '#10b981',
+    title: 'Decyzja — agent AI daje brief',
+    body: 'Agent analizuje SWZ, robi AHP eval, szacuje przez ICB i generuje brief z ryzykiem p10/p50/p90. Na końcu: GO albo NO-GO z trzema konkretnymi powodami.',
+    img: '/brand/live-dashboard.png',
+    imgAlt: 'Decyzja — brief AI',
+  },
 ];
 
-function StatsBar() {
+function WorkflowSection() {
   return (
-    <section className="border-y border-ink-800/50 bg-ink-900/25">
-      <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4">
-        {STATS.map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * .07 }}
-            className={`flex flex-col items-center py-8 px-4 ${i < 3 ? 'border-r border-ink-800/50' : ''}`}>
-            <span className="text-2xl md:text-3xl font-bold text-slate-100 font-mono tabular-nums">{s.value}</span>
-            <span className="text-[11px] text-slate-600 mt-1 text-center">{s.label}</span>
+    <section id="jak-to-działa" style={{ padding: '100px 24px', maxWidth: 1120, margin: '0 auto' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }} transition={{ duration: 0.5 }}
+        style={{ marginBottom: 64 }}
+      >
+        <div style={{ fontFamily: 'var(--font-space)', fontSize: 11, color: '#10b981', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Jak to działa
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-space)', fontWeight: 800, fontSize: 40, color: '#f1f5f9', letterSpacing: '-0.03em', margin: 0 }}>
+          Od przetargu do oferty.<br />
+          <span style={{ color: '#475569' }}>Jeden system, zero Excela.</span>
+        </h2>
+      </motion.div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 80 }}>
+        {STEPS.map((step, i) => (
+          <motion.div
+            key={step.n}
+            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }} transition={{ duration: 0.55, ease: [0.22,1,0.36,1] as [number,number,number,number] }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: i % 2 === 0 ? '1fr 1fr' : '1fr 1fr',
+              gap: 56, alignItems: 'center',
+              direction: i % 2 === 1 ? 'rtl' : 'ltr',
+            }}
+          >
+            <div style={{ direction: 'ltr' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: `${step.color}15`, border: `1px solid ${step.color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 13, color: step.color,
+                }}>{step.n}</div>
+              </div>
+              <h3 style={{ fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 26, color: '#f1f5f9', letterSpacing: '-0.02em', margin: '0 0 14px' }}>
+                {step.title}
+              </h3>
+              <p style={{ fontFamily: 'var(--font-space)', fontSize: 15, lineHeight: 1.7, color: '#64748b', margin: 0 }}>
+                {step.body}
+              </p>
+            </div>
+            <div style={{ direction: 'ltr' }}>
+              <div style={{
+                borderRadius: 14, overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.07)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+              }}>
+                <Image src={step.img} alt={step.imgAlt} width={560} height={350} style={{ display: 'block', width: '100%', height: 'auto' }} />
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>
@@ -181,260 +326,334 @@ function StatsBar() {
   );
 }
 
-// ─── Product section ──────────────────────────────────────────────────────────
-function ProductSection() {
-  return (
-    <section className="px-6 py-28 overflow-hidden">
-      <div className="max-w-6xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-20">
-          <span className="text-[11px] text-em font-semibold uppercase tracking-[.16em]">Flagship — BudOS</span>
-          <h2 className="text-[clamp(1.9rem,4vw,3rem)] font-bold text-slate-100 mt-3 tracking-tight" style={{ fontFamily: 'var(--font-space)' }}>
-            Jeden system. Całe postępowanie.
-          </h2>
-          <p className="text-sm text-slate-500 mt-3 max-w-xl mx-auto leading-relaxed">
-            Od znalezienia przetargu, przez analizę SWZ, wycenę KNR, aż po złożoną ofertę — BudOS prowadzi Cię przez każdy krok.
-          </p>
-        </motion.div>
+// ── Features bento ────────────────────────────────────────────────────────────
 
-        {/* Feature rows — alternating image + text */}
-
-        {/* Row 1: Scoring GO/NO-GO */}
-        <div className="flex flex-col lg:flex-row items-center gap-12 mb-24">
-          <motion.div initial={{ opacity: 0, x: -32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: .6 }}
-            className="flex-1 min-w-0">
-            <span className="text-[10px] font-bold text-em/70 uppercase tracking-[.16em] mb-3 block">Silnik decyzyjny</span>
-            <h3 className="text-2xl md:text-3xl font-bold text-slate-100 mb-4 leading-snug" style={{ fontFamily: 'var(--font-space)' }}>
-              GO lub NO-GO<br />w 3 minuty.
-            </h3>
-            <p className="text-sm text-slate-500 leading-relaxed mb-6">
-              Algorytm AHP analizuje SWZ, warunki udziału, wymagania finansowe i technikę. Dostaje scoring 0–100 z rekomendacją. Koniec z traceniem tygodnia na przetarg, którego nie wygrasz.
-            </p>
-            <ul className="space-y-2.5">
-              {['Pełna analiza dokumentów SWZ', 'Scoring AHP z wagami branżowymi', 'Analiza ryzyka kontraktowego', 'Rekomendacja z uzasadnieniem'].map((item, i) => (
-                <li key={i} className="flex items-center gap-2.5 text-xs text-slate-400">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-em shrink-0" /> {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, x: 32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: .6, delay: .1 }}
-            className="flex-1 min-w-0 max-w-lg">
-            <div className="relative rounded-2xl overflow-hidden border border-ink-700/50 shadow-xl shadow-black/40"
-              style={{ boxShadow: '0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(16,185,129,.06)' }}>
-              <Image src="/brand/B05-hero-score.png" alt="Scoring GO/NO-GO" width={800} height={500} className="w-full h-auto block" />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Row 2: Silnik AI dark */}
-        <div className="flex flex-col lg:flex-row-reverse items-center gap-12 mb-24">
-          <motion.div initial={{ opacity: 0, x: 32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: .6 }}
-            className="flex-1 min-w-0">
-            <span className="text-[10px] font-bold text-em/70 uppercase tracking-[.16em] mb-3 block">Analiza AI</span>
-            <h3 className="text-2xl md:text-3xl font-bold text-slate-100 mb-4 leading-snug" style={{ fontFamily: 'var(--font-space)' }}>
-              AI czyta SWZ.<br />Ty podejmujesz decyzję.
-            </h3>
-            <p className="text-sm text-slate-500 leading-relaxed mb-6">
-              Model wytrenowany na tysiącach polskich i europejskich postępowań. Rozumie kody CPV, warunki podmiotowe i kryteria oceny. Nie musisz czytać 200 stron — dostajesz esencję.
-            </p>
-            <ul className="space-y-2.5">
-              {['Ekstrakcja kryteriów oceny ofert', 'Mapowanie kodów CPV', 'Wykrywanie klauzul ryzyka', 'Porównanie z profilem firmy'].map((item, i) => (
-                <li key={i} className="flex items-center gap-2.5 text-xs text-slate-400">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-em shrink-0" /> {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, x: -32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: .6, delay: .1 }}
-            className="flex-1 min-w-0 max-w-lg">
-            <div className="relative rounded-2xl overflow-hidden border border-ink-700/50 shadow-xl shadow-black/40"
-              style={{ boxShadow: '0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(16,185,129,.06)' }}>
-              <Image src="/brand/B03-feature-silnik-dark.png" alt="Silnik AI" width={800} height={500} className="w-full h-auto block" />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Row 3: Kosztorysy */}
-        <div className="flex flex-col lg:flex-row items-center gap-12">
-          <motion.div initial={{ opacity: 0, x: -32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: .6 }}
-            className="flex-1 min-w-0">
-            <span className="text-[10px] font-bold text-em/70 uppercase tracking-[.16em] mb-3 block">Kosztorysy KNR/ICB</span>
-            <h3 className="text-2xl md:text-3xl font-bold text-slate-100 mb-4 leading-snug" style={{ fontFamily: 'var(--font-space)' }}>
-              Wycena w 10 minut,<br />nie w 3 dni.
-            </h3>
-            <p className="text-sm text-slate-500 leading-relaxed mb-6">
-              Baza InterCenBud z aktualnymi stawkami. Automatyczne pozycje KNR. Symulacja Monte Carlo dla marży. Eksport do Excel lub PDF gotowego do złożenia.
-            </p>
-            <ul className="space-y-2.5">
-              {['Baza KNR + ICB na bieżąco', 'Automatyczne pozycje kosztorysowe', 'Symulacja Monte Carlo marży', 'Eksport Excel / PDF / DOCX'].map((item, i) => (
-                <li key={i} className="flex items-center gap-2.5 text-xs text-slate-400">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-em shrink-0" /> {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, x: 32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: .6, delay: .1 }}
-            className="flex-1 min-w-0 max-w-lg">
-            <div className="relative rounded-2xl overflow-hidden border border-ink-700/50 shadow-xl shadow-black/40"
-              style={{ boxShadow: '0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(16,185,129,.06)' }}>
-              <Image src="/brand/B07-feature-kosztorys.png" alt="Kosztorysy KNR/ICB" width={800} height={500} className="w-full h-auto block" />
-            </div>
-          </motion.div>
-        </div>
-
-      </div>
-    </section>
-  );
-}
-
-// ─── "Produkt w akcji" full-width ─────────────────────────────────────────────
-function ProductInAction() {
-  return (
-    <section className="px-6 py-20 bg-ink-900/15 border-y border-ink-800/40">
-      <div className="max-w-6xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-          <span className="text-[11px] text-em font-semibold uppercase tracking-[.16em]">Produkt w akcji</span>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-100 mt-3" style={{ fontFamily: 'var(--font-space)' }}>
-            Tak wygląda BudOS w pracy
-          </h2>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7 }}
-          className="relative rounded-2xl overflow-hidden border border-ink-700/50"
-          style={{ boxShadow: '0 40px 100px rgba(0,0,0,.65), 0 0 0 1px rgba(16,185,129,.07)' }}>
-          <div className="flex items-center gap-2 px-4 py-3 bg-ink-900 border-b border-ink-800/80">
-            <span className="w-2.5 h-2.5 rounded-full bg-nogo/60" />
-            <span className="w-2.5 h-2.5 rounded-full bg-warn/60" />
-            <span className="w-2.5 h-2.5 rounded-full bg-go/60" />
-            <div className="flex-1 mx-3 bg-ink-800 rounded h-5 flex items-center px-2.5">
-              <span className="text-[10px] text-slate-600 font-mono">app.yu-na.io/app/budos</span>
-            </div>
-          </div>
-          <Image src="/brand/B02-hero-dark.png" alt="BudOS — pełny widok" width={1400} height={900} className="w-full h-auto block" />
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Marketplace preview ──────────────────────────────────────────────────────
-function MarketplaceSection() {
-  return (
-    <section className="px-6 py-28">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col lg:flex-row items-center gap-16">
-          {/* Text */}
-          <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="flex-1">
-            <span className="text-[10px] font-bold text-em/70 uppercase tracking-[.16em] mb-3 block">Ekosystem YU-NA</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-100 mb-5 leading-snug" style={{ fontFamily: 'var(--font-space)' }}>
-              BudOS to pierwszy produkt.<br />Będzie ich więcej.
-            </h2>
-            <p className="text-sm text-slate-500 leading-relaxed mb-8">
-              YU-NA to platforma produktów AI dla budownictwa. Kupujesz dostęp do narzędzi których potrzebujesz. Każde działa samodzielnie — razem tworzą pełne zaplecze operacyjne firmy.
-            </p>
-            <div className="space-y-3">
-              {[
-                { name: 'BudOS', desc: 'Przetargi i oferty', status: 'Dostępny', color: 'text-go' },
-                { name: 'Produkt #2', desc: 'Nowe narzędzie AI', status: 'Q3 2026', color: 'text-slate-600' },
-                { name: 'Produkt #3', desc: 'Nowe narzędzie AI', status: 'Q4 2026', color: 'text-slate-600' },
-              ].map((p, i) => (
-                <div key={i} className={`flex items-center gap-4 p-3.5 rounded-xl border ${i === 0 ? 'border-em/20 bg-em/5' : 'border-ink-800/50 bg-ink-900/20 opacity-50'}`}>
-                  <div className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-em/10 border-em/20 text-em' : 'bg-ink-800 border-ink-700 text-slate-600'}`} style={{ fontFamily: 'var(--font-space)' }}>
-                    {i === 0 ? 'b' : '?'}
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-xs font-semibold ${i === 0 ? 'text-slate-200' : 'text-slate-600'}`}>{p.name}</p>
-                    <p className="text-[11px] text-slate-600">{p.desc}</p>
-                  </div>
-                  <span className={`text-[10px] font-bold ${p.color}`}>{p.status}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Image */}
-          <motion.div initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: .1 }}
-            className="flex-1 min-w-0 max-w-md">
-            <div className="relative rounded-2xl overflow-hidden border border-ink-700/50"
-              style={{ boxShadow: '0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(16,185,129,.06)' }}>
-              <Image src="/brand/B06-feature-zwiad.png" alt="Zwiad przetargów" width={700} height={500} className="w-full h-auto block" />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Social proof ─────────────────────────────────────────────────────────────
-const REVIEWS = [
-  { name: 'Marek W.', role: 'Dyrektor ds. Ofert', quote: 'BudOS skrócił czas analizy przetargu z 2 dni do 3 godzin. Wygrywamy więcej przetargów przy mniejszym nakładzie pracy.' },
-  { name: 'Anna K.', role: 'Estimator, generalny wykonawca', quote: 'Silnik GO/NO-GO jest precyzyjny. Przestałam tracić czas na przetargi, które i tak przegramy.' },
-  { name: 'Tomasz P.', role: 'Prezes, firma infrastrukturalna', quote: 'Kosztorysy KNR generowane automatycznie — to był game-changer. Zespół zaoszczędził 2 dni w tygodniu.' },
+const FEATURES = [
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="8" stroke="#10b981" strokeWidth="1.5"/>
+        <path d="M10 6v4l2.5 2.5" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    title: 'BZP + TED co 15 min',
+    body: 'APScheduler synchronizuje przetargi automatycznie. Nic nie umknie.',
+    wide: false,
+  },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 10l4 4 10-8" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    title: 'Pipeline Kanban',
+    body: 'Nowe → Obserwowane → Analiza → Wycenione → GO → Złożone. Pełny lejek w jednym widoku.',
+    wide: false,
+  },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="3" y="3" width="14" height="14" rx="3" stroke="#f59e0b" strokeWidth="1.5"/>
+        <path d="M7 10h6M7 7h3M7 13h4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    title: 'Kreator oferty PDF',
+    body: 'Z kosztorysu do gotowej oferty formalnej. Status: draft → ready → submitted → won.',
+    wide: false,
+  },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 2L13 8l6 .875-4.5 4.25L15.5 19 10 16l-5.5 3 1-5.875L1 8.875 7 8z" stroke="#10b981" strokeWidth="1.5" strokeLinejoin="round"/>
+      </svg>
+    ),
+    title: 'Proaktywne alerty',
+    body: 'Deadline zbliża się? Masz 5 aktywnych przetargów jednocześnie? System optymalizuje portfolio i mówi co warto ciągnąć — a co porzucić.',
+    wide: true,
+  },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M4 15V8l6-5 6 5v7H4z" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round"/>
+        <rect x="8" y="11" width="4" height="4" rx="1" stroke="#ef4444" strokeWidth="1.2"/>
+      </svg>
+    ),
+    title: 'Buyer CRM + Axiom Engine',
+    body: 'Historia zamawiającego — wyniki, preferencje, bias. Aksjomaty regulacyjne walidujące każdy krok.',
+    wide: false,
+  },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 17l4-8 4 4 3-5 3 9" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    title: 'ICB + Sekocenbud',
+    body: 'Baza cenowa z uwzględnieniem inflacji, współczynników regionalnych i stawek robocizny per województwo.',
+    wide: false,
+  },
 ];
 
-function SocialProof() {
+function FeaturesSection() {
   return (
-    <section className="px-6 py-24 bg-ink-900/10 border-y border-ink-800/40">
-      <div className="max-w-5xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="flex flex-col items-center mb-14">
-          <div className="flex gap-0.5 mb-4">{[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-warn fill-warn" />)}</div>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-100 text-center" style={{ fontFamily: 'var(--font-space)' }}>
-            200+ firm budowlanych już wybrało BudOS
+    <section id="funkcje" style={{ padding: '100px 24px', background: 'rgba(13,13,22,0.5)' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }} transition={{ duration: 0.5 }}
+          style={{ marginBottom: 56 }}
+        >
+          <div style={{ fontFamily: 'var(--font-space)', fontSize: 11, color: '#10b981', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+            Funkcje
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-space)', fontWeight: 800, fontSize: 38, color: '#f1f5f9', letterSpacing: '-0.03em', margin: 0 }}>
+            Wszystko czego potrzebuje<br />firma budowlana startująca w przetargach.
           </h2>
         </motion.div>
-        <div className="grid md:grid-cols-3 gap-4">
-          {REVIEWS.map((r, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * .1 }}
-              className="p-6 rounded-2xl bg-ink-900/40 border border-ink-800/50 hover:border-ink-700/70 transition-colors">
-              <Quote className="w-5 h-5 text-em/30 mb-4" />
-              <p className="text-sm text-slate-400 leading-relaxed mb-5 italic">&ldquo;{r.quote}&rdquo;</p>
-              <div>
-                <p className="text-xs font-semibold text-slate-200">{r.name}</p>
-                <p className="text-[11px] text-slate-600 mt-0.5">{r.role}</p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {FEATURES.map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.45, delay: (i % 3) * 0.07, ease: [0.22,1,0.36,1] as [number,number,number,number] }}
+              style={{
+                gridColumn: f.wide ? 'span 2' : 'span 1',
+                background: 'rgba(19,19,30,0.8)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 14, padding: 24,
+                transition: 'border-color .2s, transform .2s',
+                cursor: 'default',
+              }}
+              whileHover={{ y: -2 }}
+            >
+              <div style={{ marginBottom: 14 }}>{f.icon}</div>
+              <div style={{ fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 16, color: '#f1f5f9', marginBottom: 8, letterSpacing: '-0.01em' }}>
+                {f.title}
+              </div>
+              <div style={{ fontFamily: 'var(--font-space)', fontSize: 14, lineHeight: 1.65, color: '#475569' }}>
+                {f.body}
               </div>
             </motion.div>
           ))}
         </div>
-
-        {/* Testimonial image */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: .2 }}
-          className="mt-8 rounded-2xl overflow-hidden border border-ink-700/40"
-          style={{ boxShadow: '0 16px 48px rgba(0,0,0,.4)' }}>
-          <Image src="/brand/B14-testimonial.png" alt="Opinie klientów BudOS" width={1200} height={400} className="w-full h-auto block" />
-        </motion.div>
       </div>
     </section>
   );
 }
 
-// ─── CTA ──────────────────────────────────────────────────────────────────────
-function CTA() {
+// ── Metrics ───────────────────────────────────────────────────────────────────
+
+function MetricsSection() {
+  const metrics = [
+    { val: '1 607', label: 'przetargów monitorowanych live', sub: 'BZP + TED, sync co 15 min' },
+    { val: '94%',   label: 'trafność predykcji GO/NO-GO', sub: 'walidacja na 6 miesiącach danych' },
+    { val: '<3 min', label: 'czas wyceny ICB', sub: 'vs. 2–4 godz. ręcznie w Excelu' },
+    { val: '47',    label: 'punktów walidacji PZP', sub: 'Axiom Engine — auto-check każdego przetargu' },
+  ];
   return (
-    <section className="px-6 py-28">
-      <div className="max-w-2xl mx-auto text-center">
-        <motion.div initial={{ opacity: 0, scale: .97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: .5 }}
-          className="relative p-10 md:p-14 rounded-3xl border border-em/20 bg-ink-900/50 overflow-hidden animate-border-pulse">
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(16,185,129,.09) 0%, transparent 55%)' }} />
-          <span className="text-[10px] text-em font-semibold uppercase tracking-[.16em]">Zacznij dziś</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mt-4 mb-4 leading-tight" style={{ fontFamily: 'var(--font-space)' }}>
-            Gotowy na przewagę?
-          </h2>
-          <p className="text-sm text-slate-500 mb-8">14 dni za darmo. Bez karty kredytowej. Anuluj w dowolnej chwili.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/signup" className="group flex items-center gap-2 px-8 py-3.5 rounded-xl bg-em text-ink-950 font-bold text-sm hover:bg-em/90 transition-all glow-em shadow-xl shadow-em/25">
-              Zacznij za darmo <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link href="/budos" className="flex items-center gap-1.5 px-6 py-3.5 rounded-xl text-sm text-slate-400 hover:text-slate-200 transition-colors">
-              Poznaj BudOS <ChevronRight className="w-4 h-4" />
-            </Link>
+    <section style={{ padding: '80px 24px', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
+        {metrics.map((m, i) => (
+          <motion.div
+            key={m.val}
+            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.45, delay: i * 0.08 }}
+            style={{
+              padding: '28px 28px',
+              borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+            }}
+          >
+            <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 36, color: '#10b981', letterSpacing: '-0.02em', marginBottom: 8 }}>
+              {m.val}
+            </div>
+            <div style={{ fontFamily: 'var(--font-space)', fontWeight: 600, fontSize: 14, color: '#f1f5f9', marginBottom: 6 }}>
+              {m.label}
+            </div>
+            <div style={{ fontFamily: 'var(--font-space)', fontSize: 12, color: '#334155', lineHeight: 1.5 }}>
+              {m.sub}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Pricing ───────────────────────────────────────────────────────────────────
+
+const PLANS = [
+  {
+    name: 'Fundament',
+    price: '0',
+    desc: 'Na start — bez karty.',
+    badge: null,
+    features: [
+      'Zwiad — 100 przetargów/mies.',
+      'GO/NO-GO scoring',
+      'Pipeline Kanban',
+      '1 kosztorys/mies.',
+      'Eksport PDF',
+    ],
+    cta: 'Zacznij za darmo',
+    ctaHref: '/auth/register',
+    highlight: false,
+  },
+  {
+    name: 'Silnik',
+    price: '290',
+    desc: 'Dla aktywnych wykonawców.',
+    badge: 'POPULARNY',
+    features: [
+      'Zwiad — nieograniczony',
+      'Silnik AI — konfiguracja wag',
+      'Kosztorys ICB/Sekocenbud',
+      'Decyzja — brief AI',
+      'Kreator oferty PDF',
+      'Proaktywne alerty',
+      'Pipeline Kanban nieogr.',
+    ],
+    cta: 'Zacznij 14 dni za darmo',
+    ctaHref: '/auth/register?plan=silnik',
+    highlight: true,
+  },
+  {
+    name: 'Mózg',
+    price: '890',
+    desc: 'Pełna przewaga informacyjna.',
+    badge: null,
+    features: [
+      'Wszystko z Silnik +',
+      'Bid Intelligence — win rate',
+      'Competitor tracking',
+      'Market Intel — trendy CPV',
+      'Axiom Engine — 47 walidacji',
+      'RFQ — zapytania podwykonawców',
+      'API access + Webhooks',
+      'Priorytetowe wsparcie',
+    ],
+    cta: 'Skontaktuj się',
+    ctaHref: '/kontakt',
+    highlight: false,
+  },
+];
+
+function PricingSection() {
+  return (
+    <section id="cennik" style={{ padding: '100px 24px', maxWidth: 1120, margin: '0 auto' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }} transition={{ duration: 0.5 }}
+        style={{ marginBottom: 56 }}
+      >
+        <div style={{ fontFamily: 'var(--font-space)', fontSize: 11, color: '#10b981', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Cennik
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-space)', fontWeight: 800, fontSize: 38, color: '#f1f5f9', letterSpacing: '-0.03em', margin: 0 }}>
+          Jeden przetarg wygrany zwraca<br />koszt rocznej subskrypcji.
+        </h2>
+      </motion.div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        {PLANS.map((plan, i) => (
+          <motion.div
+            key={plan.name}
+            initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.1 }}
+            style={{
+              borderRadius: 16, padding: 28,
+              background: plan.highlight ? 'rgba(16,185,129,0.06)' : 'rgba(13,13,22,0.8)',
+              border: plan.highlight ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(255,255,255,0.07)',
+              position: 'relative',
+            }}
+          >
+            {plan.badge && (
+              <div style={{
+                position: 'absolute', top: -11, left: 28,
+                background: '#10b981', color: '#07070d',
+                fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 10,
+                letterSpacing: '0.1em', padding: '3px 10px', borderRadius: 20,
+              }}>{plan.badge}</div>
+            )}
+            <div style={{ fontFamily: 'var(--font-space)', fontWeight: 700, fontSize: 15, color: '#f1f5f9', marginBottom: 4 }}>{plan.name}</div>
+            <div style={{ fontFamily: 'var(--font-space)', fontSize: 13, color: '#475569', marginBottom: 20 }}>{plan.desc}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 24 }}>
+              <span style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 40, color: '#f1f5f9', letterSpacing: '-0.03em' }}>
+                {plan.price === '0' ? 'Gratis' : plan.price + ' zł'}
+              </span>
+              {plan.price !== '0' && (
+                <span style={{ fontFamily: 'var(--font-space)', fontSize: 13, color: '#475569' }}>/mies.</span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+              {plan.features.map(f => (
+                <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+                    <path d="M2.5 7l3 3 6-6" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ fontFamily: 'var(--font-space)', fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{f}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link href={plan.ctaHref} style={{
+              display: 'block', textAlign: 'center',
+              fontFamily: 'var(--font-space)', fontSize: 14, fontWeight: 600,
+              padding: '11px 20px', borderRadius: 10, textDecoration: 'none',
+              background: plan.highlight ? '#10b981' : 'transparent',
+              color: plan.highlight ? '#07070d' : '#94a3b8',
+              border: plan.highlight ? 'none' : '1px solid rgba(255,255,255,0.1)',
+            }}>{plan.cta}</Link>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── CTA ───────────────────────────────────────────────────────────────────────
+
+function CTASection() {
+  return (
+    <section style={{
+      padding: '100px 24px',
+      background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(16,185,129,0.07) 0%, transparent 70%)',
+      borderTop: '1px solid rgba(255,255,255,0.05)',
+    }}>
+      <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }} transition={{ duration: 0.55 }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <Image src="/brand/B01-app-icon-budos.png" alt="BudOS" width={56} height={56} style={{ borderRadius: 14 }} />
           </div>
-          <div className="flex items-center justify-center gap-5 mt-8">
-            {['Bez zobowiązań', 'Darmowe 14 dni', 'Wsparcie PL'].map((t, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-[11px] text-slate-600">
-                <CheckCircle2 className="w-3 h-3 text-em" /> {t}
-              </div>
-            ))}
+          <h2 style={{ fontFamily: 'var(--font-space)', fontWeight: 800, fontSize: 42, color: '#f1f5f9', letterSpacing: '-0.03em', margin: '0 0 18px' }}>
+            Twój następny przetarg<br />zaczyna się tutaj.
+          </h2>
+          <p style={{ fontFamily: 'var(--font-space)', fontSize: 16, color: '#475569', margin: '0 0 36px', lineHeight: 1.65 }}>
+            Dołącz do firm, które składają oferty z przewagą informacyjną. 14 dni bezpłatnie. Bez karty kredytowej.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+            <Link href="/auth/register" style={{
+              fontFamily: 'var(--font-space)', fontSize: 15, fontWeight: 700,
+              color: '#07070d', background: '#10b981',
+              padding: '13px 28px', borderRadius: 10,
+              textDecoration: 'none', letterSpacing: '-0.01em',
+            }}>
+              Zacznij za darmo
+            </Link>
+            <Link href="/kontakt" style={{
+              fontFamily: 'var(--font-space)', fontSize: 14,
+              color: '#94a3b8', textDecoration: 'none',
+              padding: '13px 22px',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 10,
+            }}>
+              Umów demo
+            </Link>
           </div>
         </motion.div>
       </div>
@@ -442,65 +661,59 @@ function CTA() {
   );
 }
 
-// ─── Footer ───────────────────────────────────────────────────────────────────
+// ── Footer ────────────────────────────────────────────────────────────────────
+
 function Footer() {
   return (
-    <footer className="border-t border-ink-800/50 px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+    <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 24px' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 48 }}>
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Hexagon className="w-5 h-5 text-em" strokeWidth={1.5} />
-              <span className="text-sm font-bold text-slate-300" style={{ fontFamily: 'var(--font-space)' }}>YU-NA</span>
-            </div>
-            <p className="text-xs text-slate-600 max-w-xs leading-relaxed">Platforma AI narzędzi dla firm budowlanych. Premiera 2026.</p>
+            <BrandName />
+            <p style={{ fontFamily: 'var(--font-space)', fontSize: 13, color: '#334155', marginTop: 14, lineHeight: 1.6, maxWidth: 260 }}>
+              System decyzyjny dla wykonawców przetargów publicznych. AI, kosztorysy, oferty — w jednym narzędziu.
+            </p>
           </div>
-          <div className="flex gap-12 text-xs">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Produkty</p>
-              <div className="space-y-2">
-                <Link href="/budos" className="block text-slate-600 hover:text-slate-300 transition-colors">BudOS</Link>
-                <span className="block text-slate-700">Wkrótce...</span>
+          {[
+            { label: 'Produkt', links: ['Zwiad', 'Silnik AI', 'Kosztorys', 'Decyzja', 'Pipeline'] },
+            { label: 'Firma', links: ['O nas', 'Blog', 'Kariera', 'Kontakt'] },
+            { label: 'Prawne', links: ['Regulamin', 'Prywatność', 'RODO', 'Status'] },
+          ].map(col => (
+            <div key={col.label}>
+              <div style={{ fontFamily: 'var(--font-space)', fontWeight: 600, fontSize: 12, color: '#334155', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>
+                {col.label}
               </div>
+              {col.links.map(l => (
+                <div key={l} style={{ marginBottom: 10 }}>
+                  <a href="#" style={{ fontFamily: 'var(--font-space)', fontSize: 13, color: '#475569', textDecoration: 'none' }}>{l}</a>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Konto</p>
-              <div className="space-y-2">
-                <Link href="/signup" className="block text-slate-600 hover:text-slate-300 transition-colors">Rejestracja</Link>
-                <Link href="/login"  className="block text-slate-600 hover:text-slate-300 transition-colors">Logowanie</Link>
-              </div>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Prawne</p>
-              <div className="space-y-2">
-                <Link href="/terms"   className="block text-slate-600 hover:text-slate-300 transition-colors">Regulamin</Link>
-                <Link href="/privacy" className="block text-slate-600 hover:text-slate-300 transition-colors">Prywatność</Link>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
-        <div className="border-t border-ink-800/40 mt-8 pt-6 flex items-center justify-between">
-          <p className="text-[11px] text-slate-700">© 2026 YU-NA. Wszelkie prawa zastrzeżone.</p>
-          <p className="text-[11px] text-slate-700 font-mono">PRECYZJA · ZWIAD · PRZEWAGA</p>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-space)', fontSize: 12, color: '#1e293b' }}>© 2026 YU-NA Intelligence. Wszelkie prawa zastrzeżone.</span>
+          <span style={{ fontFamily: 'var(--font-space)', fontSize: 12, color: '#1e293b' }}>yu-na.io</span>
         </div>
       </div>
     </footer>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function LandingPage() {
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function HomePage() {
   return (
-    <main className="min-h-screen bg-ink-950 overflow-x-hidden">
-      <Navbar />
+    <div style={{ background: '#07070d', minHeight: '100vh', color: '#f1f5f9' }}>
+      <Nav />
       <Hero />
-      <StatsBar />
-      <ProductSection />
-      <ProductInAction />
-      <MarketplaceSection />
-      <SocialProof />
-      <CTA />
+      <TrustLogos />
+      <WorkflowSection />
+      <FeaturesSection />
+      <MetricsSection />
+      <PricingSection />
+      <CTASection />
       <Footer />
-    </main>
+    </div>
   );
 }
