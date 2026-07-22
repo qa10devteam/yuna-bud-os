@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface AvatarProps {
@@ -64,9 +66,11 @@ export function Avatar({ name, src, size = 'md', status, className = '' }: Avata
   if (src) {
     return (
       <div className={`relative inline-flex ${className}`}>
-        <img
+        <Image
           src={src}
           alt={name ?? 'Avatar'}
+          width={40}
+          height={40}
           className={`${sizeClass} rounded-full object-cover border border-ink-700/60`}
         />
         {status && (

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuthFetch } from "@/lib/api-v2";
+import { useCallback, useState, useEffect } from "react";
+import { useStore } from "@/store/useStore";
 import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { TrendingUp, Target, BarChart2, FileText } from "lucide-react";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface BidRecord {
   id: string;
@@ -23,35 +25,129 @@ interface BidStats {
   total_revenue: number;
 }
 
+// Analytics dashboard response shape from /api/v2/analytics/dashboard
+interface AnalyticsDashboardResponse {
+  pipeline_value: number;
+  active_bids: number;
+  win_rate: number;       // 0..1
+  win_rate_pct: number;   // 0..100
+  total_won: number;
+  total_lost: number;
+  avg_margin: number | null;
+}
+
+// Offers response (fallback: tenders)
+interface OfferRecord {
+  id: string;
+  tender_title?: string;
+  title?: string;
+  submitted_at?: string;
+  created_at?: string;
+  markup_pct?: number;
+  bid_amount?: number;
+  amount?: number;
+  status?: string;
+}
+
+interface ListResponse {
+  items: OfferRecord[];
+  total: number;
+}
+
+// ── Status helpers ──────────────────────────────────────────────────────────────
+
 const STATUS_META: Record<string, string> = {
   won:     "text-success bg-success/10",
   lost:    "text-danger bg-danger/10",
   pending: "text-warning bg-warning/10",
 };
 
+function normaliseStatus(s: string | undefined): "won" | "lost" | "pending" {
+  if (!s) return "pending";
+  const lower = s.toLowerCase();
+  if (lower === "won" || lower === "decided_go") return "won";
+  if (lower === "lost" || lower === "decided_nogo" || lower === "archived") return "lost";
+  return "pending";
+}
+
+function normaliseBid(r: OfferRecord): BidRecord {
+  return {
+    id:           r.id,
+    tender_title: r.tender_title ?? r.title ?? "—",
+    submitted_at: r.submitted_at ?? r.created_at ?? new Date().toISOString(),
+    markup_pct:   r.markup_pct ?? 0,
+    bid_amount:   r.bid_amount ?? r.amount ?? 0,
+    status:       normaliseStatus(r.status),
+  };
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function BidIntelligencePage() {
-  const authFetch = useAuthFetch();
-  const [bids, setBids]     = useState<BidRecord[]>([]);
-  const [stats, setStats]   = useState<BidStats | null>(null);
+  const accessToken = useStore((s) => s.accessToken);
+  const [bids,    setBids]    = useState<BidRecord[]>([]);
+  const [stats,   setStats]   = useState<BidStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  // Silent GET — no toast on non-OK, returns null on error
+  const silentGet = useCallback(
+    async <T,>(url: string): Promise<T | null> => {
       try {
-        const [bidsData, statsData] = await Promise.all([
-          authFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v2/bid-intelligence/history`),
-          authFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v2/bid-intelligence/stats`),
-        ]);
-        setBids(bidsData.bids || []);
-        setStats(statsData);
-      } catch (err) {
-        console.error("Failed to fetch bid intelligence:", err);
-      } finally {
+        const res = await fetch(url, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
+        if (!res.ok) return null;
+        return (await res.json()) as T;
+      } catch {
+        return null;
+      }
+    },
+    [accessToken],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchAll() {
+      // ── 1. Fetch analytics/dashboard for stats ─────────────────────────────
+      let statsResult: BidStats | null = null;
+      const d = await silentGet<AnalyticsDashboardResponse>('/api/v2/analytics/dashboard');
+      if (d) {
+        statsResult = {
+          total_bids:     (d.total_won ?? 0) + (d.total_lost ?? 0) + (d.active_bids ?? 0),
+          win_rate:       d.win_rate_pct ?? 0,
+          avg_markup:     d.avg_margin ?? 0,
+          optimal_markup: 0,
+          total_revenue:  d.pipeline_value ?? 0,
+        };
+      }
+
+      // ── 2. Fetch bid/offer history ─────────────────────────────────────────
+      let bidsResult: BidRecord[] = [];
+      // Try /api/v2/offers first; 404 → silentGet returns null
+      const offersResp = await silentGet<ListResponse>('/api/v2/offers?limit=20');
+      if (offersResp) {
+        bidsResult = (offersResp.items ?? []).map(normaliseBid);
+      } else {
+        // Fallback to tenders with decided/terminal statuses
+        const tendersResp = await silentGet<ListResponse>('/api/v2/tenders?limit=20&sort=created_at');
+        if (tendersResp) {
+          bidsResult = (tendersResp.items ?? [])
+            .filter((r) => r.status && ['decided_go','decided_nogo','archived','won','lost'].includes(r.status))
+            .map(normaliseBid);
+        }
+      }
+
+      if (!cancelled) {
+        setStats(statsResult);
+        setBids(bidsResult);
         setLoading(false);
       }
-    };
-    fetchData();
-  }, [authFetch]);
+    }
+
+    fetchAll();
+    return () => { cancelled = true; };
+  }, [silentGet]);
 
   return (
     <PageShell
@@ -74,10 +170,10 @@ export default function BidIntelligencePage() {
       {!loading && stats && (
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Łącznie ofert',     value: String(stats.total_bids),     icon: FileText,  color: 'text-slate-100' },
-            { label: 'Win Rate',           value: `${stats.win_rate}%`,          icon: TrendingUp, color: 'text-success' },
-            { label: 'Optymalny markup',   value: `${stats.optimal_markup}%`,    icon: Target,    color: 'text-info' },
-            { label: 'Średni markup',      value: `${stats.avg_markup}%`,        icon: BarChart2, color: 'text-slate-100' },
+            { label: 'Łącznie ofert',     value: String(stats.total_bids),                   icon: FileText,   color: 'text-slate-100' },
+            { label: 'Win Rate',           value: `${stats.win_rate.toFixed(1)}%`,             icon: TrendingUp, color: 'text-success'   },
+            { label: 'Optymalny markup',   value: stats.optimal_markup ? `${stats.optimal_markup}%` : '—', icon: Target, color: 'text-info' },
+            { label: 'Średni markup',      value: stats.avg_markup ? `${stats.avg_markup.toFixed(1)}%` : '—', icon: BarChart2, color: 'text-slate-100' },
           ].map(s => (
             <div key={s.label} className="card rounded-xl p-5 shadow-md-sm">
               <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">

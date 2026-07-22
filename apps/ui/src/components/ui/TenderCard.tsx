@@ -98,9 +98,12 @@ export function TenderCard({ tender, index = 0, onClick }: TenderCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
       onClick={onClick}
+      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && onClick) { e.preventDefault(); onClick(); } }}
+      tabIndex={0}
+      role="button"
       className={[
         'group relative flex items-start gap-3 p-4 rounded-xl cursor-pointer',
-        'bg-ink-900/40 border transition-all duration-150',
+        'bg-ink-900/40 border transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-150',
         isUrgent
           ? 'border-nogo/20 hover:border-nogo/40'
           : 'border-ink-800/50 hover:border-ink-700/70',

@@ -104,7 +104,7 @@ export default function CommandMenu() {
             <div className="px-4 py-8 text-center text-sm text-gray-400">No results found</div>
           ) : (
             filtered.map((item, idx) => (
-              <button
+              <button type="button"
                 key={item.id}
                 onClick={() => { item.action(); setOpen(false); }}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${

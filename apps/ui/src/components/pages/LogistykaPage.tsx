@@ -99,9 +99,9 @@ function TabBtn({
   active: boolean; onClick: () => void; icon: React.ElementType; label: string;
 }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200 ${
         active
           ? 'bg-em/15 text-em border border-em/30'
           : 'text-slate-400 hover:text-slate-200 hover:bg-ink-800/60'
@@ -175,13 +175,13 @@ function PracownicyTab() {
           <span>{employees.length} pracowników</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <button type="button"
             onClick={load}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-ink-800/60 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          <button
+          <button type="button"
             onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-2 px-3 py-2 bg-em/15 hover:bg-em/25 text-em border border-em/30 rounded-lg text-sm font-medium transition-colors"
           >
@@ -379,13 +379,13 @@ function SprzętTab() {
           <span>{equipment.length} maszyn / pojazdów</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <button type="button"
             onClick={load}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-ink-800/60 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          <button
+          <button type="button"
             onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-2 px-3 py-2 bg-em/15 hover:bg-em/25 text-em border border-em/30 rounded-lg text-sm font-medium transition-colors"
           >
@@ -441,7 +441,7 @@ function SprzętTab() {
                       onChange={e => setForm(f => ({ ...f, active: e.target.checked }))}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-ink-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-100 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-em" />
+                    <div className="w-9 h-5 bg-ink-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-100 after:rounded-full after:h-4 after:w-4 after:transition-[color,background-color,border-color,opacity,transform,box-shadow] peer-checked:bg-em" />
                     <span className="ml-2 text-sm text-slate-300">Aktywny</span>
                   </label>
                 </div>
@@ -581,7 +581,7 @@ function OptymalizacjaTab() {
               className="w-full px-3 py-2 bg-ink-800/60 border border-ink-700/50 rounded-lg text-slate-100 text-sm focus:outline-none focus:border-em/50"
             />
           </div>
-          <button
+          <button type="button"
             onClick={handleOptimize}
             disabled={loading}
             className="flex items-center justify-center gap-2 px-5 py-2.5 bg-em text-ink-950 rounded-lg font-semibold text-sm hover:bg-em/90 disabled:opacity-50 transition-colors"
@@ -608,7 +608,7 @@ function OptymalizacjaTab() {
       {error && (
         <GlassCard className="p-4 border-nogo/20 bg-nogo/5">
           <div className="flex items-center gap-2 text-nogo text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         </GlassCard>
@@ -768,13 +768,13 @@ function PodwykonawcyTab() {
           <span>{subs.length} podwykonawców</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <button type="button"
             onClick={load}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-ink-800/60 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          <button
+          <button type="button"
             onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-2 px-3 py-2 bg-em/15 hover:bg-em/25 text-em border border-em/30 rounded-lg text-sm font-medium transition-colors"
           >
@@ -1107,7 +1107,7 @@ function HarmonogramTab() {
             {GANTT_ORIGIN} → {endDate}
           </span>
         </div>
-        <button
+        <button type="button"
           onClick={() => { void load(); }}
           disabled={loading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-ink-800/60 hover:bg-ink-700/60 border border-ink-700/40 text-slate-300 transition-colors disabled:opacity-50"
@@ -1127,7 +1127,7 @@ function HarmonogramTab() {
 
       {!loading && error && (
         <div className="flex items-center gap-2 p-4 rounded-md bg-nogo/10 border border-nogo/20 text-nogo text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}

@@ -72,7 +72,7 @@ export default function TenderFTSSearch() {
             className="input-base pl-9"
           />
         </div>
-        <button
+        <button type="button"
           onClick={search}
           disabled={loading}
           className="btn-primary px-4 py-2 text-sm disabled:opacity-50"

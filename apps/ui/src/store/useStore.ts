@@ -23,6 +23,7 @@ export interface AuthUser {
   name: string;
   org_id: string | null;
   role: string;
+  plan?: string;
 }
 
 interface AppState {

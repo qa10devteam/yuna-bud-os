@@ -3,15 +3,41 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  Brain, Target, TrendingUp, BarChart3, AlertTriangle,
+  Target, TrendingUp, BarChart3, AlertTriangle,
   CheckCircle2, XCircle, HelpCircle,
-  Scale, Calculator,
+  Scale, Activity, Zap,
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, AreaChart, Area,
+} from 'recharts';
 import { useStore } from '@/store/useStore';
 import { PageShell } from '@/components/PageShell';
 import MarketIntelligenceDashboard from '@/components/MarketIntelligenceDashboard';
 import ICBPriceExplorer from '@/components/ICBPriceExplorer';
 import TenderFTSSearch from '@/components/TenderFTSSearch';
+import { PageTransition } from '@/components/ui/PageTransition';
+
+// ── Mock data for pipeline chart ───────────────────────────────────────────────
+const PIPELINE_DATA = [
+  { month: 'Sty', value: 1.8, won: 0.6 },
+  { month: 'Lut', value: 2.1, won: 0.9 },
+  { month: 'Mar', value: 3.4, won: 1.2 },
+  { month: 'Kwi', value: 2.8, won: 1.0 },
+  { month: 'Maj', value: 4.1, won: 1.5 },
+  { month: 'Cze', value: 3.6, won: 1.8 },
+  { month: 'Lip', value: 5.2, won: 2.1 },
+];
+
+const WIN_TREND_DATA = [
+  { month: 'Sty', rate: 28 },
+  { month: 'Lut', rate: 31 },
+  { month: 'Mar', rate: 29 },
+  { month: 'Kwi', rate: 33 },
+  { month: 'Maj', rate: 35 },
+  { month: 'Cze', rate: 34 },
+  { month: 'Lip', rate: 38 },
+];
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface AHPCriterion {
@@ -217,14 +243,14 @@ export function AnalyticsPage() {
       {TABS.map(t => {
         const Icon = t.icon;
         return (
-          <button
+          <button type="button"
             key={t.id}
             onClick={() => {
               setTab(t.id);
               if (t.id === 'dashboard') loadDashboard();
               if (t.id === 'win') loadWin();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
               tab === t.id
                 ? 'bg-em/15 text-em'
                 : 'btn-ghost py-1.5 px-3 text-xs'
@@ -246,6 +272,94 @@ export function AnalyticsPage() {
       actions={TabBar}
     >
 
+      {/* ── KPI Summary Cards ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Win Rate', value: '34%', icon: Target, trend: '+3% vs Q1', trendUp: true, color: 'text-emerald-400' },
+          { label: 'Śr. wartość oferty', value: '2.4M PLN', icon: BarChart3, trend: '+12% YoY', trendUp: true, color: 'text-emerald-400' },
+          { label: 'Aktywne przetargi', value: '12', icon: Activity, trend: '3 deadline <7d', trendUp: false, color: 'text-sky-400' },
+          { label: 'Skuteczność', value: '+8%', icon: Zap, trend: 'trend wzrostowy', trendUp: true, color: 'text-emerald-400' },
+        ].map(kpi => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div
+              key={kpi.label}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-slate-900 border border-slate-800 rounded-xl p-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">{kpi.label}</span>
+                <Icon className="w-4 h-4 text-slate-600" />
+              </div>
+              <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
+              <div className={`text-xs mt-1 ${kpi.trendUp ? 'text-emerald-500' : 'text-slate-500'}`}>
+                {kpi.trendUp ? '↑' : '•'} {kpi.trend}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* ── Monthly Pipeline Value Chart ── */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-200">Pipeline wartość miesięczna</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Złożone oferty vs wygrane (mln PLN)</p>
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> Złożone</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" /> Wygrane</span>
+          </div>
+        </div>
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={PIPELINE_DATA} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} unit=" M" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                labelStyle={{ color: '#e2e8f0' }}
+                itemStyle={{ color: '#94a3b8' }}
+              />
+              <Bar dataKey="value" name="Złożone" fill="#10b98170" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="won" name="Wygrane" fill="#34d399" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* ── Win Rate Trend Area Chart ── */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-semibold text-slate-200">Win Rate Trend</h3>
+          <span className="text-xs text-emerald-500 ml-auto">+8% za 6 mies.</span>
+        </div>
+        <div className="h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={WIN_TREND_DATA}>
+              <defs>
+                <linearGradient id="winGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} unit="%" domain={[20, 45]} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                labelStyle={{ color: '#e2e8f0' }}
+              />
+              <Area type="monotone" dataKey="rate" name="Win Rate" stroke="#34d399" fill="url(#winGradient)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* ── AHP Tab ── */}
       {tab === 'ahp' && (
         <div className="max-w-2xl space-y-5">
@@ -266,7 +380,7 @@ export function AnalyticsPage() {
                 </div>
               ))}
             </div>
-            <button
+            <button type="button"
               onClick={runAHP}
               disabled={loading}
               className="btn-primary w-full mt-5 justify-center py-2"
@@ -309,7 +423,7 @@ export function AnalyticsPage() {
               {/* Score bar */}
               <div className="w-full bg-ink-800 rounded-full h-2 mb-4">
                 <div
-                  className={`h-2 rounded-full transition-all duration-700 ${
+                  className={`h-2 rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-700 ${
                     ahpResult.recommendation === 'GO' ? 'bg-em'
                     : ahpResult.recommendation === 'CONSIDER' ? 'bg-warn'
                     : 'bg-nogo'
@@ -369,7 +483,7 @@ export function AnalyticsPage() {
               </div>
             </div>
 
-            <button
+            <button type="button"
               onClick={runBidding}
               disabled={loading}
               className="btn-primary w-full justify-center py-2"
@@ -435,7 +549,7 @@ export function AnalyticsPage() {
               placeholder="Wklej tutaj tekst SWZ, warunki umowy lub klauzule…"
               className="input-base resize-none placeholder:text-slate-600"
             />
-            <button
+            <button type="button"
               onClick={runRisk}
               disabled={loading || !swzText.trim()}
               className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-md
@@ -592,7 +706,7 @@ export function AnalyticsPage() {
                 </div>
                 <div className="w-full bg-ink-800 rounded-full h-3">
                   <div
-                    className="bg-em h-3 rounded-full transition-all duration-700"
+                    className="bg-em h-3 rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-700"
                     style={{ width: `${Math.min(100, winData.win_rate)}%` }}
                   />
                 </div>
@@ -611,7 +725,7 @@ export function AnalyticsPage() {
                         <span className="text-slate-400 w-16 shrink-0">{pt.month}</span>
                         <div className="flex-1 bg-ink-800 rounded-full h-2 overflow-hidden">
                           <div
-                            className="bg-em/70 h-2 rounded-full transition-all duration-500"
+                            className="bg-em/70 h-2 rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-500"
                             style={{ width: `${Math.min(100, pt.rate)}%` }}
                           />
                         </div>

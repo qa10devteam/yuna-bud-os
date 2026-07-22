@@ -14,6 +14,7 @@ import {
 const PRIMARY = '#10b981';
 const DANGER  = '#ef4444';
 const WARNING = '#f59e0b';
+const COMPACT_FMT = new Intl.NumberFormat('pl-PL', { notation: 'compact' });
 
 interface RiskChartProps {
   p10: number;
@@ -23,13 +24,14 @@ interface RiskChartProps {
   currency?: string;
 }
 
+const PLN_CURRENCY_FMT = new Intl.NumberFormat('pl-PL', {
+  style: 'currency',
+  currency: 'PLN',
+  maximumFractionDigits: 0,
+});
+
 export function RiskChart({ p10, p50, p90, current_price, currency = 'PLN' }: RiskChartProps) {
-  const fmt = (v: number) =>
-    new Intl.NumberFormat('pl-PL', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(v);
+  const fmt = (v: number) => PLN_CURRENCY_FMT.format(v);
 
   const data = [{ name: 'Ryzyko', center: p50, error: [[p50 - p10], [p90 - p50]] }];
 
@@ -46,7 +48,7 @@ export function RiskChart({ p10, p50, p90, current_price, currency = 'PLN' }: Ri
           <YAxis
             domain={[p10 * 0.95, p90 * 1.05]}
             tickFormatter={(v) =>
-              new Intl.NumberFormat('pl-PL', { notation: 'compact' }).format(v)
+              COMPACT_FMT.format(v)
             }
             tick={{ fill: 'var(--color-slate-400)', fontSize: 11 }}
           />

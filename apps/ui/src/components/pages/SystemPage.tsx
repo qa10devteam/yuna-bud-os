@@ -74,7 +74,7 @@ export function SystemPage() {
   ] : [];
 
   const actions = (
-    <button onClick={refresh} className="btn-secondary flex items-center gap-2">
+    <button type="button" onClick={refresh} className="btn-secondary flex items-center gap-2">
       <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Odśwież
     </button>
   );
@@ -88,7 +88,7 @@ export function SystemPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-ink-900/60 rounded-xl p-1 w-fit mb-6">
         {(['overview', 'database', 'routes'] as const).map(t => (
-          <button
+          <button type="button"
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${

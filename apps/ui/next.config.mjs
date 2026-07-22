@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === 'development';
+
 const nextConfig = {
   // Enable standalone output for Docker builds (Dockerfile.ui)
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
+  ...(isDev ? { experimental: { allowedDevHosts: ['trycloudflare.com', '.trycloudflare.com'] } } : {}),
   compress: true,
   poweredByHeader: false,
 
@@ -9,13 +12,10 @@ const nextConfig = {
   // keep it only when the CDN handles it (e.g. Cloudflare Images / Imgix).
   // Set NEXT_IMAGES_UNOPTIMIZED=true to revert to the old behaviour.
   images: {
-    unoptimized: process.env.NEXT_IMAGES_UNOPTIMIZED === 'true',
+    unoptimized: true,
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'v3b.fal.media',
-      },
+      { protocol: 'https', hostname: 'v3b.fal.media' },
     ],
   },
 
@@ -39,10 +39,10 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'", // unsafe-eval removed (SSRF/RCE risk); unsafe-inline kept for Next.js hydration
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval' https://unpkg.com" : ''}`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://v3b.fal.media",
+              "img-src 'self' data: blob: https:",
               "connect-src 'self' https: wss:",
               "worker-src 'self' blob:",
               "frame-ancestors 'none'",

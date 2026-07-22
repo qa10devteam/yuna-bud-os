@@ -91,7 +91,7 @@ function ExportCard({
     <div className="card card-hover rounded-2xl p-6 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="w-10 h-10 rounded-xl bg-ink-800/80 border border-ink-700/50 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-ink-800/80 border border-ink-700/50 flex items-center justify-center shrink-0">
           <Icon className="w-5 h-5 text-slate-300" />
         </div>
         <FormatBadge format={format} />
@@ -121,7 +121,7 @@ function DownloadButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       disabled={loading}
       className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -306,7 +306,7 @@ export default function ExportPage() {
 
         {/* Info footer */}
         <div className="flex items-start gap-3 p-4 rounded-xl bg-ink-900/40 border border-ink-800/50">
-          <div className="w-5 h-5 rounded-full bg-ink-700/60 border border-ink-600/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-5 h-5 rounded-full bg-ink-700/60 border border-ink-600/40 flex items-center justify-center shrink-0 mt-0.5">
             <span className="text-[10px] font-bold text-slate-400">i</span>
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">

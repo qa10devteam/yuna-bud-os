@@ -64,17 +64,17 @@ function BookmarkCard({
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-manipulation">
       <motion.div
         layout
-        className="card-hover p-3 cursor-grab active:cursor-grabbing transition-all group"
+        className="card-hover p-3 cursor-grab active:cursor-grabbing transition-[color,background-color,border-color,opacity,transform,box-shadow] group"
         style={{ borderLeftWidth: 3, borderLeftColor: color }}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="text-sm text-slate-100 line-clamp-2 leading-snug flex-1">
             {item.title || item.ht_id || 'Przetarg'}
           </div>
-          <button
+          <button type="button"
             onPointerDown={e => { e.stopPropagation(); }}
             onClick={e => { e.stopPropagation(); onDelete(item.id); }}
-            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-nogo/20 text-slate-600 hover:text-nogo transition-all shrink-0"
+            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-nogo/20 text-slate-600 hover:text-nogo transition-[color,background-color,border-color,opacity,transform,box-shadow] shrink-0"
           >
             <Trash2 size={13} />
           </button>
@@ -106,7 +106,7 @@ function BookmarkCard({
 
         {/* Quick stage change */}
         <div className="relative mt-2">
-          <button
+          <button type="button"
             onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
             className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-400 transition-colors"
@@ -117,7 +117,7 @@ function BookmarkCard({
           {showMenu && (
             <div className="absolute bottom-6 left-0 z-20 bg-ink-900 border border-ink-700 rounded-lg shadow-xl min-w-[140px]">
               {STAGES.filter(s => s.key !== item.stage).map(s => (
-                <button
+                <button type="button"
                   key={s.key}
                   onPointerDown={e => e.stopPropagation()}
                   onClick={e => { e.stopPropagation(); onStageChange(item.id, s.key); setShowMenu(false); }}
@@ -249,7 +249,7 @@ function AlertForm({ onClose, onCreate }: { onClose: () => void; onCreate: (body
             <Bell size={16} className="text-em" />
             Nowy Alert
           </h3>
-          <button onClick={onClose} className="btn-ghost p-1.5">
+          <button type="button" onClick={onClose} className="btn-ghost p-1.5">
             <X size={16} className="text-slate-400" />
           </button>
         </div>
@@ -267,13 +267,13 @@ function AlertForm({ onClose, onCreate }: { onClose: () => void; onCreate: (body
               <input className={field + ' flex-1'} placeholder="np. 4523" value={cpvInput}
                 onChange={e => setCpvInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addCpv()} />
-              <button onClick={addCpv} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm">+</button>
+              <button type="button" onClick={addCpv} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm">+</button>
             </div>
             <div className="flex flex-wrap gap-1">
               {form.cpv_prefixes?.map(c => (
                 <span key={c} className="flex items-center gap-1 text-xs bg-indigo/20 text-indigo-300 px-2 py-0.5 rounded-full">
                   {c}
-                  <button onClick={() => setForm(f => ({ ...f, cpv_prefixes: f.cpv_prefixes?.filter(x => x !== c) }))}>
+                  <button type="button" onClick={() => setForm(f => ({ ...f, cpv_prefixes: f.cpv_prefixes?.filter(x => x !== c) }))}>
                     <X size={10} />
                   </button>
                 </span>
@@ -287,13 +287,13 @@ function AlertForm({ onClose, onCreate }: { onClose: () => void; onCreate: (body
               <input className={field + ' flex-1'} placeholder="np. remont, kanalizacja" value={kwInput}
                 onChange={e => setKwInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addKw()} />
-              <button onClick={addKw} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm">+</button>
+              <button type="button" onClick={addKw} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm">+</button>
             </div>
             <div className="flex flex-wrap gap-1">
               {form.keywords?.map(k => (
                 <span key={k} className="flex items-center gap-1 text-xs bg-em/20 text-em px-2 py-0.5 rounded-full">
                   {k}
-                  <button onClick={() => setForm(f => ({ ...f, keywords: f.keywords?.filter(x => x !== k) }))}>
+                  <button type="button" onClick={() => setForm(f => ({ ...f, keywords: f.keywords?.filter(x => x !== k) }))}>
                     <X size={10} />
                   </button>
                 </span>
@@ -345,10 +345,10 @@ function AlertForm({ onClose, onCreate }: { onClose: () => void; onCreate: (body
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="btn-secondary flex-1 py-2.5">
+          <button type="button" onClick={onClose} className="btn-secondary flex-1 py-2.5">
             Anuluj
           </button>
-          <button
+          <button type="button"
             onClick={handleSubmit}
             disabled={saving || !form.name.trim()}
             className="btn-primary flex-1 py-2.5"
@@ -377,7 +377,7 @@ function AlertsList() {
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">{data.length} aktywnych alertów</p>
         </div>
-        <button
+        <button type="button"
           onClick={() => setShowForm(true)}
           className="btn-secondary flex items-center gap-1.5 text-xs"
         >
@@ -403,7 +403,7 @@ function AlertsList() {
             animate={{ opacity: 1 }}
             className="flex items-center gap-3 p-3 bg-ink-900 border border-ink-800/50 rounded-md hover:border-ink-700 transition-colors"
           >
-            <button
+            <button type="button"
               onClick={() => toggle(alert.id, !alert.is_active)}
               className={`shrink-0 w-9 h-5 rounded-full transition-colors relative ${alert.is_active ? 'bg-em' : 'bg-ink-700'}`}
             >
@@ -424,7 +424,7 @@ function AlertsList() {
                 )}
               </div>
             </div>
-            <button
+            <button type="button"
               onClick={() => remove(alert.id)}
               className="p-1.5 hover:bg-nogo/20 rounded-lg text-slate-600 hover:text-nogo transition-colors shrink-0"
             >
@@ -536,10 +536,10 @@ export function BookmarksBoardPage() {
             { key: 'kanban', label: 'Kanban', icon: Filter },
             { key: 'alerts', label: 'Alerty', icon: Bell },
           ].map(({ key, label, icon: Icon }) => (
-            <button
+            <button type="button"
               key={key}
               onClick={() => setActiveTab(key as typeof activeTab)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                 activeTab === key
                   ? 'bg-ink-700 text-ink-950/30'
                   : 'text-slate-400 hover:text-slate-200'

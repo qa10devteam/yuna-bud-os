@@ -47,7 +47,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+  useEffect(() => { onEventRef.current = onEvent; });
 
   const connect = useCallback(() => {
     if (eventSourceRef.current) {

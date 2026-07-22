@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus, LayoutGrid, CalendarDays, Search, X, TrendingUp,
-  Loader2, DollarSign, Target, Activity,
+  Loader2, DollarSign, Target, Activity, Inbox,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useAuthFetch } from '@/lib/api-v2';
@@ -14,6 +14,7 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { Button } from '@/components/ui/Button';
 import { PageShell } from '@/components/PageShell';
 import type { Tender } from '@/types';
+import { PageTransition } from '@/components/ui/PageTransition';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,26 +30,58 @@ interface TenderItem {
   published_at?: string | null;
 }
 
+// Backend shape from GET /api/v2/tenders
+interface BackendTenderItem {
+  id: number | string;
+  title: string | null;
+  org_name: string | null;
+  value_min: number | null;
+  value_max: number | null;
+  deadline: string | null;
+  cpv_code: string | null;
+  province: string | null;
+  source: string | null;
+  go_score: number | null;
+  match_score: number | null;
+  status: string | null;
+  pipeline_status: string | null;
+  created_at: string | null;
+}
+
 interface PipelineKPI {
   active: number;
   pipeline_value: number;
   win_rate_mtd: number;
 }
 
-// ── Column config ─────────────────────────────────────────────────────────────
+// ── Column config — matches required pipeline_status values ──────────────────
 
 const COLUMNS = [
-  { key: 'new',          label: 'Nowe',         color: '#94A3B8', ring: 'rgba(148,163,184,0.35)' },
-  { key: 'watching',     label: 'Obserwowane',  color: '#3B82F6', ring: 'rgba(59,130,246,0.35)' },
-  { key: 'analyzing',    label: 'Analiza',      color: '#EAB308', ring: 'rgba(234,179,8,0.35)' },
-  { key: 'estimated',    label: 'Wycenione',    color: '#F97316', ring: 'rgba(249,115,22,0.35)' },
-  { key: 'decided_go',   label: 'GO ✓',         color: '#22C55E', ring: 'rgba(34,197,94,0.35)' },
-  { key: 'decided_nogo', label: 'NO-GO ✗',      color: '#EF4444', ring: 'rgba(239,68,68,0.35)' },
+  { key: 'scouting',  label: 'Rozpoznanie',  color: '#94A3B8', ring: 'rgba(148,163,184,0.35)' },
+  { key: 'qualified', label: 'Zakwalif.',    color: '#3B82F6', ring: 'rgba(59,130,246,0.35)' },
+  { key: 'offer',     label: 'Oferta',       color: '#EAB308', ring: 'rgba(234,179,8,0.35)' },
+  { key: 'won',       label: 'Wygrany ✓',    color: '#22C55E', ring: 'rgba(34,197,94,0.35)' },
+  { key: 'lost',      label: 'Przegrany ✗',  color: '#EF4444', ring: 'rgba(239,68,68,0.35)' },
 ] as const;
 
 const COL_COLOR_MAP: Record<string, string> = Object.fromEntries(
   COLUMNS.map(c => [c.key, c.color])
 );
+
+// ── Map backend shape → TenderItem ───────────────────────────────────────────
+
+function mapBackendTender(t: BackendTenderItem): TenderItem {
+  return {
+    id:              String(t.id),
+    title:           t.title ?? '',
+    buyer:           t.org_name ?? null,
+    cpv:             t.cpv_code ? [t.cpv_code] : null,
+    value_pln:       t.value_max ?? t.value_min ?? null,
+    match_score:     t.go_score ?? t.match_score ?? null,
+    pipeline_status: t.pipeline_status ?? 'scouting',
+    deadline_at:     t.deadline ?? null,
+  };
+}
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -101,7 +134,7 @@ function KanbanCard({
 }) {
   const days = daysUntil(tender.deadline_at);
   const isUrgent = days !== null && days >= 0 && days <= 7;
-  const cpvPrefix = tender.cpv?.[0]?.slice(0, 5) ?? null;
+  const cpvTag = tender.cpv?.[0]?.slice(0, 8) ?? null;
 
   return (
     <div
@@ -110,36 +143,46 @@ function KanbanCard({
       onDragEnd={onDragEnd}
       onClick={() => onClick(tender)}
       className={[
-        'p-3 rounded-2xl bg-ink-900/70 border cursor-grab active:cursor-grabbing',
-        'hover:bg-ink-900 transition-all duration-150 group select-none',
-        isUrgent ? 'border-l-2 border-red-500/50 border-ink-800/50' : 'border-ink-800/50 hover:border-ink-700/70',
+        'rounded-xl bg-slate-800/80 border border-slate-700/50 p-3 cursor-grab active:cursor-grabbing relative',
+        'hover:border-emerald-500/30 transition-colors duration-150 group select-none',
+        isUrgent ? 'border-l-2 border-l-red-500/60' : '',
       ].join(' ')}
     >
-      {/* Title */}
-      <p className="text-slate-100 text-xs font-medium leading-snug line-clamp-2 group-hover:text-slate-100">
+      {/* Title (2 lines max) */}
+      <p className="text-slate-100 text-xs font-medium leading-snug line-clamp-2 pr-8">
         {tender.title}
       </p>
-      {/* Buyer */}
-      <p className="text-slate-500 text-[11px] mt-1 truncate">{tender.buyer ?? '—'}</p>
 
-      {/* CPV tag */}
-      {cpvPrefix && (
-        <span className="inline-block mt-1.5 text-[10px] px-1.5 py-0.5 rounded bg-ink-800/80 text-slate-500 font-mono">
-          CPV {cpvPrefix}
-        </span>
+      {/* Buyer */}
+      <p className="text-slate-500 text-[10px] mt-1 truncate">{tender.buyer ?? '—'}</p>
+
+      {/* CPV / type badge */}
+      {cpvTag && (
+        <div className="mt-1.5">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400 font-mono">
+            {cpvTag}
+          </span>
+        </div>
       )}
 
-      {/* Bottom row */}
-      <div className="flex items-end justify-between mt-2 gap-1">
+      {/* Value */}
+      <p className="text-slate-200 text-[11px] font-semibold font-mono tabular-nums mt-2">
+        {fmtPLN(tender.value_pln)}
+      </p>
+
+      {/* Bottom row: deadline + score */}
+      <div className="flex items-center justify-between mt-1.5 gap-1">
         <div className="flex-1 min-w-0">
-          <p className="text-slate-400 text-[11px] font-mono tabular-nums">{fmtPLN(tender.value_pln)}</p>
-          {days !== null && (
-            <p className={[
-              'text-[10px] mt-0.5 font-mono',
-              days < 0 ? 'text-nogo' : days <= 3 ? 'text-nogo' : days <= 7 ? 'text-warn' : 'text-slate-600',
+          {days !== null && days >= 0 && (
+            <span className={[
+              'text-xs text-slate-400',
+              days <= 3 ? 'text-red-400' : days <= 7 ? 'text-amber-400' : '',
             ].join(' ')}>
-              {days < 0 ? `${Math.abs(days)}d po terminie` : days === 0 ? 'Dziś' : `${days}d`}
-            </p>
+              {days <= 3 ? '⚠ ' : ''}{days}d
+            </span>
+          )}
+          {days !== null && days < 0 && (
+            <span className="text-xs text-red-400 font-mono">{Math.abs(days)}d po term.</span>
           )}
         </div>
         <ScoreBadge score={tender.match_score} />
@@ -181,7 +224,7 @@ function KanbanColumn({
       onDragLeave={onDragLeave}
       style={colStyle}
       className={[
-        'flex flex-col w-[220px] shrink-0 rounded-2xl border transition-all duration-150',
+        'flex flex-col w-[220px] shrink-0 rounded-2xl border transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-150',
         'bg-ink-900/20',
         isDragOver ? 'scale-[1.01]' : '',
       ].join(' ')}
@@ -192,7 +235,10 @@ function KanbanColumn({
         style={{ borderBottom: `1px solid ${col.color}22`, backgroundColor: col.color + '12' }}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold" style={{ color: col.color }}>{col.label}</span>
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: col.color }}>
+            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: col.color }} />
+            {col.label}
+          </span>
           <span
             className="text-xs font-bold px-2 py-0.5 rounded-full tabular-nums"
             style={{ color: col.color, backgroundColor: col.color + '25' }}
@@ -206,7 +252,7 @@ function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px]" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+      <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px]" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
         {loading ? (
           [0, 1].map(i => (
             <div key={i} className="p-3 rounded-2xl bg-ink-900/60 border border-ink-800/50 animate-pulse-soft">
@@ -216,9 +262,9 @@ function KanbanColumn({
             </div>
           ))
         ) : tenders.length === 0 ? (
-          <div className="py-8 text-center">
-            <TrendingUp className="w-5 h-5 text-ink-800 mx-auto mb-1.5" />
-            <p className="text-slate-700 text-xs">Brak przetargów</p>
+          <div className="py-8 flex flex-col items-center justify-center">
+            <Inbox className="w-5 h-5 text-slate-700 mb-1.5" />
+            <p className="text-slate-600 text-xs">Pusto</p>
           </div>
         ) : (
           tenders.map(t => (
@@ -299,7 +345,7 @@ function TimelineView({ tenders }: { tenders: TenderItem[] }) {
           const x1 = Math.max(LABEL_W, dateX(startMs));
           const x2 = Math.min(LABEL_W + CHART_W, dateX(endMs));
           const barW = Math.max(x2 - x1, 2);
-          const color = COL_COLOR_MAP[t.pipeline_status?.toUpperCase()] ?? '#94A3B8';
+          const color = COL_COLOR_MAP[t.pipeline_status?.toLowerCase()] ?? '#94A3B8';
           const overdue = deadlineMs < today;
           const pad = 6;
 
@@ -363,7 +409,8 @@ function AddModal({
       setSearching(true);
       try {
         const data = await authFetch(`/api/v2/tenders?q=${encodeURIComponent(query)}&limit=10`);
-        setResults(data?.items ?? []);
+        const items: BackendTenderItem[] = data?.items ?? [];
+        setResults(items.map(mapBackendTender));
       } catch { setResults([]); } finally { setSearching(false); }
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -387,7 +434,7 @@ function AddModal({
         <GlassCard className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-slate-100">Dodaj przetarg do pipeline</h3>
-            <button
+            <button type="button"
               onClick={onClose}
               className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-ink-800 transition-colors"
             >
@@ -420,10 +467,10 @@ function AddModal({
               <p className="text-center text-slate-600 text-sm py-6">Wpisz co najmniej 2 znaki aby wyszukać</p>
             )}
             {results.map(t => (
-              <button
+              <button type="button"
                 key={t.id}
                 onClick={() => onAdd(t)}
-                className="w-full text-left p-3 rounded-2xl bg-ink-800/40 hover:bg-ink-800/80 border border-ink-700/40 hover:border-em/40 transition-all duration-150 group"
+                className="w-full text-left p-3 rounded-2xl bg-ink-800/40 hover:bg-ink-800/80 border border-ink-700/40 hover:border-em/40 transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-150 group"
               >
                 <p className="text-slate-100 text-sm font-medium line-clamp-1 group-hover:text-slate-100">{t.title}</p>
                 <div className="flex items-center gap-2 mt-1">
@@ -442,10 +489,14 @@ function AddModal({
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function PipelinePage() {
-  const { accessToken, setSelectedTender, setCurrentModule } = useStore();
+  const { setSelectedTender, setCurrentModule } = useStore();
   const authFetch = useAuthFetch();
 
-  const [tendersByStatus, setTendersByStatus] = useState<Record<string, TenderItem[]>>({});
+  // Initialise with empty columns — real data comes from API
+  const emptyByStatus = (): Record<string, TenderItem[]> =>
+    Object.fromEntries(COLUMNS.map(c => [c.key, []]));
+
+  const [tendersByStatus, setTendersByStatus] = useState<Record<string, TenderItem[]>>(emptyByStatus);
   const [kpi, setKpi] = useState<PipelineKPI | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'kanban' | 'timeline'>('kanban');
@@ -456,18 +507,23 @@ export function PipelinePage() {
   const fetchTenders = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await authFetch('/api/v2/tenders?limit=200');
-      const items: TenderItem[] = data?.items ?? [];
-      const byStatus: Record<string, TenderItem[]> = {};
-      for (const col of COLUMNS) byStatus[col.key] = [];
+      const data = await authFetch('/api/v2/tenders?include_pipeline=true&limit=100');
+      const rawItems: BackendTenderItem[] = data?.items ?? [];
+      const items = rawItems.map(mapBackendTender);
+
+      const byStatus: Record<string, TenderItem[]> = emptyByStatus();
       for (const t of items) {
-        const key = (t.pipeline_status ?? 'new').toLowerCase();
-        if (byStatus[key] !== undefined) byStatus[key].push(t);
-        else byStatus['new'].push(t); // fallback to 'new' column
+        const key = (t.pipeline_status ?? '').toLowerCase() || 'scouting';
+        if (byStatus[key] !== undefined) {
+          byStatus[key].push({ ...t, pipeline_status: key });
+        } else {
+          // Unknown status falls into scouting
+          byStatus['scouting'].push({ ...t, pipeline_status: 'scouting' });
+        }
       }
       setTendersByStatus(byStatus);
     } catch {
-      // toast already shown by authFetch
+      // On error keep current state, don't wipe
     } finally {
       setLoading(false);
     }
@@ -485,7 +541,7 @@ export function PipelinePage() {
   // ── Drag handlers ─────────────────────────────────────────────────────────
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, tender: TenderItem) => {
     e.dataTransfer.setData('tenderId', tender.id);
-    e.dataTransfer.setData('fromStatus', (tender.pipeline_status ?? 'new').toLowerCase());
+    e.dataTransfer.setData('fromStatus', (tender.pipeline_status ?? 'scouting').toLowerCase());
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -519,22 +575,23 @@ export function PipelinePage() {
     const tender = (tendersByStatus[fromStatus] ?? []).find(t => t.id === tenderId);
     if (!tender) return;
 
-    // Optimistic update
+    // Optimistic update — move card immediately
     setTendersByStatus(prev => ({
       ...prev,
       [fromStatus]: (prev[fromStatus] ?? []).filter(t => t.id !== tenderId),
-      [toStatus]: [...(prev[toStatus] ?? []), { ...tender, pipeline_status: toStatus }],
+      [toStatus]:   [...(prev[toStatus] ?? []), { ...tender, pipeline_status: toStatus }],
     }));
 
     try {
       await authFetch(`/api/v2/tenders/${tenderId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: toStatus }),
+        body: JSON.stringify({ pipeline_status: toStatus }),
       });
       const label = COLUMNS.find(c => c.key === toStatus)?.label ?? toStatus;
       showToast('success', `Przeniesiono → ${label}`);
     } catch {
-      fetchTenders(); // revert on error
+      // Revert on error
+      fetchTenders();
     }
   };
 
@@ -543,9 +600,9 @@ export function PipelinePage() {
     try {
       await authFetch(`/api/v2/tenders/${tender.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'watching' }),
+        body: JSON.stringify({ pipeline_status: 'scouting' }),
       });
-      showToast('success', 'Dodano do pipeline jako Obserwowane');
+      showToast('success', 'Dodano do pipeline jako Rozpoznanie');
       setShowAddModal(false);
       fetchTenders();
     } catch { /* toast handled */ }
@@ -561,9 +618,9 @@ export function PipelinePage() {
   const allFlat = Object.values(tendersByStatus).flat();
   const totalCount = allFlat.length;
   const totalValue = allFlat.reduce((s, t) => s + (t.value_pln ?? 0), 0);
-  const goCount = (tendersByStatus['decided_go'] ?? []).length;
-  const closedCount = goCount + (tendersByStatus['decided_nogo'] ?? []).length;
-  const winRate = closedCount > 0 ? Math.round((goCount / closedCount) * 100) : null;
+  const wonCount = (tendersByStatus['won'] ?? []).length;
+  const closedCount = wonCount + (tendersByStatus['lost'] ?? []).length;
+  const winRate = closedCount > 0 ? Math.round((wonCount / closedCount) * 100) : null;
 
   // ── Actions bar ───────────────────────────────────────────────────────────
   const actions = (
@@ -652,7 +709,13 @@ export function PipelinePage() {
               icon={Target}
               label="Win Rate"
               value={winRate !== null ? `${winRate}%` : '—'}
-              iconColor="text-go"
+              iconColor={
+                winRate !== null && winRate > 30
+                  ? 'text-emerald-400'
+                  : winRate !== null && winRate >= 20
+                  ? 'text-amber-400'
+                  : 'text-red-400'
+              }
               loading={loading}
             />
           </>

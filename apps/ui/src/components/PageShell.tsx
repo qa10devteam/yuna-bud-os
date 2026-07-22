@@ -33,7 +33,7 @@ function Breadcrumb({ segments }: { segments: BreadcrumbSegment[] }) {
         <span key={i} className="flex items-center gap-1">
           {i > 0 && <ChevronRight className="w-3 h-3 text-slate-700" />}
           {seg.onClick ? (
-            <button
+            <button type="button"
               onClick={seg.onClick}
               className="hover:text-slate-400 transition-colors duration-150"
             >
@@ -87,7 +87,7 @@ export function PageShell({
           )}
         </div>
         {actions && (
-          <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+          <div className="flex items-center gap-2 shrink-0 mt-1">
             {actions}
           </div>
         )}

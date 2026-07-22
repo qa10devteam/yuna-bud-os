@@ -93,7 +93,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {inputEl}
       {errorText ? (
         <p className="flex items-center gap-1 mt-1 text-xs text-nogo">
-          <AlertCircle className="w-3 h-3 flex-shrink-0" />
+          <AlertCircle className="w-3 h-3 shrink-0" />
           {errorText}
         </p>
       ) : helperText ? (
@@ -101,7 +101,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ) : null}
       {resolvedVariant === 'success' && !errorText && (
         <p className="flex items-center gap-1 mt-1 text-xs text-go">
-          <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+          <CheckCircle2 className="w-3 h-3 shrink-0" />
           OK
         </p>
       )}

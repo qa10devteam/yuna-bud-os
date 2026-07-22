@@ -5,9 +5,11 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
+  e.waitUntil(caches.keys().then(keys => {
+    const toDelete = [];
+    for (const k of keys) { if (k !== CACHE) toDelete.push(caches.delete(k)); }
+    return Promise.all(toDelete);
+  }));
   self.clients.claim();
 });
 self.addEventListener('fetch', e => {

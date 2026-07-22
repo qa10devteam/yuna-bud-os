@@ -65,7 +65,7 @@ export function DemoTour() {
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" onClick={dismiss} />
       <div className="relative z-10 w-full max-w-md bg-ink-900 border border-ink-700/60 rounded-2xl shadow-xl p-6">
-        <button onClick={dismiss} className="absolute top-4 right-4 text-slate-500 hover:text-slate-200">
+        <button type="button" onClick={dismiss} className="absolute top-4 right-4 text-slate-500 hover:text-slate-200">
           <X className="w-5 h-5" />
         </button>
 
@@ -88,11 +88,11 @@ export function DemoTour() {
           </div>
           <div className="flex gap-2">
             {step > 0 && (
-              <button onClick={prev} className="flex items-center gap-1 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">
+              <button type="button" onClick={prev} className="flex items-center gap-1 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">
                 <ChevronLeft className="w-4 h-4" /> Wstecz
               </button>
             )}
-            <button
+            <button type="button"
               onClick={next}
               className="flex items-center gap-1 px-4 py-1.5 bg-em text-ink-950 text-sm font-semibold rounded-xl hover:bg-em/90"
             >

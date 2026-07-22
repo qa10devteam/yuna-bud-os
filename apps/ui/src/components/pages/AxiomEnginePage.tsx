@@ -73,7 +73,7 @@ export default function AxiomEnginePage() {
   };
 
   const actions = (
-    <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
+    <button type="button" onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
       <Plus size={14} /> Nowy aksjomat
     </button>
   );
@@ -134,8 +134,8 @@ export default function AxiomEnginePage() {
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
-              <button onClick={createAxiom} className="btn-primary">Utwórz</button>
+              <button type="button" onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
+              <button type="button" onClick={createAxiom} className="btn-primary">Utwórz</button>
             </div>
           </div>
         </div>
@@ -173,14 +173,14 @@ export default function AxiomEnginePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4">
-                  <button
+                  <button type="button"
                     onClick={() => toggleAxiom(axiom.id, axiom.enabled)}
                     className={`relative h-6 w-11 rounded-full transition-colors ${axiom.enabled ? "bg-em" : "bg-ink-700"}`}
                     aria-label={axiom.enabled ? 'Wyłącz' : 'Włącz'}
                   >
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-slate-100 transition-transform ${axiom.enabled ? "left-[22px]" : "left-0.5"}`} />
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => deleteAxiom(axiom.id)}
                     className="rounded-md p-1 text-slate-500 hover:bg-danger/10 hover:text-danger transition-colors"
                     aria-label="Usuń aksjomat"

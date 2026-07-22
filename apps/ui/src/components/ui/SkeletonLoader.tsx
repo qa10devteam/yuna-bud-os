@@ -17,8 +17,10 @@ export function SkeletonRow({ cols = 5 }: { cols?: number }) {
   );
 }
 
+const CARD_WIDTHS = ['w-3/4', 'w-full', 'w-5/6', 'w-2/3', 'w-4/5', 'w-1/2'];
+
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
-  const widths = ['w-3/4', 'w-full', 'w-5/6', 'w-2/3', 'w-4/5', 'w-1/2'];
+  const widths = CARD_WIDTHS;
   return (
     <div className="p-4 rounded-xl bg-ink-900 border border-ink-line space-y-2.5">
       <div className="h-4 w-2/5 rounded animate-shimmer" />
@@ -52,8 +54,10 @@ export function SkeletonKPI() {
   );
 }
 
+const TEXT_WIDTHS = ['w-full', 'w-5/6', 'w-4/5', 'w-3/4', 'w-2/3', 'w-1/2'];
+
 export function SkeletonTextBlock({ lines = 4 }: { lines?: number }) {
-  const widths = ['w-full', 'w-5/6', 'w-4/5', 'w-3/4', 'w-2/3', 'w-1/2'];
+  const widths = TEXT_WIDTHS;
   return (
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (

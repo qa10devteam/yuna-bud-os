@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, LayoutDashboard, Radar, GitBranch, Calculator, Settings,
@@ -106,21 +106,27 @@ export function CommandMenu({ open, onClose }: CommandMenuProps) {
 
   // ── Build combined item list ───────────────────────────────────────────────
 
-  const pageItems = PAGE_ITEMS(navigate);
-  const filteredPages = query
-    ? pageItems.filter(i => i.label.toLowerCase().includes(query.toLowerCase()) || i.description?.toLowerCase().includes(query.toLowerCase()))
-    : pageItems;
+  const tenderItems = useMemo<CommandItem[]>(() => {
+    return apiResults.map(t => ({
+      id: `tender:${t.id}`,
+      label: t.title,
+      description: [t.cpv_code, t.status, fmtMln(t.value_pln), t.source].filter(Boolean).join(' · '),
+      icon: <FileText className="w-4 h-4" />,
+      action: () => { setCurrentModule('zwiad'); onClose(); },
+      group: 'tender' as const,
+    }));
+  }, [apiResults, onClose, setCurrentModule]);
 
-  const tenderItems: CommandItem[] = apiResults.map(t => ({
-    id: `tender:${t.id}`,
-    label: t.title,
-    description: [t.cpv_code, t.status, fmtMln(t.value_pln), t.source].filter(Boolean).join(' · '),
-    icon: <FileText className="w-4 h-4" />,
-    action: () => { setCurrentModule('zwiad'); onClose(); },
-    group: 'tender' as const,
-  }));
+  const filteredPages = useMemo<CommandItem[]>(() => {
+    const pageItems = PAGE_ITEMS(navigate);
+    return query
+      ? pageItems.filter(i => i.label.toLowerCase().includes(query.toLowerCase()) || i.description?.toLowerCase().includes(query.toLowerCase()))
+      : pageItems;
+  }, [query, navigate]);
 
-  const allItems: CommandItem[] = [...tenderItems, ...filteredPages];
+  const allItems = useMemo<CommandItem[]>(() => {
+    return [...tenderItems, ...filteredPages];
+  }, [tenderItems, filteredPages]);
 
   // Reset selection on results change
   useEffect(() => { setSelected(0); }, [query, apiResults]);
@@ -131,7 +137,8 @@ export function CommandMenu({ open, onClose }: CommandMenuProps) {
       setQuery('');
       setApiResults([]);
       setSelected(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
     }
   }, [open]);
 
@@ -185,11 +192,11 @@ export function CommandMenu({ open, onClose }: CommandMenuProps) {
                 className="flex-1 bg-transparent text-slate-100 placeholder-ink-600 text-sm outline-none"
               />
               {query && (
-                <button onClick={() => setQuery('')} className="text-slate-600 hover:text-slate-300 transition-colors">
+                <button type="button" onClick={() => setQuery('')} className="text-slate-600 hover:text-slate-300 transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={onClose} className="text-slate-600 hover:text-slate-300 transition-colors">
+              <button type="button" onClick={onClose} className="text-slate-600 hover:text-slate-300 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -201,7 +208,7 @@ export function CommandMenu({ open, onClose }: CommandMenuProps) {
                 <>
                   <div className="px-4 py-1.5 text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Przetargi</div>
                   {tenderItems.map((item, idx) => (
-                    <button
+                    <button type="button"
                       key={item.id}
                       onClick={item.action}
                       onMouseEnter={() => setSelected(idx)}
@@ -229,7 +236,7 @@ export function CommandMenu({ open, onClose }: CommandMenuProps) {
                   {filteredPages.map((item, i) => {
                     const idx = tenderItems.length + i;
                     return (
-                      <button
+                      <button type="button"
                         key={item.id}
                         onClick={item.action}
                         onMouseEnter={() => setSelected(idx)}

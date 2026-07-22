@@ -98,7 +98,7 @@ function QuickReplies({ suggestions, onSelect, disabled }: QuickRepliesProps) {
   return (
     <div className="flex flex-wrap gap-1.5 px-3 pb-2">
       {suggestions.map(s => (
-        <button
+        <button type="button"
           key={s}
           onClick={() => onSelect(s)}
           disabled={disabled}
@@ -155,7 +155,10 @@ export function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 200);
+    if (open) {
+      const t = setTimeout(() => inputRef.current?.focus(), 200);
+      return () => clearTimeout(t);
+    }
   }, [open]);
 
   useEffect(() => {
@@ -329,11 +332,11 @@ export function ChatWidget() {
           >
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-ink-800/60 bg-ink-900/70 shrink-0">
-              <div className="w-8 h-8 rounded-xl bg-em/20 flex items-center justify-center border border-em/20">
-                <Brain className="w-4 h-4 text-em" />
+              <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0" style={{ boxShadow: '0 0 0 1px rgba(16,185,129,0.25)' }}>
+                <img src="/brand/B01-app-icon-budos.png" alt="BudOS" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-slate-100 text-sm font-semibold">Asystent budos</p>
+                <p className="text-slate-100 text-sm font-semibold">Asystent YU-NA</p>
                 <p className="text-slate-600 text-xs">
                   {loading ? (
                     <span className="text-em">Pisze…</span>
@@ -342,7 +345,7 @@ export function ChatWidget() {
                   )}
                 </p>
               </div>
-              <button
+              <button type="button"
                 onClick={() => setOpen(false)}
                 className="w-7 h-7 rounded-lg hover:bg-ink-800 flex items-center justify-center transition-colors text-slate-500 hover:text-slate-300"
               >

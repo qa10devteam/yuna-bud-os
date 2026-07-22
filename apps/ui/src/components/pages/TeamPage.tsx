@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Users, Shield, Mail, MoreHorizontal, Plus, Crown, UserCog, Eye } from 'lucide-react';
 import { PageShell } from '@/components/PageShell';
 
@@ -37,7 +37,7 @@ export function TeamPage() {
   const [members] = useState<TeamMember[]>(DEMO_TEAM);
 
   const actions = (
-    <button className="btn-primary flex items-center gap-2">
+    <button type="button" className="btn-primary flex items-center gap-2">
       <Plus className="w-4 h-4" /> Zaproś użytkownika
     </button>
   );
@@ -120,7 +120,7 @@ export function TeamPage() {
                     <td className="px-4 py-4 text-slate-400">{m.projects}</td>
                     <td className="px-4 py-4 text-slate-500 text-xs">{m.last_active}</td>
                     <td className="px-4 py-4 text-right">
-                      <button className="p-1.5 rounded-md hover:bg-ink-800/60 text-slate-500 hover:text-slate-300 transition-colors">
+                      <button type="button" className="p-1.5 rounded-md hover:bg-ink-800/60 text-slate-500 hover:text-slate-300 transition-colors">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                     </td>

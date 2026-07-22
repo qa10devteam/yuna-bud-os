@@ -142,7 +142,7 @@ export function MarketIntelPage() {
             onChange={e => setCpvFilter(e.target.value)}
             className="input-base w-36"
           />
-          <button
+          <button type="button"
             onClick={() => {
               if (tab === 'olap') fetchOlap();
               else if (tab === 'forecast') fetchForecast();
@@ -160,11 +160,11 @@ export function MarketIntelPage() {
         {/* ── Tab Bar ──────────────────────────────────────────────────────── */}
         <div className="flex gap-1 bg-ink-900/40 p-1 rounded-xl border border-ink-800/50">
           {tabs.map(t => (
-            <button
+            <button type="button"
               key={t.id}
               onClick={() => setTab(t.id)}
               className={[
-                'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+                'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow]',
                 tab === t.id
                   ? 'bg-em/15 text-em border border-em/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-ink-800/50',

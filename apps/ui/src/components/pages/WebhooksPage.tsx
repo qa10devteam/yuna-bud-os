@@ -102,7 +102,7 @@ export default function WebhooksPage() {
   };
 
   const actions = (
-    <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
+    <button type="button" onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
       <Plus size={14} /> Nowy webhook
     </button>
   );
@@ -144,7 +144,7 @@ export default function WebhooksPage() {
                 <p className="mb-2 text-xs text-slate-400 label-base">Subskrybowane eventy</p>
                 <div className="flex flex-wrap gap-2">
                   {EVENT_OPTIONS.map((event) => (
-                    <button
+                    <button type="button"
                       key={event}
                       onClick={() => toggleEvent(event)}
                       className={`rounded-md px-2.5 py-1 text-xs transition-colors font-mono ${
@@ -160,8 +160,8 @@ export default function WebhooksPage() {
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
-              <button
+              <button type="button" onClick={() => setShowCreate(false)} className="btn-ghost">Anuluj</button>
+              <button type="button"
                 onClick={createWebhook}
                 disabled={!form.name || !form.url || form.events.length === 0}
                 className="btn-primary disabled:opacity-40"
@@ -211,20 +211,20 @@ export default function WebhooksPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 ml-4">
-                  <button
+                  <button type="button"
                     onClick={() => testWebhook(webhook.id)}
                     className="btn-ghost text-xs px-2 py-1"
                   >
                     Test
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => toggleWebhook(webhook.id, webhook.enabled)}
                     className={`relative h-6 w-11 rounded-full transition-colors ${webhook.enabled ? "bg-em" : "bg-ink-700"}`}
                     aria-label={webhook.enabled ? 'Wyłącz' : 'Włącz'}
                   >
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-slate-100 transition-transform ${webhook.enabled ? "left-[22px]" : "left-0.5"}`} />
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => deleteWebhook(webhook.id)}
                     className="rounded-md p-1 text-slate-500 hover:bg-danger/10 hover:text-danger transition-colors"
                     aria-label="Usuń webhook"

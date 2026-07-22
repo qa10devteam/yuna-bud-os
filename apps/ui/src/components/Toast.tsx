@@ -86,13 +86,13 @@ const TOAST_CONFIG: Record<ToastType, {
 
 function ToastProgress({ duration, barClass }: { duration: number; barClass: string }) {
   const [width, setWidth] = useState(100);
-  const startRef = useRef(Date.now());
+  const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     startRef.current = Date.now();
     const tick = () => {
-      const elapsed = Date.now() - startRef.current;
+      const elapsed = Date.now() - startRef.current!;
       const pct = Math.max(0, 100 - (elapsed / duration) * 100);
       setWidth(pct);
       if (pct > 0) {
@@ -128,7 +128,7 @@ function SingleToast({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: s
     >
       <Icon className={`w-5 h-5 shrink-0 ${config.iconClass}`} />
       <span className={`text-sm font-medium flex-1 ${config.textClass}`}>{toast.message}</span>
-      <button
+      <button type="button"
         onClick={() => onDismiss(toast.id)}
         aria-label="Zamknij"
         className="w-5 h-5 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 transition-colors shrink-0"

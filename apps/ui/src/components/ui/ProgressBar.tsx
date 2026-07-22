@@ -47,7 +47,7 @@ export function ProgressBar({
     <div className={`flex items-center gap-2 ${className}`}>
       <div className={`flex-1 rounded-full bg-ink-800 overflow-hidden ${SIZE_MAP[size]}`}>
         <div
-          className={`${barColor} ${SIZE_MAP[size]} rounded-full transition-all duration-500 ease-out`}
+          className={`${barColor} ${SIZE_MAP[size]} rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-500 ease-out`}
           style={{ width: `${clamped}%` }}
         />
       </div>

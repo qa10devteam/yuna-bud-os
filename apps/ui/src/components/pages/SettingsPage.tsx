@@ -14,6 +14,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuthFetch } from '@/lib/api-v2';
 import { showToast } from '@/components/Toast';
 import { PageShell } from '@/components/PageShell';
+import { PageTransition } from '@/components/ui/PageTransition';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ function ActionBtn({
     accent:    'bg-indigo/20 text-indigo-400 hover:bg-indigo/30 border border-indigo/30',
   }[variant];
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       disabled={loading || disabled}
       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40 ${styles}`}
@@ -188,7 +189,7 @@ function PillTag({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-ink-800 border border-ink-700/60 text-xs text-slate-300">
       {label}
-      <button onClick={onRemove} className="text-slate-600 hover:text-nogo transition-colors">
+      <button type="button" onClick={onRemove} className="text-slate-600 hover:text-nogo transition-colors">
         <XCircle className="w-3 h-3" />
       </button>
     </span>
@@ -279,7 +280,7 @@ function OrganizacjaSection() {
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Dane firmy</p>
           {!editing && (
-            <button onClick={() => setEditing(true)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+            <button type="button" onClick={() => setEditing(true)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
               Edytuj
             </button>
           )}
@@ -410,7 +411,7 @@ function ZespolSection() {
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
           Czlonkowie ({members.length})
         </p>
-        <button onClick={load} className="p-1.5 text-slate-600 hover:text-slate-400 transition-colors rounded-lg hover:bg-ink-800/60">
+        <button type="button" onClick={load} className="p-1.5 text-slate-600 hover:text-slate-400 transition-colors rounded-lg hover:bg-ink-800/60">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -470,7 +471,7 @@ function ZespolSection() {
                   )}
 
                   {!member.is_me && (
-                    <button
+                    <button type="button"
                       onClick={() => removeMember(member.id, member.email)}
                       disabled={removing === member.id}
                       title="Usun z organizacji"
@@ -604,7 +605,7 @@ function ZaproszeniaSSection() {
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             Wyslane zaproszenia {invites.length > 0 ? `(${invites.length})` : ''}
           </p>
-          <button onClick={load} className="p-1.5 text-slate-600 hover:text-slate-400 transition-colors rounded-lg hover:bg-ink-800/60">
+          <button type="button" onClick={load} className="p-1.5 text-slate-600 hover:text-slate-400 transition-colors rounded-lg hover:bg-ink-800/60">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -641,7 +642,7 @@ function ZaproszeniaSSection() {
                       Oczekuje
                     </span>
                     {true && (
-                      <button
+                      <button type="button"
                         onClick={() => revokeInvite(inv.id, inv.email)}
                         disabled={revoking === inv.id}
                         title="Anuluj zaproszenie"
@@ -809,7 +810,7 @@ function WeightSlider({
       </div>
       <div className="relative h-2 bg-ink-800 rounded-full border border-ink-700/40">
         <div
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-em to-em rounded-full transition-all"
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-em to-em rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow]"
           style={{ width: `${pct}%` }}
         />
         <input
@@ -1263,11 +1264,11 @@ function BillingSection() {
                   {sub.cancel_at_period_end && <span className="text-warn ml-2">· Anuluje się na koniec okresu</span>}
                 </p>
               </div>
-              <button
+              <button type="button"
                 onClick={async () => {
                   try {
                     const data = await authFetch('/api/v2/billing/checkout-url') as { url?: string };
-                    if (data?.url) window.open(data.url, '_blank');
+                    if (data?.url) window.open(data.url, '_blank', 'noopener,noreferrer');
                   } catch { /* noop */ }
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-em/10 text-em hover:bg-em/20 rounded-xl transition-colors border border-em/20"
@@ -1375,7 +1376,7 @@ function APIKeysSection() {
             <code className="flex-1 bg-ink-950 rounded px-3 py-2 text-xs text-slate-200 font-mono truncate">
               {createdKey.plaintext_key}
             </code>
-            <button
+            <button type="button"
               onClick={() => { navigator.clipboard.writeText(createdKey.plaintext_key!); }}
               className="p-2 text-slate-400 hover:text-em transition-colors"
               title="Kopiuj klucz"
@@ -1383,7 +1384,7 @@ function APIKeysSection() {
               <Copy className="w-4 h-4" />
             </button>
           </div>
-          <button onClick={() => setCreatedKey(null)} className="text-xs text-slate-600 hover:text-slate-400 mt-2 transition-colors">Zamknij</button>
+          <button type="button" onClick={() => setCreatedKey(null)} className="text-xs text-slate-600 hover:text-slate-400 mt-2 transition-colors">Zamknij</button>
         </GlassCard>
       )}
 
@@ -1402,7 +1403,7 @@ function APIKeysSection() {
             onChange={e => setNewKeyName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && create()}
           />
-          <button
+          <button type="button"
             onClick={create}
             disabled={creating || !newKeyName.trim()}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-em text-ink-950 font-semibold rounded-xl hover:bg-em disabled:opacity-50 transition-colors"
@@ -1433,7 +1434,7 @@ function APIKeysSection() {
                     <span key={s} className="text-[10px] px-1.5 py-0.5 bg-ink-700/50 text-slate-400 rounded">{s}</span>
                   ))}
                 </div>
-                <button
+                <button type="button"
                   onClick={() => deleteKey(k.id)}
                   className="p-1.5 text-slate-600 hover:text-nogo transition-colors"
                   title="Usuń klucz"
@@ -1538,7 +1539,7 @@ function WebhooksSection() {
               onChange={e => setForm(f => ({ ...f, events: e.target.value }))}
             />
           </div>
-          <button
+          <button type="button"
             onClick={create}
             disabled={creating || !form.url.trim()}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-em text-ink-950 font-semibold rounded-xl hover:bg-em disabled:opacity-50 transition-colors"
@@ -1569,7 +1570,7 @@ function WebhooksSection() {
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${w.is_active ? 'bg-em/15 text-em' : 'bg-ink-700/30 text-slate-500'}`}>
                   {w.is_active ? 'Aktywny' : 'Wstrzymany'}
                 </span>
-                <button
+                <button type="button"
                   onClick={() => deleteWebhook(w.id)}
                   className="p-1.5 text-slate-600 hover:text-nogo transition-colors"
                 >
@@ -1598,7 +1599,7 @@ export function SettingsPage() {
             const Icon = s.icon;
             const active = section === s.id;
             return (
-              <button
+              <button type="button"
                 key={s.id}
                 onClick={() => setSection(s.id)}
                 className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors ${

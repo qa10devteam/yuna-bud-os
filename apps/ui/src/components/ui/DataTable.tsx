@@ -106,6 +106,9 @@ export function DataTable<T extends { id: string }>({
                   col.headerClassName ?? '',
                 ].filter(Boolean).join(' ')}
                 onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                onKeyDown={col.sortable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort(col.key); } } : undefined}
+                tabIndex={col.sortable ? 0 : undefined}
+                role={col.sortable ? 'button' : undefined}
               >
                 <span className="flex items-center gap-1">
                   {col.header}
@@ -147,6 +150,9 @@ export function DataTable<T extends { id: string }>({
               <tr
                 key={row.id}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick(row); } } : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? 'row' : undefined}
                 className={[
                   'border-b border-ink-line/40',
                   'transition-colors duration-100',

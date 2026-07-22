@@ -37,7 +37,7 @@ export function Tabs({ tabs, active, onChange, size = 'md', className = '' }: Ta
             type="button"
             onClick={() => onChange(tab.id)}
             className={[
-              'flex items-center justify-center font-medium rounded-lg transition-all duration-200',
+              'flex items-center justify-center font-medium rounded-lg transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200',
               base,
               isActive
                 ? 'bg-ink-800 text-slate-100 shadow-sm'

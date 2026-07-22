@@ -85,7 +85,7 @@ export function Drawer({
               ) : (
                 <span />
               )}
-              <button
+              <button type="button"
                 onClick={onClose}
                 className="p-1.5 rounded-md text-slate-500 hover:text-slate-200 hover:bg-ink-800 transition-colors"
                 aria-label="Zamknij"

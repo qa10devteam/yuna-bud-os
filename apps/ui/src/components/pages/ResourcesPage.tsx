@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Users, Truck, Calendar, Plus, Search, UserCheck, UserX } from 'lucide-react';
 import { PageShell } from '@/components/PageShell';
 
@@ -63,7 +63,7 @@ export function ResourcesPage() {
   const selected = DEMO_RESOURCES.find(r => r.id === selectedId);
 
   const actions = (
-    <button className="btn-primary flex items-center gap-2">
+    <button type="button" className="btn-primary flex items-center gap-2">
       <Plus className="w-4 h-4" /> Dodaj zasób
     </button>
   );
@@ -94,10 +94,10 @@ export function ResourcesPage() {
         <motion.div variants={item} className="flex items-center gap-3">
           <div className="flex gap-1 p-1 rounded-xl bg-ink-900 border border-ink-800/60">
             {([['all', 'Wszystkie'], ['person', 'Pracownicy'], ['equipment', 'Sprzęt']] as const).map(([key, label]) => (
-              <button
+              <button type="button"
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                   filter === key ? 'bg-ink-800 text-slate-100' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
@@ -124,7 +124,7 @@ export function ResourcesPage() {
               {resources.map(r => {
                 const meta = STATUS_META[r.status];
                 return (
-                  <button
+                  <button type="button"
                     key={r.id}
                     onClick={() => setSelectedId(r.id)}
                     className={`w-full text-left px-4 py-3 hover:bg-ink-800/30 transition-colors ${

@@ -1,6 +1,8 @@
+import Link from 'next/link';
+
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#0A0A0F] px-4 py-16 text-gray-300">
+    <main className="min-h-dvh bg-[#0A0A0F] px-4 py-16 text-gray-300">
       <article className="mx-auto max-w-3xl space-y-8">
         <h1 className="text-3xl font-bold text-white">Regulamin platformy Terra.OS</h1>
         <p className="text-sm text-gray-500">Ostatnia aktualizacja: 14 lipca 2026 r.</p>
@@ -23,9 +25,9 @@ export default function TermsPage() {
             </li>
             <li>
               Korzystanie z Platformy oznacza akceptację niniejszego Regulaminu oraz{' '}
-              <a href="/privacy" className="text-[#B8FF00] hover:underline">
+              <Link href="/privacy" className="text-[#B8FF00] hover:underline">
                 Polityki Prywatności
-              </a>
+              </Link>
               .
             </li>
           </ol>
@@ -101,9 +103,9 @@ export default function TermsPage() {
           <ol className="list-decimal space-y-2 pl-6">
             <li>
               Zasady przetwarzania danych osobowych określa{' '}
-              <a href="/privacy" className="text-[#B8FF00] hover:underline">
+              <Link href="/privacy" className="text-[#B8FF00] hover:underline">
                 Polityka Prywatności
-              </a>
+              </Link>
               .
             </li>
             <li>

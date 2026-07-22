@@ -121,6 +121,74 @@ function SkeletonCard() {
   );
 }
 
+// ── Helper: getDayLabel ───────────────────────────────────────────────────────
+function getDayLabel(dateStr: string, short = false) {
+  const d = new Date(dateStr);
+  const dayIdx = d.getDay();
+  const dayName = short ? PL_DAYS[dayIdx] : PL_DAYS_FULL[dayIdx];
+  const dd = d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+  return { dayName, dd };
+}
+
+// ── DayCard (module scope) ────────────────────────────────────────────────────
+function DayCard({ day, size = 'normal', selectedDay, setSelectedDay }: {
+  day: DayForecast;
+  size?: 'normal' | 'small';
+  selectedDay: DayForecast | null;
+  setSelectedDay: (d: DayForecast | null) => void;
+}) {
+  const risk: RiskLevel =
+    apiRiskToLevel(day.construction_risk) ??
+    calcRisk(day.precipitation_mm ?? 0, day.wind_max_kmh ?? 0, day.temp_min ?? 0);
+  const rc = riskConfig[risk];
+  const { dayName, dd } = getDayLabel(day.date, true);
+  const isSelected = selectedDay?.date === day.date;
+  const isSmall = size === 'small';
+
+  return (
+    <motion.div
+      whileHover={{ y: -2 }}
+      onClick={() => setSelectedDay(isSelected ? null : day)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDay(isSelected ? null : day); } }}
+      tabIndex={0}
+      role="button"
+      className={`card rounded-xl cursor-pointer transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200 ${
+        isSmall ? 'p-3' : 'p-4'
+      } ${isSelected ? 'ring-2 ring-em/60' : 'card-hover'}`}
+    >
+      <div className="text-center">
+        <p className="text-xs font-semibold text-slate-400 uppercase">{dayName}</p>
+        <p className="text-xs text-slate-600 mb-2">{dd}</p>
+
+        <WeatherIcon
+          code={day.weather_code}
+          className={isSmall ? 'w-7 h-7 mx-auto mb-2' : 'w-10 h-10 mx-auto mb-2'}
+        />
+
+        {!isSmall && (
+          <p className="text-slate-500 text-xs mb-2">{weatherLabel(day.weather_code)}</p>
+        )}
+
+        <div className="flex items-center justify-center gap-1 mb-2">
+          <span className="text-indigo-400 font-mono text-xs">{(day.temp_min ?? 0).toFixed(0)}°</span>
+          <span className="text-slate-700 text-xs">/</span>
+          <span className="text-orange-400 font-mono text-xs font-semibold">{(day.temp_max ?? 0).toFixed(0)}°</span>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-xs text-slate-600 mb-2">
+          <span><CloudRain className="w-3 h-3 inline mr-0.5" />{(day.precipitation_mm ?? 0).toFixed(0)}mm</span>
+          <span><Wind className="w-3 h-3 inline mr-0.5" />{(day.wind_max_kmh ?? 0).toFixed(0)}</span>
+        </div>
+
+        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${rc.cls}`}>
+          <span>{rc.icon}</span>
+          {isSmall ? risk.slice(0, 3) : rc.label}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export function PogodaPage() {
   const [city, setCity] = useState('Warszawa');
@@ -173,64 +241,6 @@ export function PogodaPage() {
   const firstRow = forecast.slice(0, 7);
   const secondRow = forecast.slice(7, 14);
 
-  function getDayLabel(dateStr: string, short = false) {
-    const d = new Date(dateStr);
-    const dayIdx = d.getDay();
-    const dayName = short ? PL_DAYS[dayIdx] : PL_DAYS_FULL[dayIdx];
-    const dd = d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
-    return { dayName, dd };
-  }
-
-  function DayCard({ day, size = 'normal' }: { day: DayForecast; size?: 'normal' | 'small' }) {
-    const risk: RiskLevel =
-      apiRiskToLevel(day.construction_risk) ??
-      calcRisk(day.precipitation_mm ?? 0, day.wind_max_kmh ?? 0, day.temp_min ?? 0);
-    const rc = riskConfig[risk];
-    const { dayName, dd } = getDayLabel(day.date, true);
-    const isSelected = selectedDay?.date === day.date;
-    const isSmall = size === 'small';
-
-    return (
-      <motion.div
-        whileHover={{ y: -2 }}
-        onClick={() => setSelectedDay(isSelected ? null : day)}
-        className={`card rounded-xl cursor-pointer transition-all duration-200 ${
-          isSmall ? 'p-3' : 'p-4'
-        } ${isSelected ? 'ring-2 ring-em/60' : 'card-hover'}`}
-      >
-        <div className="text-center">
-          <p className="text-xs font-semibold text-slate-400 uppercase">{dayName}</p>
-          <p className="text-xs text-slate-600 mb-2">{dd}</p>
-
-          <WeatherIcon
-            code={day.weather_code}
-            className={isSmall ? 'w-7 h-7 mx-auto mb-2' : 'w-10 h-10 mx-auto mb-2'}
-          />
-
-          {!isSmall && (
-            <p className="text-slate-500 text-xs mb-2">{weatherLabel(day.weather_code)}</p>
-          )}
-
-          <div className="flex items-center justify-center gap-1 mb-2">
-            <span className="text-indigo-400 font-mono text-xs">{(day.temp_min ?? 0).toFixed(0)}°</span>
-            <span className="text-slate-700 text-xs">/</span>
-            <span className="text-orange-400 font-mono text-xs font-semibold">{(day.temp_max ?? 0).toFixed(0)}°</span>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-600 mb-2">
-            <span><CloudRain className="w-3 h-3 inline mr-0.5" />{(day.precipitation_mm ?? 0).toFixed(0)}mm</span>
-            <span><Wind className="w-3 h-3 inline mr-0.5" />{(day.wind_max_kmh ?? 0).toFixed(0)}</span>
-          </div>
-
-          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${rc.cls}`}>
-            <span>{rc.icon}</span>
-            {isSmall ? risk.slice(0, 3) : rc.label}
-          </span>
-        </div>
-      </motion.div>
-    );
-  }
-
   return (
     <PageShell
       title="Pogoda Budowlana"
@@ -250,6 +260,7 @@ export function PogodaPage() {
             value={inputValue}
             onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }}
             onFocus={() => setShowDropdown(true)}
+            aria-label="Wyszukaj miasto"
             onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
             placeholder="Wyszukaj miasto..."
             className="input-base w-full"
@@ -264,7 +275,7 @@ export function PogodaPage() {
                 className="absolute top-full mt-1 left-0 right-0 bg-ink-900 border border-ink-700 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto"
               >
                 {filteredCities.map((c) => (
-                  <button
+                  <button type="button"
                     key={c}
                     onMouseDown={() => selectCity(c)}
                     className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-ink-800 ${
@@ -294,7 +305,7 @@ export function PogodaPage() {
             {loading
               ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
               : firstRow.length > 0
-                ? firstRow.map(day => <DayCard key={day.date} day={day} size="normal" />)
+                ? firstRow.map(day => <DayCard key={day.date} day={day} size="normal" selectedDay={selectedDay} setSelectedDay={setSelectedDay} />)
                 : (
                   <div className="col-span-7 flex flex-col items-center justify-center py-10 text-center">
                     <CloudRain className="w-10 h-10 text-slate-600 mb-3" />
@@ -313,7 +324,7 @@ export function PogodaPage() {
             <div className="grid grid-cols-7 gap-2">
               {loading
                 ? Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)
-                : secondRow.map(day => <DayCard key={day.date} day={day} size="small" />)
+                : secondRow.map(day => <DayCard key={day.date} day={day} size="small" selectedDay={selectedDay} setSelectedDay={setSelectedDay} />)
               }
             </div>
           </div>

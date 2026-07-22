@@ -160,7 +160,7 @@ function QueueCard({
       initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
       onClick={onClick}
-      className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
+      className={`p-3 rounded-xl border cursor-pointer transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200 ${
         isSelected
           ? 'bg-indigo/10 border-indigo/40 shadow-md-sm'
           : 'card-hover'
@@ -400,7 +400,7 @@ export function DecyzjaPage() {
             {queueLoading ? 'Ładowanie…' : `${queue.length} przetargów`}
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={fetchQueue}
           aria-label="Odśwież kolejkę"
           className="btn-ghost p-1.5"
@@ -626,7 +626,7 @@ export function DecyzjaPage() {
                     <div className="mt-3">
                       <div className="h-1.5 bg-ink-800 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-700 ${delta > 0 ? 'bg-nogo' : 'bg-em'}`}
+                          className={`h-full rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-700 ${delta > 0 ? 'bg-nogo' : 'bg-em'}`}
                           style={{
                             width: `${Math.min(Math.abs(delta) / Math.max(parseFloat(String(compare.doc_total)) || 1, 1) * 200, 100)}%`,
                           }}
@@ -647,13 +647,13 @@ export function DecyzjaPage() {
 
               <GlassCard className="p-4">
                 {/* Run button */}
-                <button
+                <button type="button"
                   onClick={runAnalysis}
                   disabled={running}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
                              bg-indigo hover:bg-indigo/90
                              disabled:opacity-50 disabled:cursor-not-allowed
-                             text-ink-950 font-semibold text-sm transition-all duration-200
+                             text-ink-950 font-semibold text-sm transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200
                              shadow-md-md"
                 >
                   {running
@@ -801,23 +801,23 @@ export function DecyzjaPage() {
                       animate={{ opacity: 1 }}
                       className="flex gap-3"
                     >
-                      <button
+                      <button type="button"
                         onClick={() => takeDecision('decided_go')}
                         className="flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl
                                    bg-em hover:bg-em/90 active:bg-em/80
                                    text-ink-950 font-bold text-sm
-                                   transition-all duration-200 shadow-md-md"
+                                   transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200 shadow-md-md"
                       >
                         <ThumbsUp className="w-4 h-4" />
                         GO — Złóż ofertę
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => takeDecision('decided_nogo')}
                         className="flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl
                                    border border-nogo/30 bg-nogo/10
                                    hover:bg-nogo/20 hover:border-nogo/50
                                    text-nogo font-bold text-sm
-                                   transition-all duration-200"
+                                   transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200"
                       >
                         <ThumbsDown className="w-4 h-4" />
                         NO-GO — Odrzuć

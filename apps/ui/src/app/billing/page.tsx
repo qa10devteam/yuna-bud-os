@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface Subscription {
   plan: string;
@@ -15,6 +16,13 @@ interface Invoice {
   status: string;
   pdf_url?: string;
 }
+
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Darmowy',
+  starter: 'Starter',
+  pro: 'Pro',
+  enterprise: 'Enterprise',
+};
 
 export default function BillingPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -52,23 +60,18 @@ export default function BillingPage() {
     fetchData();
   }, []);
 
-  const planLabels: Record<string, string> = {
-    free: 'Darmowy',
-    starter: 'Starter',
-    pro: 'Pro',
-    enterprise: 'Enterprise',
-  };
+  const planLabels = PLAN_LABELS;
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0A0A0F' }}>
+      <div className="min-h-dvh flex items-center justify-center" style={{ backgroundColor: '#0A0A0F' }}>
         <p className="text-gray-400 text-lg">Ładowanie...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ backgroundColor: '#0A0A0F' }}>
+    <div className="min-h-dvh p-8" style={{ backgroundColor: '#0A0A0F' }}>
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">Rozliczenia</h1>
 
@@ -90,24 +93,24 @@ export default function BillingPage() {
                   </p>
                 )}
               </div>
-              <a
+              <Link
                 href="/pricing"
                 className="px-6 py-3 rounded-lg font-semibold text-black transition-colors hover:opacity-90"
                 style={{ backgroundColor: '#B8FF00' }}
               >
                 Zmień plan
-              </a>
+              </Link>
             </div>
           ) : (
             <div className="flex items-center justify-between">
               <p className="text-gray-400">Brak aktywnej subskrypcji</p>
-              <a
+              <Link
                 href="/pricing"
                 className="px-6 py-3 rounded-lg font-semibold text-black transition-colors hover:opacity-90"
                 style={{ backgroundColor: '#B8FF00' }}
               >
                 Wybierz plan
-              </a>
+              </Link>
             </div>
           )}
         </section>

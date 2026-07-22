@@ -82,14 +82,14 @@ function ConfirmDialog({
         </div>
 
         <div className="flex gap-3">
-          <button
+          <button type="button"
             onClick={onCancel}
             disabled={loading}
             className="btn-secondary flex-1 py-3 text-sm disabled:opacity-50"
           >
             Anuluj
           </button>
-          <button
+          <button type="button"
             onClick={onConfirm}
             disabled={loading}
             className={`flex-1 py-3 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${
@@ -185,7 +185,7 @@ export function RfqPage() {
           {tenders.length > 0 && (
             <StatusBadge status="warning" label={`${tenders.length} w analizie`} />
           )}
-          <button
+          <button type="button"
             onClick={fetchTenders}
             disabled={loading}
             title="Odśwież listę"
@@ -294,14 +294,14 @@ export function RfqPage() {
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2 shrink-0">
-                          <button
+                          <button type="button"
                             onClick={() => setConfirm({ tender: t, decision: 'decided_go' })}
                             className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-em/15 text-em text-sm font-bold hover:bg-em/25 transition-colors border border-em/30 min-w-[130px] justify-center"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                             GO — złóż ofertę
                           </button>
-                          <button
+                          <button type="button"
                             onClick={() => setConfirm({ tender: t, decision: 'decided_nogo' })}
                             className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-nogo/10 text-nogo text-sm font-bold hover:bg-nogo/20 transition-colors border border-nogo/25 min-w-[130px] justify-center"
                           >

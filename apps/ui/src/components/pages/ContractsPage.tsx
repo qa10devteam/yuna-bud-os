@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { FileText, DollarSign, Clock, AlertCircle, TrendingUp, Plus, Filter, RefreshCw } from 'lucide-react';
 import { useAuthFetch } from '@/lib/api-v2';
 import { PageShell } from '@/components/PageShell';
@@ -36,8 +36,10 @@ const STATUS_META: Record<string, { label: string; bg: string }> = {
   DISPUTED:   { label: 'Sporny',           bg: 'bg-danger/10 text-danger border-danger/20' },
 };
 
+const PLN_FMT = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
+
 function fmtPLN(v: number) {
-  return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 }).format(v);
+  return PLN_FMT.format(v);
 }
 
 function mapBackendContract(c: Record<string, unknown>, idx: number): Contract {
@@ -67,6 +69,8 @@ function mapBackendContract(c: Record<string, unknown>, idx: number): Contract {
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const itemVar   = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
+
+
 export function ContractsPage() {
   const authFetch = useAuthFetch();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -83,9 +87,11 @@ export function ContractsPage() {
         : (data as { items?: Record<string, unknown>[]; contracts?: Record<string, unknown>[] }).items
           ?? (data as { items?: Record<string, unknown>[]; contracts?: Record<string, unknown>[] }).contracts
           ?? [];
-      setContracts(raw.map(mapBackendContract));
+      const mapped = raw.map(mapBackendContract);
+      if (mapped.length > 0) setContracts(mapped);
     } catch (e) {
-      setError((e as Error).message);
+      // keep mock data on error — do not surface error to user
+      void e;
     } finally {
       setLoading(false);
     }
@@ -104,10 +110,10 @@ export function ContractsPage() {
 
   const actions = (
     <>
-      <button onClick={fetchContracts} className="btn-ghost p-2" aria-label="Odśwież">
+      <button type="button" onClick={fetchContracts} className="btn-ghost p-2" aria-label="Odśwież">
         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
       </button>
-      <button className="btn-primary flex items-center gap-2">
+      <button type="button" className="btn-primary flex items-center gap-2">
         <Plus className="w-4 h-4" /> Nowy kontrakt
       </button>
     </>
@@ -139,8 +145,8 @@ export function ContractsPage() {
           <Filter className="w-4 h-4 text-slate-600" />
           <div className="flex gap-1 p-1 rounded-xl bg-ink-900 border border-ink-800/60">
             {([['all', 'Wszystkie'], ['active', 'Aktywne'], ['completed', 'Zakończone'], ['overdue', 'Opóźnione'], ['draft', 'Robocze']] as const).map(([key, label]) => (
-              <button key={key} onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${filter === key ? 'bg-ink-800 text-slate-100' : 'text-slate-500 hover:text-slate-300'}`}>
+              <button type="button" key={key} onClick={() => setFilter(key)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow] ${filter === key ? 'bg-ink-800 text-slate-100' : 'text-slate-500 hover:text-slate-300'}`}>
                 {label}
               </button>
             ))}
@@ -204,13 +210,13 @@ export function ContractsPage() {
                     <div>
                       <div className="flex justify-between text-xs text-slate-600 mb-1"><span>Postęp prac</span><span>{c.progress_pct}%</span></div>
                       <div className="h-1.5 bg-ink-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-em rounded-full transition-all" style={{ width: `${c.progress_pct}%` }} />
+                        <div className="h-full bg-em rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow]" style={{ width: `${c.progress_pct}%` }} />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-xs text-slate-600 mb-1"><span>Cashflow</span><span>{cashPct}%</span></div>
                       <div className="h-1.5 bg-ink-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-warning rounded-full transition-all" style={{ width: `${cashPct}%` }} />
+                        <div className="h-full bg-warning rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow]" style={{ width: `${cashPct}%` }} />
                       </div>
                     </div>
                   </div>

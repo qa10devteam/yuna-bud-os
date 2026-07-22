@@ -5,83 +5,68 @@ import Link from 'next/link';
 import { PageShell } from '@/components/PageShell';
 import { Check, Loader2 } from 'lucide-react';
 
-// ── Plan definitions (fallback; matches API /api/v2/billing/plans) ─────────────
+// ── Plan definitions — matches landing page FEATURE_ROWS ──────────────────────
 const PLANS = [
   {
-    id: 'free',
-    name: 'Free',
-    price: '0 PLN',
-    period: 'bezpłatny',
+    id: 'fundament',
+    name: 'Fundament',
+    price: '0 zł',
+    period: 'Na start — bez karty',
     popular: false,
     highlight: false,
     features: [
-      'Podgląd 5 przetargów/miesiąc',
-      'Filtry CPV i region',
-      'Profil firmy',
+      'Monitoring 100 przetargów/miesiąc',
+      'GO/NO-GO AI scoring',
+      'Pipeline Kanban',
+      '1 kosztorys ICB/miesiąc',
     ],
     locked: [
-      'AI analiza SWZ',
-      'Kosztorys i kalkulator',
-      'Alerty BZP',
-      'Eksport',
+      'Silnik AI — konfiguracja wag',
+      'Decyzja — brief AI',
+      'Kreator oferty PDF',
+      'Proaktywne alerty',
+      'Bid Intelligence — win rate',
+      'Competitor tracking',
+      'API access + Webhooks',
     ],
   },
   {
-    id: 'starter',
-    name: 'Starter',
-    price: '199 PLN',
-    period: '/miesiąc',
-    popular: false,
-    highlight: false,
-    features: [
-      'Do 15 przetargów',
-      'AI analiza ryzyka SWZ (10 analiz/mies.)',
-      'Automatyczne alerty BZP',
-      'Kalkulator kosztorysu',
-      'Pogoda dla placu budowy',
-      'Zarządzanie pracownikami i sprzętem',
-      'Eksport Excel',
-      '2 osoby w zespole',
-    ],
-    locked: [],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: '499 PLN',
+    id: 'silnik',
+    name: 'Silnik',
+    price: '290 zł',
     period: '/miesiąc',
     popular: true,
     highlight: true,
     features: [
-      'Do 50 przetargów',
-      'AI analiza SWZ bez limitu',
-      'AI Bid Writing — gotowa oferta w 5 sekcjach',
-      'TED EU — przetargi unijne',
-      'Sygnały pre-przetargowe (4–8 tyg. przed ogłoszeniem)',
-      'Harmonogram Gantt',
-      'Śledzenie konkurencji',
-      'AI scoring oferty',
-      '5 osób w zespole',
-      'Eksport Excel + PDF',
+      'Monitoring nieograniczony',
+      'GO/NO-GO AI scoring',
+      'Pipeline Kanban',
+      'Kosztorys ICB/Sekocenbud — bez limitu',
+      'Silnik AI — konfiguracja wag',
+      'Decyzja — brief AI z p10/p50/p90',
+      'Kreator oferty PDF',
+      'Proaktywne alerty',
     ],
-    locked: [],
+    locked: [
+      'Bid Intelligence — win rate',
+      'Competitor tracking',
+      'API access + Webhooks',
+      'Priorytetowe wsparcie',
+    ],
   },
   {
-    id: 'business',
-    name: 'Business',
-    price: '1 499 PLN',
+    id: 'mozg',
+    name: 'Mózg',
+    price: '690 zł',
     period: '/miesiąc',
     popular: false,
     highlight: false,
     features: [
-      'Nielimitowane przetargi',
-      'GUS Market Intelligence AI',
-      'Advanced Analytics i raporty',
-      'Dostęp API + integracje ERP',
-      'Nieograniczony zespół',
-      'Priorytetowe wsparcie (SLA <4h)',
-      'Zaawansowane raporty i OLAP',
-      'Masowy eksport danych',
+      'Wszystko z Silnik',
+      'Bid Intelligence — win rate heatmapa',
+      'Competitor tracking',
+      'API access + Webhooks',
+      'Priorytetowe wsparcie (SLA < 4h)',
     ],
     locked: [],
   },
@@ -145,7 +130,7 @@ function PlanCard({ id, name, price, period, popular, highlight, features }: Pla
 
   return (
     <div
-      className={`relative rounded-2xl border flex flex-col p-6 transition-all ${
+      className={`relative rounded-2xl border flex flex-col p-6 transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
         highlight
           ? 'border-em bg-ink-900/80 shadow-glow'
           : 'border-ink-800/60 bg-ink-900/40 card-hover'
@@ -187,10 +172,10 @@ function PlanCard({ id, name, price, period, popular, highlight, features }: Pla
       )}
 
       {/* CTA */}
-      <button
+      <button type="button"
         onClick={handleSelectPlan}
         disabled={loading}
-        className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-semibold text-sm transition-[color,background-color,border-color,opacity,transform,box-shadow] disabled:opacity-60 disabled:cursor-not-allowed ${
           highlight ? 'btn-primary' : 'btn-secondary'
         }`}
       >

@@ -92,7 +92,7 @@ function ScoreArc({ score }: { score: number }) {
           stroke={color} strokeWidth="5"
           strokeDasharray={`${dash} ${circ}`}
           strokeLinecap="round"
-          className="transition-all duration-700"
+          className="transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-700"
         />
       </svg>
       <div className="absolute flex flex-col items-center pointer-events-none" style={{ marginTop: 12 }}>
@@ -103,19 +103,6 @@ function ScoreArc({ score }: { score: number }) {
   );
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const MOCK_RED_FLAGS = [
-  { id: '1', text: 'Krótki termin realizacji — 3 miesiące',      severity: 'high'   },
-  { id: '2', text: 'Kary umowne 1% za każdy dzień zwłoki',       severity: 'medium' },
-  { id: '3', text: 'Wymagane polskie referencje z ostatnich 5 lat', severity: 'low' },
-];
-
-const MOCK_HISTORY = [
-  { id: '1', action: 'Przetarg dodany do systemu',   ts: new Date(Date.now() - 7*86400000).toISOString() },
-  { id: '2', action: 'Dopasowany do profilu (95%)',  ts: new Date(Date.now() - 5*86400000).toISOString() },
-  { id: '3', action: 'Pobrano dokumentację SIWZ',    ts: new Date(Date.now() - 2*86400000).toISOString() },
-];
 
 interface AuditEntry {
   id:      string;
@@ -153,7 +140,7 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setEngineData(d); })
       .catch(() => {});
-  }, [tender?.id, accessToken]);
+  }, [tender?.id, accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Audit log
   useEffect(() => {
@@ -164,16 +151,12 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        setAuditLog(d?.items ?? MOCK_HISTORY.map(h => ({
-          id: h.id, at: h.ts, actor: 'system', action: h.action, entity: 'tender',
-        })));
+        setAuditLog(d?.items ?? []);
       })
       .catch(() => {
-        setAuditLog(MOCK_HISTORY.map(h => ({
-          id: h.id, at: h.ts, actor: 'system', action: h.action, entity: 'tender',
-        })));
+        setAuditLog([]);
       });
-  }, [tab, tender?.id, accessToken, auditLog]);
+  }, [tab, tender?.id, accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard escape
   useEffect(() => {
@@ -281,7 +264,7 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
                   )}
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={onClose}
                 className="p-1.5 rounded-lg hover:bg-ink-800 text-slate-500 hover:text-slate-200 transition-colors shrink-0"
               >
@@ -292,7 +275,7 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
             {/* ── Tabs ──────────────────────────────────────────────────── */}
             <div className="flex border-b border-ink-line shrink-0 overflow-x-auto">
               {TABS.map(t => (
-                <button
+                <button type="button"
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   className={[
@@ -471,10 +454,7 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
                       </p>
                       {(engineData?.violations && engineData.violations.length > 0
                         ? engineData.violations
-                        : MOCK_RED_FLAGS.map(f => ({
-                            severity: f.severity === 'high' ? 'error' : f.severity === 'medium' ? 'warn' : 'info',
-                            message: f.text,
-                          }))
+                        : []
                       ).map((v, i) => (
                         <GlassCard key={i} className="p-3 flex items-start gap-3">
                           <AlertTriangle
@@ -569,12 +549,12 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
 
                       {/* GO / NO-GO buttons — Brand Bible primary CTAs */}
                       <div className="flex gap-3">
-                        <button
+                        <button type="button"
                           onClick={() => submitDecision('go')}
                           className={[
                             'flex-1 flex items-center justify-center gap-2',
                             'py-3.5 rounded-xl font-mono font-bold text-sm tracking-wider',
-                            'border transition-all duration-200',
+                            'border transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200',
                             decision === 'go'
                               ? 'bg-em text-ink-950 border-em shadow-lg shadow-em/20'
                               : 'bg-em-bg border-em-brd text-em hover:bg-em/20',
@@ -583,12 +563,12 @@ export function TenderDetail({ tender, onClose }: TenderDetailProps) {
                           <CheckCircle className="w-4 h-4" />
                           GO
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => submitDecision('nogo')}
                           className={[
                             'flex-1 flex items-center justify-center gap-2',
                             'py-3.5 rounded-xl font-mono font-bold text-sm tracking-wider',
-                            'border transition-all duration-200',
+                            'border transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200',
                             decision === 'nogo'
                               ? 'bg-nogo text-white border-nogo'
                               : 'bg-nogo-bg border-nogo-brd text-nogo hover:bg-nogo/20',

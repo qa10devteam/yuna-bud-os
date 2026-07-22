@@ -236,7 +236,7 @@ function ChartTooltipContent({
         const [val, name] = formatter ? formatter(p.value, p.name) : [p.value.toString(), p.name];
         return (
           <div key={i} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
             <span className="text-slate-300 text-xs">{name}:</span>
             <span className="text-slate-100 text-xs font-semibold tabular-nums">{val}</span>
           </div>
@@ -431,7 +431,7 @@ export function MarketDashboardPage() {
         <Clock className="w-3 h-3" />
         {refreshedAt ? refreshedAt.toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
       </span>
-      <button
+      <button type="button"
         onClick={fetchData}
         disabled={loading}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-ink-800 border border-ink-700/50 text-slate-300 hover:text-slate-100 hover:bg-ink-700 transition-colors text-xs disabled:opacity-50"
@@ -457,9 +457,9 @@ export function MarketDashboardPage() {
             exit={{ opacity: 0 }}
             className="flex items-center gap-3 px-4 py-3 rounded-xl bg-nogo/10 border border-nogo/30 text-nogo text-sm mb-2"
           >
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>Błąd ładowania danych: {error}</span>
-            <button
+            <button type="button"
               onClick={fetchData}
               className="ml-auto text-xs underline hover:no-underline"
             >

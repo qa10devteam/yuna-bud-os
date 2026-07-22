@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function NotFound() {
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-8"
+      className="min-h-dvh flex items-center justify-center p-8"
       style={{ backgroundColor: '#0A0A0A' }}
     >
       <div className="text-center max-w-md">

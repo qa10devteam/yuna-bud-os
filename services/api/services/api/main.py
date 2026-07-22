@@ -451,6 +451,10 @@ app.include_router(bzp.router)
 app.include_router(market_data.router)
 app.include_router(dashboard.router)  # BUG FIX — dashboard endpoints
 
+# Contracts router
+from .routers import contracts
+app.include_router(contracts.router)
+
 # Fazy 63-81 — Advanced routers (other agent)
 for _r in _phase3_routers:
     app.include_router(_r.router)

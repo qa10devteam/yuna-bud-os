@@ -82,7 +82,7 @@ export function ConfirmDialog({
                 </h2>
                 <p className="text-slate-400 text-sm mt-1 leading-relaxed">{message}</p>
               </div>
-              <button
+              <button type="button"
                 onClick={onCancel}
                 className="text-slate-500 hover:text-slate-300 transition-colors ml-2 shrink-0"
                 aria-label="Zamknij"
@@ -93,14 +93,14 @@ export function ConfirmDialog({
 
             {/* Actions */}
             <div className="flex justify-end gap-2 mt-6">
-              <button
+              <button type="button"
                 onClick={onCancel}
                 className="px-4 py-2 text-sm font-medium text-slate-300 bg-ink-800/50
                   hover:bg-ink-800 border border-ink-700/50 rounded-md transition-colors"
               >
                 {cancelLabel}
               </button>
-              <button
+              <button type="button"
                 ref={confirmRef}
                 onClick={onConfirm}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${variantStyles.btn}`}

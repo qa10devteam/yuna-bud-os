@@ -1,0 +1,10 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Security hardening (react-doctor/require-pnpm-hardening)
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - 'esbuild'
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade

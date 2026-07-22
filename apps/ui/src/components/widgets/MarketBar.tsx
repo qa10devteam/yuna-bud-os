@@ -141,7 +141,7 @@ export function MarketBar() {
       </div>
 
       {/* Right-side status */}
-      <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+      <div className="ml-auto flex items-center gap-3 shrink-0">
         {/* Last update */}
         {lastUpdateStr && (
           <span className="text-[10px] text-slate-600 font-mono hidden md:block">

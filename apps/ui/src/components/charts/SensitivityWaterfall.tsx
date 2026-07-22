@@ -50,7 +50,7 @@ export function SensitivityWaterfall({ drivers }: SensitivityWaterfallProps) {
           />
           <Bar dataKey="sobol_s1">
             {top5.map((_, i) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              <Cell key={`item-${i}`} fill={COLORS[i % COLORS.length]} />
             ))}
           </Bar>
         </BarChart>

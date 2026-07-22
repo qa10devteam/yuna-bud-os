@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export const metadata = {
   title: 'Dokumentacja — YU-NA',
   description: 'Dokumentacja YU-NA — szybki start, moduły, API reference, FAQ',
@@ -5,7 +7,7 @@ export const metadata = {
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
+    <div className="min-h-dvh bg-[#0f1117] text-white">
       <div className="max-w-4xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
@@ -28,7 +30,7 @@ export default function DocsPage() {
                 title: 'Zarejestruj konto organizacji',
                 desc: (
                   <>
-                    Wejdź na <a href="/register" className="text-[#c8a96e] hover:underline">/register</a>,
+                    Wejdź na <Link href="/register" className="text-[#c8a96e] hover:underline">/register</Link>,
                     podaj email, hasło i nazwę firmy. Twoje konto jest gotowe w 30 sekund.
                     Otrzymasz e-mail powitalny z linkiem do dokumentacji.
                   </>
@@ -177,7 +179,7 @@ export default function DocsPage() {
               },
             ].map((item, i) => (
               <details
-                key={i}
+                key={`item-${i}`}
                 className="bg-[#141720] border border-[#2a2d3a] rounded-xl overflow-hidden group"
               >
                 <summary className="flex justify-between items-center p-5 cursor-pointer hover:bg-[#1a1d26] transition-colors">
@@ -194,8 +196,8 @@ export default function DocsPage() {
 
         {/* Footer nav */}
         <div className="flex gap-4 text-sm text-[#8b9eb0]">
-          <a href="/landing" className="hover:text-[#c8a96e] transition-colors">← Strona główna</a>
-          <a href="/pricing" className="hover:text-[#c8a96e] transition-colors">Cennik</a>
+          <Link href="/landing" className="hover:text-[#c8a96e] transition-colors">← Strona główna</Link>
+          <Link href="/pricing" className="hover:text-[#c8a96e] transition-colors">Cennik</Link>
           <a href="mailto:support@terra.os" className="hover:text-[#c8a96e] transition-colors">Wsparcie</a>
         </div>
       </div>

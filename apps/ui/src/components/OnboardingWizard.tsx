@@ -252,7 +252,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                         : 'border-transparent'
                   }`}
                 >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                     done
                       ? 'bg-em/20 text-em'
                       : active
@@ -285,7 +285,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               className="px-6 pt-5 pb-4"
             >
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-em/10 border border-em/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-xl bg-em/10 border border-em/20 flex items-center justify-center shrink-0 mt-0.5">
                   <StepIcon className="w-5 h-5 text-em" />
                 </div>
                 <div className="min-w-0">
@@ -296,7 +296,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
               {/* Obietnica wartości */}
               <div className="mt-3 flex items-center gap-2 bg-ink-800/40 border border-ink-700/40 rounded-xl px-3 py-2">
-                <Zap className="w-3.5 h-3.5 text-warn flex-shrink-0" />
+                <Zap className="w-3.5 h-3.5 text-warn shrink-0" />
                 <span className="text-xs text-slate-400">{currentStep.value}</span>
               </div>
             </motion.div>
@@ -328,7 +328,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                         }}
                         placeholder="np. Kowalski Budownictwo Sp. z o.o."
                         autoFocus
-                        className={`w-full bg-ink-800/60 border rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-ink-600 focus:outline-none focus:ring-1 transition-all ${
+                        className={`w-full bg-ink-800/60 border rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-ink-600 focus:outline-none focus:ring-1 transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                           errors.name
                             ? 'border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20'
                             : 'border-ink-700/60 focus:border-em/60 focus:ring-em/20'
@@ -351,7 +351,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                           setErrors(er => ({ ...er, nip: '' }));
                         }}
                         placeholder="np. 123-456-78-90"
-                        className={`w-full bg-ink-800/60 border rounded-xl px-4 py-2.5 text-sm font-mono text-slate-100 placeholder-ink-600 focus:outline-none focus:ring-1 transition-all ${
+                        className={`w-full bg-ink-800/60 border rounded-xl px-4 py-2.5 text-sm font-mono text-slate-100 placeholder-ink-600 focus:outline-none focus:ring-1 transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                           errors.nip
                             ? 'border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20'
                             : 'border-ink-700/60 focus:border-em/60 focus:ring-em/20'
@@ -378,7 +378,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                             key={wt.code}
                             type="button"
                             onClick={() => toggleCpv(wt.code)}
-                            className={`relative flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all ${
+                            className={`relative flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                               selected
                                 ? 'border-em/60 bg-em/10 text-slate-100'
                                 : 'border-ink-700/40 bg-ink-800/30 text-slate-400 hover:border-ink-600 hover:text-slate-300'
@@ -413,7 +413,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                             key={v}
                             type="button"
                             onClick={() => toggleRegion(v)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
                               selected
                                 ? 'border-em/60 bg-em/15 text-em'
                                 : 'border-ink-700/40 bg-ink-800/40 text-slate-500 hover:border-ink-600 hover:text-slate-300'
@@ -461,7 +461,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
                     {/* Info o czasie */}
                     <div className="flex items-center gap-2 bg-ink-800/40 border border-ink-700/30 rounded-xl px-3 py-2.5">
-                      <Radar className="w-4 h-4 text-em flex-shrink-0" />
+                      <Radar className="w-4 h-4 text-em shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-slate-200">Pierwszy zwiad zajmuje ~30 sekund</p>
                         <p className="text-[11px] text-slate-600">Pobieramy przetargi z BZP, TED i portali BIP</p>
@@ -477,7 +477,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           {/* ── Przyciski nawigacji ── */}
           <div className="px-6 py-4 border-t border-ink-800/60 flex items-center justify-between">
             {step > 0 ? (
-              <button
+              <button type="button"
                 onClick={goPrev}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-ink-800/50"
               >
@@ -485,7 +485,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 Wstecz
               </button>
             ) : (
-              <button
+              <button type="button"
                 onClick={onComplete}
                 className="px-3 py-2 text-sm text-slate-700 hover:text-slate-500 transition-colors"
               >
@@ -494,18 +494,18 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             )}
 
             {step < STEPS.length - 1 ? (
-              <button
+              <button type="button"
                 onClick={goNext}
-                className="flex items-center gap-2 px-5 py-2.5 bg-em text-ink-950 rounded-xl text-sm font-bold hover:bg-em active:scale-[0.98] transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-em text-ink-950 rounded-xl text-sm font-bold hover:bg-em active:scale-[0.98] transition-[color,background-color,border-color,opacity,transform,box-shadow]"
               >
                 Dalej
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button
+              <button type="button"
                 onClick={handleStart}
                 disabled={loading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-em text-ink-950 rounded-xl text-sm font-bold hover:bg-em active:scale-[0.98] transition-all disabled:opacity-60 disabled:pointer-events-none"
+                className="flex items-center gap-2 px-5 py-2.5 bg-em text-ink-950 rounded-xl text-sm font-bold hover:bg-em active:scale-[0.98] transition-[color,background-color,border-color,opacity,transform,box-shadow] disabled:opacity-60 disabled:pointer-events-none"
               >
                 {loading ? (
                   <>
@@ -549,7 +549,7 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-start gap-3 bg-ink-800/30 rounded-xl px-3 py-2.5 border border-ink-700/30">
-      <Icon className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+      <Icon className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
       <div className="min-w-0">
         <p className="text-[10px] uppercase tracking-wide text-slate-600 font-semibold">{label}</p>
         <p className="text-xs text-slate-200 mt-0.5 leading-snug truncate">{value}</p>

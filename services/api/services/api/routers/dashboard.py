@@ -285,62 +285,69 @@ def generate_dashboard_digest(user: AuthUser) -> dict:
 @router.get("/api/v2/dashboard/pipeline-kpi")
 def get_pipeline_kpi(user: AuthUser) -> dict:
     """Return KPI from mv_pipeline_kpi; falls back to inline calculation."""
-    tenant_id = str(user.org_id) if user.org_id else "default"
-    engine = get_engine()
-    with engine.connect() as conn:
-        # Try materialised view first
-        try:
-            row = conn.execute(sa.text("""
-                SELECT active_count, pipeline_value, win_rate_mtd, avg_deal_size, new_today
-                FROM mv_pipeline_kpi
-                WHERE tenant_id = :tid
-                LIMIT 1
+    import traceback as _tb
+    try:
+        tenant_id = str(user.org_id) if user.org_id else "default"
+        engine = get_engine()
+        with engine.connect() as conn:
+            # Try materialised view first
+            try:
+                row = conn.execute(sa.text("""
+                    SELECT active_count, pipeline_value, win_rate_mtd, avg_deal_size, new_today
+                    FROM mv_pipeline_kpi
+                    WHERE tenant_id = :tid
+                    LIMIT 1
+                """), {"tid": tenant_id}).fetchone()
+                if row:
+                    return {
+                        "active_count": int(row.active_count) if row.active_count is not None else 0,
+                        "pipeline_value": float(row.pipeline_value) if row.pipeline_value is not None else 0.0,
+                        "win_rate_mtd": float(row.win_rate_mtd) if row.win_rate_mtd is not None else None,
+                        "avg_deal_size": float(row.avg_deal_size) if row.avg_deal_size is not None else None,
+                        "new_today": int(row.new_today) if row.new_today is not None else 0,
+                        "source": "mv_pipeline_kpi",
+                    }
+            except Exception:
+                logger.debug("mv_pipeline_kpi not available, using inline fallback", exc_info=True)
+                conn.rollback()
+
+            # Inline fallback from tender table
+            # Enum tender_status: new, matched, watching, analyzing, estimated, decided_go, decided_nogo, archived
+            agg = conn.execute(sa.text("""
+                SELECT
+                    COUNT(*) FILTER (WHERE status NOT IN ('archived', 'decided_nogo'))
+                                                            AS active_count,
+                    COALESCE(SUM(value_pln) FILTER (
+                        WHERE value_pln IS NOT NULL
+                          AND status NOT IN ('archived', 'decided_nogo')
+                    ), 0)                                   AS pipeline_value,
+                    ROUND(
+                        100.0 * COUNT(*) FILTER (WHERE status = 'decided_go'
+                            AND DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', NOW()))
+                        / NULLIF(COUNT(*) FILTER (
+                            WHERE DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', NOW())
+                        ), 0), 2
+                    )                                       AS win_rate_mtd,
+                    ROUND(AVG(value_pln) FILTER (WHERE value_pln IS NOT NULL)::numeric, 2)
+                                                            AS avg_deal_size,
+                    COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE)
+                                                            AS new_today
+                FROM tender
+                WHERE duplicate_of IS NULL
+                  AND tenant_id = :tid
             """), {"tid": tenant_id}).fetchone()
-            if row:
-                return {
-                    "active_count": int(row.active_count) if row.active_count is not None else 0,
-                    "pipeline_value": float(row.pipeline_value) if row.pipeline_value is not None else 0.0,
-                    "win_rate_mtd": float(row.win_rate_mtd) if row.win_rate_mtd is not None else None,
-                    "avg_deal_size": float(row.avg_deal_size) if row.avg_deal_size is not None else None,
-                    "new_today": int(row.new_today) if row.new_today is not None else 0,
-                    "source": "mv_pipeline_kpi",
-                }
-        except Exception:
-            logger.debug("mv_pipeline_kpi not available, using inline fallback", exc_info=True)
 
-        # Inline fallback from tender table
-        agg = conn.execute(sa.text("""
-            SELECT
-                COUNT(*) FILTER (WHERE status NOT IN ('archived', 'rejected', 'lost'))
-                                                        AS active_count,
-                COALESCE(SUM(value_pln) FILTER (
-                    WHERE value_pln IS NOT NULL
-                      AND status NOT IN ('archived', 'rejected', 'lost')
-                ), 0)                                   AS pipeline_value,
-                ROUND(
-                    100.0 * COUNT(*) FILTER (WHERE status = 'won'
-                        AND DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', NOW()))
-                    / NULLIF(COUNT(*) FILTER (
-                        WHERE DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', NOW())
-                    ), 0), 2
-                )                                       AS win_rate_mtd,
-                ROUND(AVG(value_pln) FILTER (WHERE value_pln IS NOT NULL)::numeric, 2)
-                                                        AS avg_deal_size,
-                COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE)
-                                                        AS new_today
-            FROM tender
-            WHERE duplicate_of IS NULL
-              AND tenant_id = :tid
-        """), {"tid": tenant_id}).fetchone()
-
-    return {
-        "active_count": int(agg.active_count) if agg and agg.active_count is not None else 0,
-        "pipeline_value": float(agg.pipeline_value) if agg else 0.0,
-        "win_rate_mtd": float(agg.win_rate_mtd) if agg and agg.win_rate_mtd is not None else None,
-        "avg_deal_size": float(agg.avg_deal_size) if agg and agg.avg_deal_size is not None else None,
-        "new_today": int(agg.new_today) if agg and agg.new_today is not None else 0,
-        "source": "tender_inline",
-    }
+        return {
+            "active_count": int(agg.active_count) if agg and agg.active_count is not None else 0,
+            "pipeline_value": float(agg.pipeline_value) if agg else 0.0,
+            "win_rate_mtd": float(agg.win_rate_mtd) if agg and agg.win_rate_mtd is not None else None,
+            "avg_deal_size": float(agg.avg_deal_size) if agg and agg.avg_deal_size is not None else None,
+            "new_today": int(agg.new_today) if agg and agg.new_today is not None else 0,
+            "source": "tender_inline",
+        }
+    except Exception:
+        logger.error("pipeline-kpi crash: %s", _tb.format_exc())
+        raise
 
 
 @router.get("/api/v2/dashboard/market-charts")

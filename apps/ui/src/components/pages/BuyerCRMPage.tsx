@@ -23,6 +23,7 @@ interface BuyerCRMItem extends BuyerCRM {
   province?: string | null;
   total_value?: number | null;
   preferred_cpv?: string[];
+  last_tender?: string | null;
 }
 
 interface BuyerSearchResult {
@@ -158,7 +159,7 @@ function FollowupBanner({ followups, onDismiss }: { followups: Followup[]; onDis
           {followups.length > 3 ? ` +${followups.length - 3}` : ''}
         </span>
       </div>
-      <button onClick={onDismiss} className="p-1 hover:bg-ink-800 rounded transition-colors">
+      <button type="button" onClick={onDismiss} className="p-1 hover:bg-ink-800 rounded transition-colors">
         <X size={13} className="text-slate-500" />
       </button>
     </motion.div>
@@ -167,12 +168,39 @@ function FollowupBanner({ followups, onDismiss }: { followups: Followup[]; onDis
 
 // ── BuyerCard (left list) ──────────────────────────────────────────────────────
 
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+const STAGE_BADGE_COLORS: Record<string, string> = {
+  prospect:  'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  contacted: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  demo:      'bg-violet-500/15 text-violet-400 border-violet-500/30',
+  active:    'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  churned:   'bg-red-500/15 text-red-400 border-red-500/30',
+};
+
+const STAGE_DOT_COLORS: Record<string, string> = {
+  prospect:  'bg-blue-400',
+  contacted: 'bg-amber-400',
+  demo:      'bg-violet-400',
+  active:    'bg-emerald-400',
+  churned:   'bg-red-400',
+};
+
 function BuyerCard({
   item, selected, onClick,
 }: {
   item: BuyerCRMItem; selected: boolean; onClick: () => void;
 }) {
   const overdue = isOverdue(item.next_followup);
+  const name = item.buyer_name ?? item.buyer_nip;
+  const initials = getInitials(name);
+  const region = item.province ?? (item.buyer_province ? (PROVINCE_MAP[item.buyer_province] ?? item.buyer_province) : null);
   return (
     <motion.button
       layout
@@ -180,57 +208,66 @@ function BuyerCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -12 }}
       onClick={onClick}
-      className={`w-full text-left p-4 rounded-xl border transition-all group
+      className={`w-full text-left p-4 rounded-xl border transition-[color,background-color,border-color,opacity,transform,box-shadow] group
         ${selected
           ? 'bg-ink-800 border-em/50 shadow-md-sm'
           : 'bg-ink-900 border-ink-700 hover:border-ink-600 hover:bg-ink-800'}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
+      {/* Top row: avatar + name + stage */}
+      <div className="flex items-start gap-3 mb-2.5">
+        {/* Avatar */}
+        <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/20">
+          {initials}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-slate-100 truncate text-sm leading-tight">
-            {item.buyer_name ?? item.buyer_nip}
+            {name}
           </div>
-          <div className="text-xs text-slate-500 font-mono mt-0.5">{item.buyer_nip}</div>
+          <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+            {region && <span>{region}</span>}
+            {region && <span className="text-slate-700">·</span>}
+            <span className="font-mono">NIP: {item.buyer_nip}</span>
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <StageBadge stage={item.crm_stage} />
-          <PriorityDots priority={item.priority} />
-        </div>
+        {/* Stage badge */}
+        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 ${STAGE_BADGE_COLORS[item.crm_stage] ?? 'bg-ink-800 text-slate-300 border-ink-700'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${STAGE_DOT_COLORS[item.crm_stage] ?? 'bg-slate-500'}`} />
+          {STAGES.find(x => x.id === item.crm_stage)?.label ?? item.crm_stage}
+        </span>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-        {(item.city ?? item.buyer_city) && (
-          <span className="flex items-center gap-1">
-            <MapPin size={11} className="shrink-0" />
-            {cityLabel(item)}
-          </span>
-        )}
-        {item.contact_name && (
-          <span className="flex items-center gap-1">
-            <Users size={11} className="shrink-0" />
-            {item.contact_name}
-          </span>
-        )}
-      </div>
-
-      {item.next_followup && (
-        <div className={`mt-2 flex items-center gap-1 text-xs ${overdue ? 'text-nogo' : 'text-warn'}`}>
-          {overdue ? <AlertTriangle size={11} /> : <Clock size={11} />}
-          Follow-up: {fmtDate(item.next_followup)}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex gap-3 text-xs">
-          {item.total_tenders != null && (
-            <span className="text-slate-400">{item.total_tenders} przetargów</span>
-          )}
-          {(item.total_value != null || item.annual_budget_est != null) && (
-            <span className="text-go font-mono">
-              {fmtPLN(item.annual_budget_est ?? item.total_value ?? 0)}
+      {/* Middle row: contact person + tenders */}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-3 text-slate-500 flex-wrap min-w-0">
+          {item.contact_name && (
+            <span className="flex items-center gap-1 truncate">
+              <Users size={11} className="shrink-0" />
+              {item.contact_name}
             </span>
           )}
         </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {item.total_tenders != null && (
+            <span className="inline-flex items-center gap-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-full px-2 py-0.5 text-xs font-medium">
+              <FileText size={10} />
+              {item.total_tenders}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom row: last tender + follow-up indicator */}
+      <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+        <div className="flex items-center gap-1">
+          <CalendarClock size={11} className="shrink-0" />
+          <span>Ostatni: {fmtDate(item.last_tender ?? item.last_contact)}</span>
+        </div>
+        {item.next_followup && (
+          <div className={`flex items-center gap-1 ${overdue ? 'text-nogo' : 'text-warn'}`}>
+            {overdue ? <AlertTriangle size={11} /> : <Clock size={11} />}
+            {fmtDate(item.next_followup)}
+          </div>
+        )}
         <ChevronRight size={14} className={`text-slate-600 group-hover:text-slate-400 transition-colors ${selected ? 'text-em' : ''}`} />
       </div>
     </motion.button>
@@ -458,7 +495,7 @@ function BuyerProfilePanel({
               </div>
             )}
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-ink-800 rounded-lg transition-colors shrink-0">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-ink-800 rounded-lg transition-colors shrink-0">
             <X size={17} className="text-slate-400" />
           </button>
         </div>
@@ -471,14 +508,14 @@ function BuyerProfilePanel({
           </div>
           <div className="flex gap-1">
             {!editing && (
-              <button
+              <button type="button"
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-1 px-3 py-1.5 bg-ink-800 hover:bg-ink-700 border border-ink-700 rounded-lg text-xs text-slate-300 transition-colors"
               >
                 <Edit3 size={12} /> Edytuj
               </button>
             )}
-            <button
+            <button type="button"
               onClick={handleDelete}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors border
                 ${deleting
@@ -512,7 +549,7 @@ function BuyerProfilePanel({
           <div className="text-xs text-slate-500 mb-2 uppercase tracking-widest">Zmień etap</div>
           <div className="flex flex-wrap gap-1.5">
             {STAGES.map(s => (
-              <button
+              <button type="button"
                 key={s.id}
                 onClick={() => handleStageQuick(s.id)}
                 className={`px-2.5 py-1 rounded-full text-xs border transition-colors
@@ -529,7 +566,7 @@ function BuyerProfilePanel({
         {/* Tabs */}
         <div className="flex border-b border-ink-800 px-5 overflow-x-auto">
           {tabs.map(t => (
-            <button
+            <button type="button"
               key={t.id}
               onClick={() => { setTab(t.id); setEditing(false); }}
               className={`flex items-center gap-1.5 px-3 py-3 text-xs font-medium border-b-2 shrink-0 transition-colors
@@ -629,13 +666,13 @@ function BuyerProfilePanel({
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
-                <button
+                <button type="button"
                   onClick={() => setEditing(false)}
                   className="flex-1 py-2.5 border border-ink-700 text-slate-400 text-sm rounded-lg hover:border-ink-600 transition-colors"
                 >
                   Anuluj
                 </button>
-                <button
+                <button type="button"
                   onClick={handleSave}
                   disabled={saving}
                   className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2"
@@ -657,7 +694,7 @@ function BuyerProfilePanel({
                 placeholder="Notatki o zamawiającym, relacjach, strategii..."
                 className={`${inputCls} resize-none`}
               />
-              <button
+              <button type="button"
                 onClick={handleSave}
                 disabled={saving}
                 className="btn-primary w-full py-2.5 flex items-center justify-center gap-2"
@@ -724,7 +761,7 @@ function BuyerProfilePanel({
                 </div>
               )}
 
-              <button
+              <button type="button"
                 onClick={handleSave}
                 disabled={saving}
                 className="btn-primary w-full py-2.5 flex items-center justify-center gap-2"
@@ -828,7 +865,7 @@ function AddBuyerModal({
       >
         <div className="sticky top-0 bg-ink-900 border-b border-ink-800 px-6 py-4 flex items-center justify-between">
           <h3 className="text-base font-bold text-ink-950/30">Dodaj zamawiającego do CRM</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-ink-800 rounded-lg transition-colors">
+          <button type="button" onClick={onClose} className="p-1.5 hover:bg-ink-800 rounded-lg transition-colors">
             <X size={15} className="text-slate-400" />
           </button>
         </div>
@@ -856,7 +893,7 @@ function AddBuyerModal({
           {results.length > 0 && !selected && (
             <div className="border border-ink-700 rounded-xl overflow-hidden">
               {results.map(r => (
-                <button
+                <button type="button"
                   key={r.nip}
                   onClick={() => { setSelected(r); setQ(r.name); }}
                   className="w-full flex items-start justify-between px-4 py-3 hover:bg-ink-800 text-left transition-colors border-b border-ink-800 last:border-0"
@@ -888,7 +925,7 @@ function AddBuyerModal({
                     {selected.total_tenders} przetargów - łącznie {fmtMln(selected.total_value / 1_000_000)}
                   </div>
                 </div>
-                <button onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-300 p-1">
+                <button type="button" onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-300 p-1">
                   <X size={13} />
                 </button>
               </div>
@@ -952,10 +989,10 @@ function AddBuyerModal({
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-ink-700 text-slate-400 text-sm rounded-lg hover:border-ink-600 transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-ink-700 text-slate-400 text-sm rounded-lg hover:border-ink-600 transition-colors">
               Anuluj
             </button>
-            <button
+            <button type="button"
               onClick={handleCreate}
               disabled={saving || (!selected && !q.match(/^\d{10}$/))}
               className="flex-1 py-2.5 bg-go text-ink-950 text-sm font-medium rounded-lg hover:bg-go/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
@@ -975,7 +1012,7 @@ function AddBuyerModal({
 export function BuyerCRMPage() {
   const authFetch   = useAuthFetch();
   const { data: rawData, loading, followups, reload, update, remove } = useBuyerCRM();
-  const data = rawData as BuyerCRMItem[];
+  const data: BuyerCRMItem[] = rawData as BuyerCRMItem[];
 
   const [selected,      setSelected]      = useState<BuyerCRMItem | null>(null);
   const [showAdd,       setShowAdd]       = useState(false);
@@ -1032,7 +1069,7 @@ export function BuyerCRMPage() {
         title="CRM Zamawiających Publicznych"
         subtitle="Zarządzaj relacjami z urzędami i planuj follow-upy przetargowe"
         actions={
-          <button
+          <button type="button"
             onClick={() => setShowAdd(true)}
             className="btn-primary"
           >
@@ -1079,7 +1116,7 @@ export function BuyerCRMPage() {
           {/* ── Stage filter tabs + search ───────────────────────────────── */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0 shrink-0">
-              <button
+              <button type="button"
                 onClick={() => setStageFilter('all')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors border
                   ${stageFilter === 'all'
@@ -1089,7 +1126,7 @@ export function BuyerCRMPage() {
                 Wszystkie ({stageCounts.all})
               </button>
               {STAGES.map(s => (
-                <button
+                <button type="button"
                   key={s.id}
                   onClick={() => setStageFilter(s.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors border
@@ -1111,7 +1148,7 @@ export function BuyerCRMPage() {
                 className="input-base pl-9 pr-4 py-2"
               />
               {searchQ && (
-                <button
+                <button type="button"
                   onClick={() => setSearchQ('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                 >
@@ -1137,7 +1174,7 @@ export function BuyerCRMPage() {
               <Building2 size={40} className="mx-auto mb-4 text-slate-700" />
               <h3 className="text-base font-semibold text-slate-400 mb-2">Brak zamawiających w CRM</h3>
               <p className="text-sm text-slate-600 mb-6">Dodaj zamawiających, żeby zarządzać relacjami i planować follow-upy</p>
-              <button
+              <button type="button"
                 onClick={() => setShowAdd(true)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 btn-primary"
               >

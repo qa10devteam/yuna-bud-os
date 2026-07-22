@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Zap, Send, CheckCircle, AlertTriangle, Clock, Search,
   FileText, TrendingDown, Bell, Settings, Plus, Trash2,
@@ -393,7 +393,7 @@ export function BpmnTenderFlow() {
                 <div className="text-xs text-slate-400">{detail.desc}</div>
               </div>
               {detail.stats && (
-                <div className="flex gap-4 flex-shrink-0">
+                <div className="flex gap-4 shrink-0">
                   {detail.stats.map(s => (
                     <div key={s.label} className="text-center">
                       <div className="text-base font-bold text-em">{s.value}</div>
@@ -402,9 +402,9 @@ export function BpmnTenderFlow() {
                   ))}
                 </div>
               )}
-              <button
+              <button type="button"
                 onClick={() => setSelectedId(null)}
-                className="text-slate-600 hover:text-slate-400 text-xs flex-shrink-0"
+                className="text-slate-600 hover:text-slate-400 text-xs shrink-0"
               >✕</button>
             </div>
           </motion.div>
@@ -436,12 +436,12 @@ function ActionButton({
       onClick={onTrigger}
       disabled={loading}
       className={`
-        w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 text-left
+        w-full flex items-center gap-3 px-4 py-3 rounded-md transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200 text-left
         ${PRIORITY_TOKEN[suggestion.priority]}
         ${loading ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
       `}
     >
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {ICON_MAP[suggestion.icon] || <Zap className="w-4 h-4" />}
       </div>
       <div className="flex-1 min-w-0">
@@ -544,16 +544,16 @@ export function WebhookManager({
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');
 
-  useEffect(() => {
-    loadWebhooks();
-  }, []);
-
-  const loadWebhooks = () => {
+  const loadWebhooks = useCallback(() => {
     authFetch('/api/v2/automations/webhooks')
       .then(r => r.json())
       .then(data => setWebhooks(Array.isArray(data) ? data : []))
       .catch(() => {});
-  };
+  }, [authFetch]);
+
+  useEffect(() => {
+    loadWebhooks();
+  }, [loadWebhooks]);
 
   const addWebhook = async () => {
     if (!newName || !newUrl) return;
@@ -589,7 +589,7 @@ export function WebhookManager({
           <Settings className="w-4 h-4 text-slate-500" />
           Webhooki n8n
         </h3>
-        <button
+        <button type="button"
           onClick={() => setShowAdd(!showAdd)}
           className="btn-ghost flex items-center gap-1 text-xs px-3 py-1.5"
         >
@@ -616,10 +616,10 @@ export function WebhookManager({
             className="input-base w-full text-sm"
           />
           <div className="flex gap-2">
-            <button onClick={addWebhook} className="btn-primary px-3 py-1.5 text-xs">
+            <button type="button" onClick={addWebhook} className="btn-primary px-3 py-1.5 text-xs">
               Zapisz
             </button>
-            <button onClick={() => setShowAdd(false)} className="btn-ghost px-3 py-1.5 text-xs">
+            <button type="button" onClick={() => setShowAdd(false)} className="btn-ghost px-3 py-1.5 text-xs">
               Anuluj
             </button>
           </div>
@@ -629,7 +629,7 @@ export function WebhookManager({
       <div className="space-y-2">
         {webhooks.map(wh => (
           <div key={wh.id} className="flex items-center gap-3 px-3 py-2 rounded-md border border-ink-800/60 bg-ink-900/40">
-            <button onClick={() => toggleWebhook(wh.id, wh.active)}>
+            <button type="button" onClick={() => toggleWebhook(wh.id, wh.active)}>
               {wh.active ? (
                 <ToggleRight className="w-5 h-5 text-em" />
               ) : (
@@ -643,7 +643,7 @@ export function WebhookManager({
             <a href={wh.url} target="_blank" rel="noopener" className="text-slate-600 hover:text-slate-400 transition-colors">
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
-            <button onClick={() => deleteWebhook(wh.id)} className="text-slate-600 hover:text-nogo transition-colors">
+            <button type="button" onClick={() => deleteWebhook(wh.id)} className="text-slate-600 hover:text-nogo transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -754,7 +754,7 @@ export function N8nStatusPanel({ authFetch }: { authFetch: (url: string, opts?: 
       <div className="flex items-center gap-4 text-xs text-slate-500 mb-3">
         <span>Workflows: <strong className="text-slate-300">{status?.workflow_count ?? workflows.length}</strong></span>
         <span>Aktywne: <strong className="text-slate-300">{workflows.filter(w => w.active).length}</strong></span>
-        <button
+        <button type="button"
           onClick={() => setExpanded(v => !v)}
           className="btn-ghost ml-auto flex items-center gap-1 text-xs px-2 py-1"
         >
@@ -776,8 +776,8 @@ export function N8nStatusPanel({ authFetch }: { authFetch: (url: string, opts?: 
             workflows.map(wf => (
               <div key={wf.id} className="flex items-center gap-2 text-xs bg-ink-800/40 rounded-md px-3 py-2">
                 {wf.active
-                  ? <ToggleRight className="w-4 h-4 text-em flex-shrink-0" />
-                  : <ToggleLeft className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                  ? <ToggleRight className="w-4 h-4 text-em shrink-0" />
+                  : <ToggleLeft className="w-4 h-4 text-slate-600 shrink-0" />
                 }
                 <span className="flex-1 truncate text-slate-300">{wf.name}</span>
                 <span className="text-slate-600 font-mono">{wf.id.substring(0, 8)}</span>
@@ -835,11 +835,11 @@ export default function AutomationPage() {
         {/* Tab navigation */}
         <div className="flex gap-1 p-1 rounded-xl bg-ink-900/60 border border-ink-800/60 w-fit">
           {TABS.map(tab => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200
                 ${activeTab === tab.id
                   ? 'bg-em/15 text-em border border-em/25 shadow-sm'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-ink-800/40'

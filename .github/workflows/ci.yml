@@ -150,6 +150,10 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: React Doctor (perf + security + bugs)
+        run: npx react-doctor@latest --ci
+        continue-on-error: true
+
       - name: Next.js build (type-check included)
         run: npm run build
         env:

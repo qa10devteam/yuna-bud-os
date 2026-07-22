@@ -162,25 +162,54 @@ def _seed_demo_tenant(session) -> None:
             {"id": DEMO_ORG_ID, "tid": DEMO_TENANT_ID},
         )
 
-    # Demo user — demo@terra-os.pl (upsert by id to handle deleted-email case)
-    pw_hash = "$2b$12$placeholder_bcrypt_hash_demo_user_terra_os_pl"
-    session.execute(
-        text(
-            "INSERT INTO users (id, email, name, password_hash, org_id, role, is_active, created_at) "
-            "VALUES (:id, :email, :name, :pw, :org, 'owner', true, :now) "
-            "ON CONFLICT (id) DO UPDATE SET email=EXCLUDED.email, org_id=EXCLUDED.org_id, "
-            "name=EXCLUDED.name, is_active=true"
-        ),
-        {
-            "id": DEMO_USER_ID,
-            "email": DEMO_EMAIL,
-            "name": "Demo User",
-            "pw": pw_hash,
-            "org": DEMO_ORG_ID,
-            "now": now,
-        },
-    )
-    print(f"[seed] Upserted demo user {DEMO_EMAIL}")
+    # Demo user — demo@terra-os.pl
+    # Robust upsert: handle cases where id or email already exist independently
+    import bcrypt as _bcrypt
+    pw_hash = _bcrypt.hashpw(b"BudOS2026!", _bcrypt.gensalt()).decode()
+
+    # Check what's already in DB
+    existing_by_email = session.execute(
+        text("SELECT id FROM users WHERE email = :email"),
+        {"email": DEMO_EMAIL},
+    ).fetchone()
+    existing_by_id = session.execute(
+        text("SELECT email FROM users WHERE id = :id"),
+        {"id": DEMO_USER_ID},
+    ).fetchone()
+
+    if existing_by_email:
+        # Email exists — update in place (may have different id)
+        session.execute(
+            text(
+                "UPDATE users SET name=:name, password_hash=:pw, org_id=:org, "
+                "is_active=true WHERE email=:email"
+            ),
+            {"name": "Demo User", "pw": pw_hash, "org": DEMO_ORG_ID, "email": DEMO_EMAIL},
+        )
+        print(f"[seed] Updated existing demo user {DEMO_EMAIL}")
+    elif existing_by_id:
+        # ID taken by deleted/other user — insert with new UUID
+        new_id = str(uuid.uuid4())
+        session.execute(
+            text(
+                "INSERT INTO users (id, email, name, password_hash, org_id, role, is_active, created_at) "
+                "VALUES (:id, :email, :name, :pw, :org, 'owner', true, :now)"
+            ),
+            {"id": new_id, "email": DEMO_EMAIL, "name": "Demo User",
+             "pw": pw_hash, "org": DEMO_ORG_ID, "now": now},
+        )
+        print(f"[seed] Created demo user {DEMO_EMAIL} with new id {new_id}")
+    else:
+        # Clean insert
+        session.execute(
+            text(
+                "INSERT INTO users (id, email, name, password_hash, org_id, role, is_active, created_at) "
+                "VALUES (:id, :email, :name, :pw, :org, 'owner', true, :now)"
+            ),
+            {"id": DEMO_USER_ID, "email": DEMO_EMAIL, "name": "Demo User",
+             "pw": pw_hash, "org": DEMO_ORG_ID, "now": now},
+        )
+        print(f"[seed] Created demo user {DEMO_EMAIL}")
 
     # Subscription for demo org
     session.execute(

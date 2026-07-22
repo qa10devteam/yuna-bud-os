@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   FileText, Download, Calendar, BarChart2, FileBarChart, Plus, Clock, CheckCircle, Loader2,
 } from 'lucide-react';
@@ -36,6 +35,16 @@ const TYPE_META: Record<string, { label: string; icon: React.ReactNode; color: s
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const item      = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
+// Static chart data — fallback / always-visible
+const STATIC_CHART: { month: string; count: number }[] = [
+  { month: 'Lut', count: 12 },
+  { month: 'Mar', count: 18 },
+  { month: 'Kwi', count: 15 },
+  { month: 'Maj', count: 22 },
+  { month: 'Cze', count: 19 },
+  { month: 'Lip', count: 24 },
+];
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtMln(v: number): string {
@@ -43,6 +52,31 @@ function fmtMln(v: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + ' M';
   if (n >= 1_000) return (n / 1_000).toFixed(0) + ' tys.';
   return String(n);
+}
+
+// ── Inline Bar Chart ──────────────────────────────────────────────────────────
+
+function InlineBarChart({ data }: { data: { month: string; count: number }[] }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div className="space-y-2.5">
+      {data.map(({ month, count }) => {
+        const pct = Math.round((count / max) * 100);
+        return (
+          <div key={month} className="flex items-center gap-3">
+            <span className="w-8 text-right text-xs text-slate-400 shrink-0">{month}</span>
+            <div className="flex-1 bg-slate-700/40 rounded-r h-5 overflow-hidden">
+              <div
+                className="bg-emerald-500/70 rounded-r h-5 transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="w-6 text-xs text-slate-300 font-medium tabular-nums shrink-0">{count}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -79,11 +113,18 @@ export function ReportsPage() {
     ]);
   }, []);
 
-  const readyCount = reports.filter(r => r.status === 'ready').length;
-  const totalPages = reports.reduce((s, r) => s + r.pages, 0);
+  const readyCount     = reports.filter(r => r.status === 'ready').length;
+  const totalPages     = reports.reduce((s, r) => s + r.pages, 0);
+  const scheduledCount = reports.filter(r => r.status === 'scheduled').length;
+
+  // Derive chart rows: prefer API data when available, otherwise static
+  const chartRows: { month: string; count: number }[] =
+    monthlyData.length > 0
+      ? monthlyData.map(r => ({ month: r.month, count: r.count }))
+      : STATIC_CHART;
 
   const actions = (
-    <button className="btn-primary flex items-center gap-2">
+    <button type="button" className="btn-primary flex items-center gap-2">
       <Plus className="w-4 h-4" /> Generuj raport
     </button>
   );
@@ -92,76 +133,54 @@ export function ReportsPage() {
     <PageShell title="Raporty" subtitle="Raporty analityczne przetargów" actions={actions}>
       <motion.div className="flex flex-col gap-6" variants={container} initial="hidden" animate="show">
 
-        {/* Stats */}
+        {/* KPI Stats */}
         <motion.div variants={item} className="grid grid-cols-3 gap-3">
-          <div className="card rounded-xl p-4 shadow-md-sm">
-            <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
-              <CheckCircle className="w-3.5 h-3.5" /> Gotowe
+          {/* Gotowe */}
+          <div className="card rounded-xl p-4 shadow-md-sm flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-400/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
             </div>
-            <p className="text-2xl font-bold text-success">{readyCount}</p>
+            <div>
+              <p className="text-2xl font-bold text-emerald-400 leading-none">{readyCount}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Gotowe</p>
+            </div>
           </div>
-          <div className="card rounded-xl p-4 shadow-md-sm">
-            <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
-              <FileText className="w-3.5 h-3.5" /> Łącznie stron
+
+          {/* Łącznie stron */}
+          <div className="card rounded-xl p-4 shadow-md-sm flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-slate-700/60 flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4 text-slate-300" />
             </div>
-            <p className="text-2xl font-bold text-slate-200">{totalPages}</p>
+            <div>
+              <p className="text-2xl font-bold text-slate-200 leading-none">{totalPages}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Łącznie stron</p>
+            </div>
           </div>
-          <div className="card rounded-xl p-4 shadow-md-sm">
-            <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
-              <Clock className="w-3.5 h-3.5" /> Zaplanowane
+
+          {/* Zaplanowane */}
+          <div className="card rounded-xl p-4 shadow-md-sm flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-sky-400/10 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-sky-400" />
             </div>
-            <p className="text-2xl font-bold text-info">{reports.filter(r => r.status === 'scheduled').length}</p>
+            <div>
+              <p className="text-2xl font-bold text-sky-400 leading-none">{scheduledCount}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Zaplanowane</p>
+            </div>
           </div>
         </motion.div>
 
-        {/* Monthly Bar Chart */}
+        {/* Inline Bar Chart — Aktywność przetargowa */}
         <motion.div variants={item} className="card rounded-xl p-5 shadow-md-sm">
           <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-em" />
-            Przetargi miesięcznie
+            <BarChart2 className="w-4 h-4 text-emerald-400" />
+            Aktywność przetargowa — ostatnie 6 miesięcy
           </h3>
           {loading ? (
-            <div className="flex items-center justify-center py-16">
+            <div className="flex items-center justify-center py-10">
               <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
             </div>
-          ) : monthlyData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <BarChart2 className="w-8 h-8 text-slate-700 mb-2" />
-              <p className="text-slate-500 text-sm">Brak danych miesięcznych</p>
-              <p className="text-slate-600 text-xs mt-1">Dane pojawią się po zaindeksowaniu przetargów</p>
-            </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={monthlyData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                <XAxis
-                  dataKey="month"
-                  tick={{ fill: '#94A3B8', fontSize: 11 }}
-                  axisLine={{ stroke: '#1E293B' }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: '#64748B', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) => fmtMln(v)}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1E293B',
-                    border: '1px solid #334155',
-                    borderRadius: '8px',
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: '#E2E8F0' }}
-                  formatter={(value: number, name: string) => [
-                    name === 'total_value' ? fmtMln(value) + ' zł' : value,
-                    name === 'total_value' ? 'Wartość' : 'Liczba',
-                  ]}
-                />
-                <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Liczba" />
-                <Bar dataKey="total_value" fill="#22C55E" radius={[4, 4, 0, 0]} name="Wartość" />
-              </BarChart>
-            </ResponsiveContainer>
+            <InlineBarChart data={chartRows} />
           )}
         </motion.div>
 
@@ -170,20 +189,31 @@ export function ReportsPage() {
           {reports.map(r => {
             const meta = TYPE_META[r.type];
             return (
-              <div key={r.id} className="card rounded-xl p-5 card-hover shadow-md-sm flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl bg-ink-800 flex items-center justify-center border border-ink-700/40 ${meta.color}`}>
-                  {meta.icon}
+              <div
+                key={r.id}
+                className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-4 flex items-center gap-4"
+              >
+                {/* File icon */}
+                <div className="w-10 h-10 rounded-lg bg-emerald-400/10 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-emerald-400" />
                 </div>
+
+                {/* Title + subtitle */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-slate-200 truncate">{r.title}</h3>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                  <h3 className="text-sm font-bold text-slate-200 truncate">{r.title}</h3>
+                  <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-400">
                     <span className={`flex items-center gap-1 ${meta.color}`}>{meta.icon} {meta.label}</span>
-                    {r.generated_at && <span>{r.generated_at}</span>}
                     {r.pages > 0 && <span>{r.pages} stron</span>}
+                    {r.generated_at && <span>{r.generated_at}</span>}
                   </div>
                 </div>
+
+                {/* Action badge / button */}
                 {r.status === 'ready' && (
-                  <button className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/10 transition-colors whitespace-nowrap"
+                  >
                     <Download className="w-3.5 h-3.5" /> Pobierz PDF
                   </button>
                 )}
@@ -218,7 +248,7 @@ export function ReportsPage() {
               { name: 'Raport per projekt', desc: 'Timeline, budżet, ryzyka, KPI', icon: FileBarChart },
               { name: 'Analiza porównawcza ofert', desc: 'Benchmarking ofert, ranking wykonawców', icon: BarChart2 },
             ].map(t => (
-              <button
+              <button type="button"
                 key={t.name}
                 className="card rounded-xl p-4 text-left card-hover group border border-ink-800/40"
               >

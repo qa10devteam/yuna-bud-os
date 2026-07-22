@@ -114,10 +114,10 @@ export function ProactivePage() {
           { id: 'portfolio' as Tab, label: 'Portfolio', icon: Briefcase },
           { id: 'scan' as Tab, label: 'Scan AI', icon: Zap },
         ]).map(t => (
-          <button
+          <button type="button"
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
               tab === t.id
                 ? 'bg-info/20 text-info border border-info/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-ink-800/50'
@@ -232,7 +232,7 @@ export function ProactivePage() {
             <Zap size={40} className="mx-auto text-info mb-3" />
             <h3 className="text-slate-100 font-semibold mb-2">Proactive AI Scan</h3>
             <p className="text-slate-400 text-sm mb-4">Znajdź przetargi o wysokim potencjale, które nie zostały jeszcze przeanalizowane</p>
-            <button
+            <button type="button"
               onClick={runScan}
               disabled={scanning}
               className="btn-primary flex items-center gap-2 mx-auto disabled:opacity-50"

@@ -242,7 +242,7 @@ function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void 
       <AlertCircle className="text-nogo" size={32} />
       <p className="text-sm">{message}</p>
       {onRetry && (
-        <button
+        <button type="button"
           onClick={onRetry}
           className="flex items-center gap-1 text-xs text-indigo hover:text-indigo/80 transition-colors"
         >
@@ -769,7 +769,7 @@ function SzukajTab() {
     else { setSortField(field); setSortDir('desc'); }
   };
 
-  const SortIcon = ({ field }: { field: typeof sortField }) => {
+  const renderSortIcon = (field: typeof sortField) => {
     if (sortField !== field) return <Minus size={10} className="text-slate-600 ml-1 inline" />;
     return sortDir === 'desc'
       ? <ChevronDown size={10} className="text-indigo ml-1 inline" />
@@ -791,11 +791,11 @@ function SzukajTab() {
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
               placeholder="Szukaj materiału, symbolu, indeksu ETO… (min. 2 znaki)"
-              className="w-full bg-ink-900/60 border border-ink-800 rounded-md pl-9 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo/60 focus:ring-1 focus:ring-indigo/30 transition-all"
+              className="w-full bg-ink-900/60 border border-ink-800 rounded-md pl-9 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo/60 focus:ring-1 focus:ring-indigo/30 transition-[color,background-color,border-color,opacity,transform,box-shadow]"
               autoComplete="off"
             />
             {inputVal && (
-              <button
+              <button type="button"
                 onClick={() => { setInputVal(''); setResult(null); setError(null); setSuggestions([]); setShowSuggest(false); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               >
@@ -809,7 +809,7 @@ function SzukajTab() {
                 className="absolute left-0 right-0 top-full mt-1 z-50 bg-ink-900 border border-ink-700 rounded-md shadow-xl overflow-hidden"
               >
                 {suggestions.map((s, i) => (
-                  <button
+                  <button type="button"
                     key={s.id}
                     onMouseDown={e => {
                       e.preventDefault();
@@ -834,7 +834,7 @@ function SzukajTab() {
               </div>
             )}
           </div>
-          <button
+          <button type="button"
             onClick={() => doSearch(inputVal, typRms)}
             disabled={loading || inputVal.trim().length < 2}
             className="flex items-center gap-2 px-5 py-2.5 btn-primary disabled:opacity-40 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors"
@@ -847,7 +847,7 @@ function SzukajTab() {
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-xs text-slate-500 mr-1">Filtr:</span>
           {TYP_OPTIONS.map(opt => (
-            <button
+            <button type="button"
               key={opt.value}
               onClick={() => handleTypChange(opt.value)}
               className={`text-xs px-3 py-1 rounded-full border transition-colors ${
@@ -900,21 +900,21 @@ function SzukajTab() {
                     <thead>
                       <tr className="border-b border-ink-800 bg-ink-900/40">
                         <th className="pl-5 pr-4 py-3 text-left text-xs text-slate-400 font-medium w-[38%]">
-                          <button onClick={() => toggleSort('nazwa')} className="flex items-center hover:text-slate-200 transition-colors">
-                            Nazwa <SortIcon field="nazwa" />
+                          <button type="button" onClick={() => toggleSort('nazwa')} className="flex items-center hover:text-slate-200 transition-colors">
+                            Nazwa {renderSortIcon("nazwa")}
                           </button>
                         </th>
                         <th className="pr-4 py-3 text-left text-xs text-slate-400 font-medium">Typ</th>
                         <th className="pr-4 py-3 text-left text-xs text-slate-400 font-medium">Symbol / ETO</th>
                         <th className="pr-4 py-3 text-left text-xs text-slate-400 font-medium">
-                          <button onClick={() => toggleSort('cena_netto')} className="flex items-center hover:text-slate-200 transition-colors">
-                            Cena netto <SortIcon field="cena_netto" />
+                          <button type="button" onClick={() => toggleSort('cena_netto')} className="flex items-center hover:text-slate-200 transition-colors">
+                            Cena netto {renderSortIcon("cena_netto")}
                           </button>
                         </th>
                         <th className="pr-4 py-3 text-left text-xs text-slate-400 font-medium">Z narzutem</th>
                         <th className="pr-4 py-3 text-left text-xs text-slate-400 font-medium">
-                          <button onClick={() => toggleSort('qoq_change_pct')} className="flex items-center hover:text-slate-200 transition-colors">
-                            QoQ <SortIcon field="qoq_change_pct" />
+                          <button type="button" onClick={() => toggleSort('qoq_change_pct')} className="flex items-center hover:text-slate-200 transition-colors">
+                            QoQ {renderSortIcon("qoq_change_pct")}
                           </button>
                         </th>
                         <th className="pr-4 py-3 text-left text-xs text-slate-400 font-medium">Kategoria</th>
@@ -1033,7 +1033,7 @@ function KategorieTab() {
   return (
     <div className="flex gap-5">
       {/* Category grid */}
-      <div className={`grid gap-4 transition-all ${selected ? 'grid-cols-2 flex-1' : 'grid-cols-3 w-full'}`}
+      <div className={`grid gap-4 transition-[color,background-color,border-color,opacity,transform,box-shadow] ${selected ? 'grid-cols-2 flex-1' : 'grid-cols-3 w-full'}`}
         style={{ gridAutoRows: 'min-content' }}>
         {categories.map((cat, i) => (
           <motion.div
@@ -1047,7 +1047,7 @@ function KategorieTab() {
               onClick={() => selected === cat.nazwa ? (setSelected(null), setDetail(null)) : loadDetail(cat.nazwa)}
             >
             <GlassCard
-              className={`p-4 transition-all hover:border-indigo/40 ${
+              className={`p-4 transition-[color,background-color,border-color,opacity,transform,box-shadow] hover:border-indigo/40 ${
                 selected === cat.nazwa ? 'border-indigo/60 bg-indigo/10' : ''
               }`}
             >
@@ -1080,13 +1080,13 @@ function KategorieTab() {
             initial={{ opacity: 0, x: 40, width: 0 }}
             animate={{ opacity: 1, x: 0, width: 380 }}
             exit={{ opacity: 0, x: 40, width: 0 }}
-            className="flex-shrink-0 overflow-hidden"
+            className="shrink-0 overflow-hidden"
             style={{ width: 380 }}
           >
             <GlassCard className="p-5 h-full">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-slate-100 line-clamp-1">{selected}</h3>
-                <button
+                <button type="button"
                   onClick={() => { setSelected(null); setDetail(null); }}
                   className="text-slate-400 hover:text-slate-200 transition-colors"
                 >
@@ -1243,7 +1243,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
               <option value="S">S — Sprzęt</option>
             </select>
           </div>
-          <button
+          <button type="button"
             onClick={() => loadForecast(selCat, selTyp)}
             disabled={!selCat || loading}
             className="flex items-center gap-2 px-5 py-2.5 btn-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors"
@@ -1269,7 +1269,7 @@ function ProgNozaTab({ categories }: { categories: CategoryItem[] }) {
               <p className="text-slate-400 text-sm mb-5">
                 Brak prognoz dla <strong className="text-slate-200">{selCat}</strong> / typ <strong className="text-slate-200">{selTyp}</strong>
               </p>
-              <button
+              <button type="button"
                 onClick={computeForecast}
                 disabled={computing}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-indigo hover:bg-indigo/80 disabled:opacity-60 rounded-md text-sm font-semibold text-ink-950 transition-colors"
@@ -1431,7 +1431,7 @@ function RegionyTab({ categories }: { categories: CategoryItem[] }) {
                       <div className="w-36 text-xs text-slate-300 truncate shrink-0">{r.voivodeship}</div>
                       <div className="flex-1 bg-ink-900/60 rounded-full h-5 relative overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-indigo/70 transition-all duration-500"
+                          className="h-full rounded-full bg-indigo/70 transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-500"
                           style={{ width: `${barW}%` }}
                         />
                         <span className="absolute inset-0 flex items-center px-2 text-xs text-slate-100">
@@ -1507,7 +1507,7 @@ function ZmiennoscTab() {
     else { setSortField(f); setSortDir('desc'); }
   };
 
-  const SortIcon = ({ f }: { f: SortField }) => {
+  const renderSortIcon2 = (f: SortField) => {
     if (sortField !== f) return <Minus size={10} className="text-slate-600" />;
     return sortDir === 'asc' ? <ChevronUp size={10} className="text-indigo" /> : <ChevronDown size={10} className="text-indigo" />;
   };
@@ -1546,7 +1546,7 @@ function ZmiennoscTab() {
                   className="pb-2 text-left text-xs text-slate-400 font-medium pr-4 cursor-pointer hover:text-slate-200 transition-colors select-none"
                 >
                   <span className="inline-flex items-center gap-1">
-                    {label} <SortIcon f={f} />
+                    {label} {renderSortIcon2(f)}
                   </span>
                 </th>
               ))}
@@ -1690,10 +1690,10 @@ export function ICBPage() {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
           return (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,opacity,transform,box-shadow] shrink-0 ${
                 active
                   ? 'bg-indigo text-ink-950 shadow-md-md'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-ink-800/60'

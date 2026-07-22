@@ -1,6 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { Space_Grotesk, JetBrains_Mono } from 'next/font/google';
+import { DM_Serif_Display, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
+
+const dmSerif = DM_Serif_Display({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-dm-serif',
+  display: 'swap',
+});
 
 const space = Space_Grotesk({
   subsets: ['latin', 'latin-ext'],
@@ -36,14 +44,28 @@ export const metadata: Metadata = {
     icon: '/icons/icon.svg',
     apple: '/icons/icon.svg',
   },
+  metadataBase: new URL('https://yu-na.io'),
   openGraph: {
     title: 'YU-NA | BudOS — Przetargi budowlane. Opanowane.',
     description: 'Monitoring BZP/TED w czasie rzeczywistym. Silnik GO/NO-GO. Kosztorys KNR/ICB.',
     type: 'website',
     locale: 'pl_PL',
+    url: 'https://yu-na.io/landing',
+    siteName: 'YU-NA BudOS',
+    images: [
+      {
+        url: '/brand/B04-og-dark.png',
+        width: 1200,
+        height: 630,
+        alt: 'YU-NA BudOS — System Decyzyjny dla Przetargów Budowlanych',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
+    title: 'YU-NA | BudOS — Przetargi budowlane. Opanowane.',
+    description: 'Monitoring BZP/TED w czasie rzeczywistym. Silnik GO/NO-GO. Kosztorys KNR/ICB.',
+    images: ['/brand/B04-og-dark.png'],
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -72,8 +94,22 @@ export default function RootLayout({
             `,
           }}
         />
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <Script
+              src="//unpkg.com/react-scan/dist/auto.global.js"
+              crossOrigin="anonymous"
+              strategy="beforeInteractive"
+            />
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              crossOrigin="anonymous"
+              strategy="beforeInteractive"
+            />
+          </>
+        )}
       </head>
-      <body className={`${space.variable} ${jetbrains.variable} font-display antialiased`}>
+      <body className={`${dmSerif.variable} ${space.variable} ${jetbrains.variable} font-display antialiased`}>
         {children}
       </body>
     </html>

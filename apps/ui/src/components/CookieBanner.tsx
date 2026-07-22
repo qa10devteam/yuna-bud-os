@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 const STORAGE_KEY = 'terra_cookie_consent';
 
@@ -65,25 +66,25 @@ export default function CookieBanner() {
                 Używamy plików cookie, aby zapewnić najlepsze doświadczenia na naszej
                 platformie. Możesz zaakceptować wszystkie pliki cookie, wybrać tylko
                 niezbędne lub dostosować ustawienia.{' '}
-                <a href="/privacy" className="text-[#B8FF00] underline hover:text-[#B8FF00]/80">
+                <Link href="/privacy" className="text-[#B8FF00] underline hover:text-[#B8FF00]/80">
                   Polityka prywatności
-                </a>
+                </Link>
               </p>
             </div>
-            <div className="flex flex-shrink-0 flex-wrap gap-2">
-              <button
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button type="button"
                 onClick={handleAcceptAll}
                 className="rounded-md bg-[#B8FF00] px-4 py-2 text-sm font-medium text-[#0A0A0F] transition hover:bg-[#B8FF00]/90"
               >
                 Akceptuję
               </button>
-              <button
+              <button type="button"
                 onClick={handleEssentialOnly}
                 className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-white/40 hover:text-white"
               >
                 Tylko niezbędne
               </button>
-              <button
+              <button type="button"
                 onClick={() => setShowSettings(true)}
                 className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-white/40 hover:text-white"
               >
@@ -147,13 +148,13 @@ export default function CookieBanner() {
               </label>
             </div>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={handleSaveSettings}
                 className="rounded-md bg-[#B8FF00] px-4 py-2 text-sm font-medium text-[#0A0A0F] transition hover:bg-[#B8FF00]/90"
               >
                 Zapisz ustawienia
               </button>
-              <button
+              <button type="button"
                 onClick={() => setShowSettings(false)}
                 className="rounded-md border border-white/20 px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-white/40 hover:text-white"
               >

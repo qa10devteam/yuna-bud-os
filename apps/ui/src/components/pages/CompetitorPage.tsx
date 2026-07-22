@@ -47,7 +47,7 @@ function IntelPanel({ nip, onClose }: { nip: string; onClose: () => void }) {
             {loading ? <span className="animate-pulse bg-ink-700 rounded h-5 w-48 block" /> : (data?.name || nip)}
           </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-ink-800 rounded-lg transition-colors">
+        <button type="button" onClick={onClose} className="p-2 hover:bg-ink-800 rounded-lg transition-colors">
           <X size={18} className="text-slate-400" />
         </button>
       </div>
@@ -226,7 +226,7 @@ function AddCompetitorModal({ onClose, onAdd }: { onClose: () => void; onAdd: (n
         {results.length > 0 && !selected && (
           <div className="mb-3 border border-ink-700 rounded-lg overflow-hidden">
             {results.map(r => (
-              <button
+              <button type="button"
                 key={r.nip}
                 onClick={() => { setSelected(r); setQ(r.name); }}
                 className="w-full flex items-center justify-between px-3 py-2 hover:bg-ink-800 text-left transition-colors border-b border-ink-800 last:border-0"
@@ -247,7 +247,7 @@ function AddCompetitorModal({ onClose, onAdd }: { onClose: () => void; onAdd: (n
               <div className="text-sm text-em">{selected.name}</div>
               <div className="text-xs text-em font-mono">{selected.nip}</div>
             </div>
-            <button onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-300">
+            <button type="button" onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-300">
               <X size={14} />
             </button>
           </div>
@@ -262,10 +262,10 @@ function AddCompetitorModal({ onClose, onAdd }: { onClose: () => void; onAdd: (n
         />
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="btn-secondary flex-1 py-2.5 transition-colors">
+          <button type="button" onClick={onClose} className="btn-secondary flex-1 py-2.5 transition-colors">
             Anuluj
           </button>
-          <button
+          <button type="button"
             onClick={handleAdd}
             disabled={saving || (!selected && !q.match(/^\d{10}$/))}
             className="btn-primary flex-1 py-2.5"
@@ -293,7 +293,7 @@ function CompetitorCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -16 }}
-      className="bg-ink-900 border border-ink-800/50 rounded-2xl p-4 hover:border-ink-700 transition-all group"
+      className="bg-ink-900 border border-ink-800/50 rounded-2xl p-4 hover:border-ink-700 transition-[color,background-color,border-color,opacity,transform,box-shadow] group"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -349,14 +349,14 @@ function CompetitorCard({
         </div>
 
         <div className="flex flex-col gap-1.5 shrink-0">
-          <button
+          <button type="button"
             onClick={() => onIntel(c.competitor_nip)}
             title="Profil intel"
             className="p-2 rounded-lg hover:bg-ink-700 text-slate-400 hover:text-em transition-colors"
           >
             <Eye size={16} />
           </button>
-          <button
+          <button type="button"
             onClick={() => onDelete(c.id)}
             title="Usuń z obserwowanych"
             className="p-2 rounded-lg hover:bg-nogo/10 text-slate-600 hover:text-nogo transition-colors"
@@ -398,7 +398,7 @@ export function CompetitorPage() {
         title="Monitoring Konkurencji Przetargowej"
         subtitle="Śledź aktywność rynkową i win-rate kluczowych firm w sektorze"
         actions={
-          <button
+          <button type="button"
             onClick={() => setShowAdd(true)}
             className="btn-primary"
           >
@@ -459,7 +459,7 @@ export function CompetitorPage() {
               <Target size={40} className="mx-auto mb-4 text-slate-700" />
               <h3 className="text-base font-semibold text-slate-400 mb-2">Brak obserwowanych firm</h3>
               <p className="text-sm text-slate-600 mb-6">Dodaj konkurentów, żeby śledzić ich aktywność przetargową</p>
-              <button
+              <button type="button"
                 onClick={() => setShowAdd(true)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 btn-primary"
               >

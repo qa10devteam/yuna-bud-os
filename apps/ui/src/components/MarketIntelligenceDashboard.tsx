@@ -163,7 +163,7 @@ export default function MarketIntelligenceDashboard() {
     return (
       <div className="text-center py-8">
         <p className="text-nogo text-sm">{error}</p>
-        <button onClick={load} className="mt-2 text-xs text-em hover:underline">
+        <button type="button" onClick={load} className="mt-2 text-xs text-em hover:underline">
           Spróbuj ponownie
         </button>
       </div>
@@ -183,7 +183,7 @@ export default function MarketIntelligenceDashboard() {
             Dane: 1.4M przetargów · 784k cen ICB · 81k wykonawców
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={load}
           className="btn-ghost text-xs px-3 py-1.5"
         >

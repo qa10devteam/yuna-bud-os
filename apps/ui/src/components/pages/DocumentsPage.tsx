@@ -1,10 +1,13 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuthFetch } from '@/lib/api-v2';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PageShell } from '@/components/PageShell';
 import { motion } from 'motion/react';
-import { Upload, FileText, Cpu, Calculator, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  Upload, FileText, FileSpreadsheet, Cpu, Calculator,
+  CheckCircle, AlertCircle, Loader2, CloudUpload,
+} from 'lucide-react';
 
 interface Document {
   document_id: string;
@@ -32,24 +35,84 @@ interface Estimate {
   disclaimer: string;
 }
 
+
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function getFileExt(filename: string) {
+  return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function FileTypeIcon({ filename, size = 16 }: { filename: string; size?: number }) {
+  const ext = getFileExt(filename);
+  if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+    return <FileSpreadsheet size={size} className="text-emerald-400 shrink-0" />;
+  }
+  if (ext === 'docx' || ext === 'doc') {
+    return <FileText size={size} className="text-blue-400 shrink-0" />;
+  }
+  // pdf and others
+  return <FileText size={size} className="text-red-400 shrink-0" />;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg: Record<string, { label: string; className: string }> = {
+    uploaded:  { label: 'Przesłany',        className: 'bg-slate-800 text-slate-400 border border-slate-700' },
+    analyzed:  { label: 'Przeanalizowany',  className: 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/30' },
+    analyzing: { label: 'Analizuję…',       className: 'bg-amber-500/10 text-amber-300 border border-amber-500/30' },
+    estimated: { label: 'Wyceniony',        className: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' },
+  };
+  const { label, className } = cfg[status] ?? cfg.uploaded;
+  return (
+    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${className}`}>
+      {status === 'analyzing' && <Loader2 size={10} className="inline animate-spin mr-1" />}
+      {label}
+    </span>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export function DocumentsPage() {
   const authFetch = useAuthFetch();
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authFetch('/api/v2/documents');
+        if (!cancelled && res.ok) {
+          const json = await res.json();
+          setDocuments(Array.isArray(json) ? json : json.documents ?? []);
+        }
+      } catch { /* ignore */ } finally {
+        if (!cancelled) setDocsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authFetch]);
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
   const formatSize = (bytes: number) =>
-    bytes > 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${(bytes / 1_000).toFixed(0)} KB`;
+    bytes >= 1_000_000
+      ? `${(bytes / 1_000_000).toFixed(1)} MB`
+      : `${(bytes / 1_000).toFixed(0)} KB`;
+
   const formatPLN = (v: number) =>
     v.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
   const statusConfig: Record<string, { icon: typeof FileText; color: string; label: string }> = {
-    uploaded: { icon: FileText,    color: 'text-slate-400',    label: 'Przesłany' },
-    analyzed: { icon: Cpu,         color: 'text-indigo',  label: 'Przeanalizowany' },
-    estimated:{ icon: Calculator,  color: 'text-em', label: 'Wyceniony' },
+    uploaded:  { icon: FileText,   color: 'text-slate-400',   label: 'Przesłany' },
+    analyzed:  { icon: Cpu,        color: 'text-indigo-300',  label: 'Przeanalizowany' },
+    analyzing: { icon: Loader2,    color: 'text-amber-300',   label: 'Analizuję…' },
+    estimated: { icon: Calculator, color: 'text-emerald-400', label: 'Wyceniony' },
   };
 
   const handleUpload = useCallback(async (file: File) => {
@@ -106,105 +169,154 @@ export function DocumentsPage() {
   return (
     <PageShell title="Dokumenty" subtitle="SWZ, SIWZ, umowy i załączniki">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl">
-        {/* Upload + list */}
+        {/* ── Left column: upload + list ─────────────────────────────── */}
         <div className="space-y-4">
-          {/* Drop zone */}
+
+          {/* ── Premium drop zone ──────────────────────────────────── */}
           <div
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-              dragOver
-                ? 'border-em/60 bg-em/5'
-                : 'border-ink-700/60 hover:border-ink-600/80'
-            }`}
+            className={`relative rounded-2xl border-2 border-dashed p-8 text-center
+              transition-all duration-200 group cursor-default
+              ${dragOver
+                ? 'border-emerald-400/60 bg-emerald-500/5 shadow-[0_0_24px_0_rgba(52,211,153,0.08)]'
+                : 'border-slate-700/60 hover:border-slate-600/70 bg-slate-900/30 hover:bg-slate-900/50'
+              }`}
           >
-            <Upload
-              size={32}
-              className={`mx-auto mb-3 ${dragOver ? 'text-em' : 'text-slate-500'}`}
-            />
-            <p className="text-slate-300 text-sm font-medium">Przeciągnij PDF tutaj</p>
-            <p className="text-slate-500 text-xs mt-1">SIWZ, rysunki techniczne, przedmiary</p>
-            <label className="mt-3 inline-block cursor-pointer">
-              <span className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-2">
+            {/* Icon wrapper */}
+            <div className={`mx-auto mb-4 w-14 h-14 rounded-xl flex items-center justify-center transition-colors
+              ${dragOver
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-slate-800/70 text-slate-400 group-hover:bg-slate-800 group-hover:text-slate-300'
+              }`}>
+              {dragOver
+                ? <CloudUpload size={28} />
+                : <Upload size={26} />
+              }
+            </div>
+
+            <p className="text-slate-200 text-sm font-semibold">
+              {dragOver ? 'Upuść plik tutaj' : 'Przeciągnij plik tutaj'}
+            </p>
+            <p className="text-slate-500 text-xs mt-1 mb-1">
+              lub kliknij, aby wybrać z dysku
+            </p>
+            <p className="text-slate-600 text-[11px] mb-4">
+              Akceptowane formaty: <span className="text-slate-500">PDF, DOCX, XLSX</span>
+            </p>
+
+            <label className="inline-block cursor-pointer">
+              <span className="btn-primary px-5 py-2 text-sm inline-flex items-center gap-2 rounded-lg font-medium">
                 {uploading ? (
-                  <><Loader2 size={14} className="animate-spin" /> Przesyłanie...</>
+                  <><Loader2 size={14} className="animate-spin" /> Przesyłanie…</>
                 ) : (
-                  'Wybierz plik'
+                  <><Upload size={14} /> Wybierz plik</>
                 )}
               </span>
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.docx,.xlsx"
                 className="hidden"
                 onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0]); }}
               />
             </label>
           </div>
 
-          {/* Document list */}
-          <div className="space-y-2">
-            {documents.map(doc => {
-              const cfg = statusConfig[doc.status] || statusConfig.uploaded;
-              const Icon = cfg.icon;
-              return (
-                <div
-                  key={doc.document_id}
-                  onClick={() => { setSelectedDoc(doc); if (doc.has_estimate) getEstimate(doc.document_id); }}
-                  className={`p-3 rounded-md cursor-pointer transition-colors ${
-                    selectedDoc?.document_id === doc.document_id
-                      ? 'bg-em/10 border border-em/30'
-                      : 'bg-ink-900/40 hover:bg-ink-800/50 border border-transparent'
+          {/* ── Document list ──────────────────────────────────────── */}
+          <div className="space-y-1.5">
+            <p className="text-slate-500 text-xs font-medium uppercase tracking-wider px-1 mb-2">
+              Dokumenty ({documents.length})
+            </p>
+            {docsLoading ? (
+              <div className="space-y-2">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-16 rounded-xl bg-slate-800/50 animate-pulse" />
+                ))}
+              </div>
+            ) : documents.length === 0 ? (
+              <p className="text-slate-500 text-sm px-1">Brak dokumentów. Prześlij plik PDF aby rozpocząć.</p>
+            ) : documents.map(doc => (
+              <div
+                key={doc.document_id}
+                onClick={() => {
+                  setSelectedDoc(doc);
+                  if (doc.has_estimate) getEstimate(doc.document_id);
+                }}
+                className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer
+                  transition-all duration-150 border
+                  ${selectedDoc?.document_id === doc.document_id
+                    ? 'bg-emerald-500/8 border-emerald-500/25 shadow-sm'
+                    : 'bg-slate-900/40 border-transparent hover:bg-slate-800/50 hover:border-slate-700/40'
                   }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={16} className={cfg.color} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-slate-200 text-sm truncate">{doc.filename}</div>
-                      <div className="text-slate-500 text-xs">{formatSize(doc.size_bytes)} · {cfg.label}</div>
-                    </div>
+              >
+                {/* File type icon */}
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center">
+                  <FileTypeIcon filename={doc.filename} size={15} />
+                </div>
+
+                {/* Name + meta */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-slate-200 text-sm truncate font-medium leading-tight">
+                    {doc.filename}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-slate-500 text-[11px]">{formatSize(doc.size_bytes)}</span>
+                    <span className="text-slate-700 text-[11px]">·</span>
+                    <span className="text-slate-600 text-[11px]">{formatDate(doc.uploaded_at)}</span>
                   </div>
                 </div>
-              );
-            })}
-            {documents.length === 0 && (
-              <p className="text-slate-600 text-sm text-center py-4">Brak dokumentów</p>
-            )}
+
+                {/* Status badge */}
+                <StatusBadge status={doc.status} />
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Detail panel */}
+        {/* ── Right panel: detail ────────────────────────────────────────── */}
         <div className="lg:col-span-2">
           {!selectedDoc ? (
             <GlassCard className="p-12 text-center">
-              <FileText size={48} className="mx-auto text-slate-700 mb-3" />
-              <p className="text-slate-500 font-medium">Wybierz lub prześlij dokument</p>
-              <p className="text-slate-700 text-sm mt-1">Upload PDF → Analiza AI → Automatyczny kosztorys z ICB</p>
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-slate-800/70 flex items-center justify-center mb-4">
+                <FileText size={32} className="text-slate-600" />
+              </div>
+              <p className="text-slate-400 font-semibold">Wybierz lub prześlij dokument</p>
+              <p className="text-slate-600 text-sm mt-1">
+                Upload PDF → Analiza AI → Automatyczny kosztorys z ICB
+              </p>
             </GlassCard>
           ) : (
             <div className="space-y-4">
               {/* Status pipeline */}
               <GlassCard className="p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-slate-100 font-medium truncate">{selectedDoc.filename}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-md bg-ink-800 ${statusConfig[selectedDoc.status]?.color || 'text-slate-400'}`}>
-                    {statusConfig[selectedDoc.status]?.label || selectedDoc.status}
-                  </span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileTypeIcon filename={selectedDoc.filename} size={18} />
+                    <h3 className="text-slate-100 font-semibold truncate">{selectedDoc.filename}</h3>
+                  </div>
+                  <StatusBadge status={selectedDoc.status} />
                 </div>
+                <div className="text-slate-500 text-xs mt-1 ml-6">
+                  {formatSize(selectedDoc.size_bytes)} · przesłany {formatDate(selectedDoc.uploaded_at)}
+                </div>
+
                 {/* Pipeline steps */}
-                <div className="flex items-center gap-2 mt-4">
-                  {['Upload', 'Analiza', 'Kosztorys'].map((step, i) => {
-                    const done = i === 0 || (i === 1 && selectedDoc.has_analysis) || (i === 2 && selectedDoc.has_estimate);
+                <div className="flex items-center gap-2 mt-5">
+                  {(['Upload', 'Analiza', 'Kosztorys'] as const).map((step, i) => {
+                    const done = i === 0
+                      || (i === 1 && selectedDoc.has_analysis)
+                      || (i === 2 && selectedDoc.has_estimate);
                     return (
                       <div key={step} className="flex items-center gap-2 flex-1">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          done ? 'bg-em/20 text-em' : 'bg-ink-800 text-slate-500'
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          done ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
                         }`}>
                           {done ? <CheckCircle size={16} /> : <span className="text-xs">{i + 1}</span>}
                         </div>
-                        <span className={`text-xs ${done ? 'text-em' : 'text-slate-500'}`}>{step}</span>
+                        <span className={`text-xs ${done ? 'text-emerald-400' : 'text-slate-500'}`}>{step}</span>
                         {i < 2 && (
-                          <div className={`flex-1 h-0.5 ${done ? 'bg-em/30' : 'bg-ink-800'}`} />
+                          <div className={`flex-1 h-0.5 ${done ? 'bg-emerald-500/30' : 'bg-slate-800'}`} />
                         )}
                       </div>
                     );
@@ -214,20 +326,20 @@ export function DocumentsPage() {
 
               {/* Actions */}
               {!selectedDoc.has_analysis && (
-                <button
+                <button type="button"
                   onClick={() => analyzeDoc(selectedDoc.document_id)}
                   disabled={analyzing}
                   className="btn-primary w-full px-4 py-3 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Cpu size={16} />}
-                  {analyzing ? 'Analizuję PDF...' : 'Uruchom analizę AI'}
+                  {analyzing ? 'Analizuję PDF…' : 'Uruchom analizę AI'}
                 </button>
               )}
 
               {selectedDoc.has_analysis && !selectedDoc.has_estimate && (
-                <button
+                <button type="button"
                   onClick={() => getEstimate(selectedDoc.document_id)}
-                  className="w-full px-4 py-3 bg-go/15 hover:bg-go/25 text-go border border-go/30 rounded-md font-medium flex items-center justify-center gap-2 transition-colors"
+                  className="w-full px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
                 >
                   <Calculator size={16} />
                   Generuj kosztorys z ICB
@@ -242,15 +354,15 @@ export function DocumentsPage() {
 
                     {/* Summary */}
                     <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="bg-ink-900/60 rounded-xl p-3 text-center">
+                      <div className="bg-slate-900/60 rounded-xl p-3 text-center">
                         <div className="text-slate-500 text-xs mb-1">Minimum</div>
                         <div className="text-slate-100 font-bold text-sm">{formatPLN(estimate.total.min_pln)}</div>
                       </div>
-                      <div className="bg-indigo/10 border border-indigo/20 rounded-xl p-3 text-center">
-                        <div className="text-indigo text-xs mb-1">Środek</div>
-                        <div className="text-indigo font-bold text-lg">{formatPLN(estimate.total.mid_pln)}</div>
+                      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 text-center">
+                        <div className="text-indigo-300 text-xs mb-1">Środek</div>
+                        <div className="text-indigo-300 font-bold text-lg">{formatPLN(estimate.total.mid_pln)}</div>
                       </div>
-                      <div className="bg-ink-900/60 rounded-xl p-3 text-center">
+                      <div className="bg-slate-900/60 rounded-xl p-3 text-center">
                         <div className="text-slate-500 text-xs mb-1">Maksimum</div>
                         <div className="text-slate-100 font-bold text-sm">{formatPLN(estimate.total.max_pln)}</div>
                       </div>
@@ -259,12 +371,12 @@ export function DocumentsPage() {
                     {/* Items */}
                     <div className="space-y-2">
                       {estimate.items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between p-2 bg-ink-900/40 rounded-md">
+                        <div key={i} className="flex items-center justify-between p-2 bg-slate-900/40 rounded-md">
                           <div className="flex items-center gap-2">
                             {item.icb_backed ? (
-                              <CheckCircle size={12} className="text-em" />
+                              <CheckCircle size={12} className="text-emerald-400" />
                             ) : (
-                              <AlertCircle size={12} className="text-warn" />
+                              <AlertCircle size={12} className="text-amber-400" />
                             )}
                             <span className="text-slate-200 text-sm">{item.category}</span>
                           </div>
@@ -279,8 +391,8 @@ export function DocumentsPage() {
                     <div className="mt-3 flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-md ${
                         estimate.total.confidence === 'medium'
-                          ? 'bg-warn/10 text-warn'
-                          : 'bg-nogo/10 text-nogo'
+                          ? 'bg-amber-500/10 text-amber-300'
+                          : 'bg-red-500/10 text-red-300'
                       }`}>
                         Pewność: {estimate.total.confidence}
                       </span>

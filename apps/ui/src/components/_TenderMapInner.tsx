@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
+const PLN_FMT = new Intl.NumberFormat('pl-PL')
+
 // Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({ iconRetinaUrl: '/marker-icon-2x.png', iconUrl: '/marker-icon.png', shadowUrl: '/marker-shadow.png' })
@@ -15,7 +17,7 @@ export default function TenderMapInner({ locations, height }: { locations: any[]
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
       {locations.map(loc => (
         <Marker key={loc.id} position={[loc.lat, loc.lng]}>
-          <Popup><strong>{loc.title}</strong><br />{new Intl.NumberFormat('pl-PL').format(loc.value_pln)} PLN</Popup>
+          <Popup><strong>{loc.title}</strong><br />{PLN_FMT.format(loc.value_pln)} PLN</Popup>
         </Marker>
       ))}
     </MapContainer>

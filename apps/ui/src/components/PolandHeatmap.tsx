@@ -81,7 +81,7 @@ export function PolandHeatmap({ data }: PolandHeatmapProps) {
           <div
             key={code}
             title={tooltipText}
-            className="relative flex flex-col items-center justify-center rounded-md border border-ink-700/40 p-1 cursor-default select-none transition-all duration-200 hover:scale-105 hover:z-10 bg-ink-900/60"
+            className="relative flex flex-col items-center justify-center rounded-md border border-ink-700/40 p-1 cursor-default select-none transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-200 hover:scale-105 hover:z-10 bg-ink-900/60"
             style={{ boxShadow, minHeight: '3rem' }}
           >
             <span className="text-[8px] font-medium leading-tight text-center text-slate-300 drop-shadow-sm">

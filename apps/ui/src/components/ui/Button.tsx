@@ -1,55 +1,91 @@
 'use client';
 
-import { forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { forwardRef, cloneElement, isValidElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+/**
+ * primary   — white pill (high-priority CTA)
+ * ghost     — dim border, transparent bg (nav / inline)
+ * danger    — red tint, destructive
+ * em        — emerald pill (BudOS GO signal)
+ * secondary — ink surface (standard actions, backward-compat alias)
+ */
+type ButtonVariant = 'primary' | 'ghost' | 'danger' | 'em' | 'secondary';
 type ButtonSize    = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?:   ButtonVariant;
-  size?:      ButtonSize;
-  loading?:   boolean;
-  /** Renders a full-width block button */
+  variant?:  ButtonVariant;
+  size?:     ButtonSize;
+  loading?:  boolean;
   fullWidth?: boolean;
-  /** Icon to render before label */
-  iconLeft?:  React.ReactNode;
-  /** Icon to render after label */
-  iconRight?: React.ReactNode;
+  /** Icon rendered before label */
+  iconLeft?:  ReactNode;
+  /** Icon rendered after label */
+  iconRight?: ReactNode;
+  /**
+   * asChild — renders the component as its direct child element,
+   * merging all props (Radix-style Slot lite).
+   * No class-variance-authority needed.
+   */
+  asChild?:  boolean;
 }
 
-// ── Style maps — Brand Bible BudOS ────────────────────────────────────────────
-// primary = emerald (GO signal) — highest CTAs only
-// secondary = ink surface — standard actions
-// ghost = no bg — nav, inline
-// danger = red signal — destructive
+// ── Style maps ─────────────────────────────────────────────────────────────────
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    'bg-em text-ink-950 font-semibold ' +
-    'hover:bg-em-light ' +
+    'bg-white text-black rounded-full ' +
+    'hover:bg-slate-100 ' +
     'border border-transparent',
-  secondary:
-    'bg-ink-800 text-slate-200 font-medium ' +
-    'border border-ink-line ' +
-    'hover:bg-ink-700 hover:border-ink-line-strong hover:text-slate-100',
   ghost:
-    'text-slate-400 font-medium ' +
-    'border border-transparent ' +
-    'hover:bg-ink-800 hover:text-slate-200',
+    'bg-transparent text-white/60 ' +
+    'border border-white/10 ' +
+    'hover:bg-white/5 hover:text-white/80',
   danger:
-    'bg-nogo-bg text-nogo font-medium ' +
-    'border border-nogo-brd ' +
-    'hover:bg-nogo/15 hover:border-red-500/35',
+    'bg-transparent text-red-400 ' +
+    'border border-red-500/30 ' +
+    'hover:bg-red-500/10 hover:border-red-500/50',
+  em:
+    'bg-[#10b981] text-black rounded-full ' +
+    'hover:bg-[#34d399] ' +
+    'border border-transparent',
+  /** secondary — ink surface, backward-compat alias */
+  secondary:
+    'bg-ink-800 text-slate-200 ' +
+    'border border-ink-line ' +
+    'hover:bg-ink-700 hover:border-ink-line-strong hover:text-slate-100 ' +
+    'rounded-md',
 };
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-xs rounded-md gap-1.5 h-7',
-  md: 'px-4 py-2 text-sm rounded-md gap-2 h-9',
-  lg: 'px-5 py-2.5 text-base rounded-lg gap-2.5 h-11',
+  sm: 'px-4 py-1.5 text-[13px] gap-1.5',
+  md: 'px-6 py-3   text-[15px] gap-2',
+  lg: 'px-8 py-4   text-[17px] gap-2.5',
 };
+
+const BASE =
+  'inline-flex items-center justify-center ' +
+  'font-semibold ' +
+  'transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-150 ' +
+  'active:scale-[0.97] ' +
+  'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10b981]/60 focus-visible:ring-offset-1';
+
+// ── Slot helper ────────────────────────────────────────────────────────────────
+
+function mergeIntoChild(
+  child: ReactElement<{ className?: string; [key: string]: unknown }>,
+  mergedClass: string,
+  rest: Record<string, unknown>,
+): ReactElement {
+  return cloneElement(child, {
+    ...rest,
+    ...child.props,
+    className: [mergedClass, child.props.className].filter(Boolean).join(' '),
+  });
+}
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +95,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     size      = 'md',
     loading   = false,
     fullWidth = false,
+    asChild   = false,
     iconLeft,
     iconRight,
     children,
@@ -68,28 +105,35 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   },
   ref,
 ) {
-  const isDisabled = disabled || loading;
+  const mergedClass = [
+    BASE,
+    VARIANT[variant],
+    SIZE[size],
+    fullWidth ? 'w-full' : '',
+    loading   ? 'cursor-wait' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // ── asChild mode ──────────────────────────────────────────────────────────
+  if (asChild && isValidElement(children)) {
+    return mergeIntoChild(
+      children as ReactElement<{ className?: string; [key: string]: unknown }>,
+      mergedClass,
+      rest as Record<string, unknown>,
+    );
+  }
+
   return (
-    <button
+    <button type="button"
       ref={ref}
-      disabled={isDisabled}
-      className={[
-        'inline-flex items-center justify-center',
-        'transition-all duration-150',
-        'active:scale-[0.97]',
-        'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-em/60 focus-visible:ring-offset-1 focus-visible:ring-offset-ink-950',
-        VARIANT[variant],
-        SIZE[size],
-        fullWidth ? 'w-full' : '',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      disabled={disabled ?? loading}
+      className={mergedClass}
       {...rest}
     >
       {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+        <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin shrink-0" />
       ) : (
         iconLeft && <span className="shrink-0">{iconLeft}</span>
       )}

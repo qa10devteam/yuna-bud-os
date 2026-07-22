@@ -89,47 +89,51 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
     : 'Y';
 
   const displayName = user?.name || user?.email || 'Użytkownik';
+  const planName = user?.plan ?? 'Fundament';
 
   return (
     <div
       className={[
         'relative flex flex-col h-full',
         'bg-ink-950 border-r border-ink-line',
-        'transition-all duration-300 ease-in-out',
+        'transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-300 ease-in-out',
         isMenuOpen ? 'w-60' : 'w-[68px]',
       ].join(' ')}
     >
       {/* ── Logo / Header ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-3 h-16 border-b border-ink-line flex-shrink-0">
+      <div className="flex items-center justify-between px-3 h-16 border-b border-ink-line shrink-0">
         {isMenuOpen ? (
           /* Full logo */
-          <div className="flex flex-col leading-none select-none">
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-bold text-slate-100 tracking-tight leading-tight">
-                YU-NA
-              </span>
-              <span className="text-em font-light text-base leading-tight">|</span>
-              <span className="text-base font-bold text-slate-100 tracking-tight leading-tight">
-                BudOS
-              </span>
+          <div className="flex items-center gap-2.5 select-none">
+            <img
+              src="/brand/B01-app-icon-budos.png"
+              alt="BudOS"
+              className="w-7 h-7 rounded-md object-cover shrink-0"
+            />
+            <div className="flex flex-col leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-white tracking-tight">YU-NA</span>
+                <span className="text-[#10b981] font-light text-[13px]">|</span>
+                <span className="text-[13px] font-bold text-white tracking-tight">BudOS</span>
+              </div>
+              <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600 mt-0.5">System Decyzyjny</span>
             </div>
-            <span className="text-[10px] text-slate-600 font-normal leading-tight mt-0.5 tracking-wide uppercase">
-              Przetargi budowlane
-            </span>
           </div>
         ) : (
-          /* Signet icon */
-          <div className="w-8 h-8 rounded-lg bg-em-bg border border-em-brd flex items-center justify-center mx-auto">
-            <span className="text-em text-xs font-bold leading-none select-none font-mono">B</span>
-          </div>
+          /* Signet icon — SVG logo */
+          <img
+            src="/brand/B01-app-icon-budos.png"
+            alt="BudOS"
+            className="w-8 h-8 rounded-lg object-cover"
+          />
         )}
 
         {isMenuOpen && <NotificationsBell />}
 
-        <button
+        <button type="button"
           onClick={toggleMenu}
           aria-label={isMenuOpen ? 'Zwiń menu' : 'Rozwiń menu'}
-          className="p-1.5 rounded-md hover:bg-ink-800 text-slate-600 hover:text-slate-200 transition-colors duration-150 ml-1 flex-shrink-0"
+          className="p-1.5 rounded-md hover:bg-ink-800 text-slate-600 hover:text-slate-200 transition-colors duration-150 ml-1 shrink-0"
         >
           {isMenuOpen
             ? <ChevronLeft  className="w-4 h-4" />
@@ -139,19 +143,24 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
       {/* ── Navigation ─────────────────────────────────────────────────── */}
       <nav className="flex-1 py-2 px-2 overflow-y-auto">
-        {moduleGroups.map(({ label, GroupIcon, items }) => (
+        {moduleGroups.map(({ label, GroupIcon, items }, groupIndex) => (
           <div key={label} className="mb-1">
-            {/* Group header */}
+            {/* Separator line before every group except the first */}
+            {groupIndex > 0 && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginBottom: '6px', marginTop: '4px' }} />
+            )}
+
+            {/* Group header — label only, no icon */}
             {isMenuOpen ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 mb-0.5">
-                <GroupIcon className="w-3.5 h-3.5 text-slate-700 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest truncate">
+              <div className="px-2 py-1 mb-0.5">
+                <span className="text-[9px] font-semibold text-slate-700 uppercase tracking-[0.12em] truncate">
                   {label}
                 </span>
               </div>
             ) : (
+              /* In collapsed mode: small dot as visual spacer instead of icon */
               <div className="flex justify-center py-1 mb-0.5">
-                <GroupIcon className="w-3.5 h-3.5 text-slate-700" />
+                <div className="w-1 h-1 rounded-full bg-slate-800" />
               </div>
             )}
 
@@ -161,25 +170,43 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                 const isActive = currentModule === id;
                 return (
                   <div key={id} className="relative group/item">
-                    <button
+                    <button type="button"
                       onClick={() => {
                         setCurrentModule(id as Parameters<typeof setCurrentModule>[0]);
                         onItemClick?.();
                       }}
                       aria-current={isActive ? 'page' : undefined}
+                      style={
+                        isActive
+                          ? {
+                              background: 'rgba(16,185,129,0.1)',
+                              borderLeft: '2px solid #10b981',
+                              color: '#e8edf5',
+                            }
+                          : { paddingLeft: '2px' }
+                      }
                       className={[
                         'relative w-full flex items-center gap-3',
                         'rounded-lg px-3 py-1.5',
-                        'transition-all duration-150',
+                        'transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-150',
                         isActive
-                          /* Brand Bible: active = emerald left bar + ink-800 bg */
-                          ? 'bg-ink-800 text-em border-l-2 border-em'
-                          : 'text-slate-500 hover:text-slate-200 hover:bg-ink-800 border-l-2 border-transparent',
+                          ? ''
+                          : 'text-slate-500 hover:text-slate-200',
                       ].join(' ')}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          (e.currentTarget as HTMLButtonElement).style.background = '';
+                        }
+                      }}
                     >
                       <Icon
                         className={[
-                          'w-[18px] h-[18px] flex-shrink-0 transition-colors duration-150',
+                          'w-[18px] h-[18px] shrink-0 transition-colors duration-150',
                           isActive ? 'text-em' : 'text-slate-600 group-hover/item:text-slate-300',
                         ].join(' ')}
                       />
@@ -204,7 +231,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                           'px-3 py-2 bg-ink-800 border border-ink-line rounded-xl shadow-lg',
                           'whitespace-nowrap',
                           'opacity-0 scale-95 group-hover/item:opacity-100 group-hover/item:scale-100',
-                          'transition-all duration-150 ease-out',
+                          'transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-150 ease-out',
                         ].join(' ')}
                       >
                         <div className="text-sm font-semibold text-slate-100">{name}</div>
@@ -224,17 +251,29 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
       </nav>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <div className="p-3 border-t border-ink-line flex-shrink-0">
+      <div className="p-3 border-t border-ink-line shrink-0">
         {isMenuOpen ? (
           <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-ink-800 transition-colors cursor-default">
-            <div className="w-8 h-8 rounded-full bg-ink-800 border border-ink-line flex items-center justify-center text-xs font-bold text-em flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-ink-800 border border-ink-line flex items-center justify-center text-xs font-bold text-em shrink-0">
               {initials}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-slate-200 truncate">{displayName}</div>
               <div className="text-xs text-slate-600 capitalize">{user?.role || 'Użytkownik'}</div>
+              {/* Plan badge */}
+              <span
+                style={{
+                  color: '#10b981',
+                  fontSize: '10px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  lineHeight: '1.2',
+                }}
+              >
+                {planName}
+              </span>
             </div>
-            <button
+            <button type="button"
               onClick={clearAuth}
               title="Wyloguj się"
               aria-label="Wyloguj się"
@@ -248,7 +287,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
             <div className="w-8 h-8 rounded-full bg-ink-800 border border-ink-line flex items-center justify-center text-xs font-bold text-em mx-auto cursor-default">
               {initials}
             </div>
-            <button
+            <button type="button"
               onClick={clearAuth}
               title="Wyloguj się"
               className="absolute -top-1 -right-1 opacity-0 group-hover/logout:opacity-100 w-4 h-4 bg-nogo/80 rounded-full flex items-center justify-center transition-opacity"
@@ -270,7 +309,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile hamburger */}
-      <button
+      <button type="button"
         onClick={() => setMobileOpen(true)}
         aria-label="Otwórz menu"
         className="md:hidden fixed top-4 left-4 z-40 p-2 bg-ink-900 rounded-xl border border-ink-line text-slate-500 hover:text-slate-200 transition-colors shadow-md"
@@ -279,7 +318,7 @@ export function Sidebar() {
       </button>
 
       {/* Desktop sidebar */}
-      <div className="hidden md:block h-screen sticky top-0 flex-shrink-0">
+      <div className="hidden md:block h-screen sticky top-0 shrink-0">
         <SidebarContent />
       </div>
 
@@ -292,11 +331,11 @@ export function Sidebar() {
             onClick={() => setMobileOpen(false)}
           />
           {/* Drawer */}
-          <div className="relative h-full flex-shrink-0">
+          <div className="relative h-full shrink-0">
             <SidebarContent onItemClick={() => setMobileOpen(false)} />
           </div>
           {/* Close button */}
-          <button
+          <button type="button"
             onClick={() => setMobileOpen(false)}
             aria-label="Zamknij menu"
             className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-200 transition-colors"

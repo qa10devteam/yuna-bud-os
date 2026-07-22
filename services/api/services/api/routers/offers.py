@@ -25,7 +25,7 @@ from pydantic import BaseModel
 from terra_db.session import get_engine
 from ..auth.deps import AuthUser
 
-router = APIRouter(prefix="/api/v1/offers", tags=["offers"])
+router = APIRouter(prefix="/api/v2/offers", tags=["offers"])
 
 # ─── Pydantic models ──────────────────────────────────────────────────────────
 

@@ -90,7 +90,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
         <FileText className="w-10 h-10 text-slate-700 mx-auto mb-3" />
         <p className="text-sm text-slate-500">Brak pobranych dokumentów</p>
         <p className="text-xs text-slate-700 mt-2">Kliknij aby pobrać dokumentację przetargową (SWZ, przedmiar, specyfikacja)</p>
-        <button
+        <button type="button"
           onClick={fetchDocuments}
           disabled={fetching}
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-em/15 text-em border border-em/30 rounded-xl text-sm font-semibold hover:bg-em/25 transition-colors disabled:opacity-50"
@@ -111,7 +111,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
         <FileText className="w-10 h-10 text-warn/50 mx-auto mb-3" />
         <p className="text-sm text-slate-400">Dokumenty nie są jeszcze dostępne w API BZP</p>
         <p className="text-xs text-slate-600 mt-1">Spróbuj ponownie później lub dodaj dokumenty ręcznie</p>
-        <button
+        <button type="button"
           onClick={fetchDocuments}
           disabled={fetching}
           className="mt-3 text-xs text-em hover:underline"
@@ -127,7 +127,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-300">{docs.length} dokumentów</h3>
-          <button
+          <button type="button"
             onClick={fetchDocuments}
             disabled={fetching}
             className="text-xs text-em hover:underline"
@@ -158,7 +158,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-300">{tenderTitle ?? 'Dokument przetargu'}</h3>
         <div className="flex items-center gap-2">
-          <button
+          <button type="button"
             onClick={() => setShowSearch(s => !s)}
             className="p-1.5 rounded-lg hover:bg-ink-800 text-slate-500 hover:text-slate-200 transition-colors"
             title="Szukaj w dokumencie (Ctrl+F)"
@@ -187,7 +187,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
             placeholder="Szukaj w dokumencie..."
             className="flex-1 bg-transparent text-sm text-slate-200 placeholder-ink-600 outline-none"
           />
-          <button onClick={() => { setShowSearch(false); setSearchQuery(''); }}>
+          <button type="button" onClick={() => { setShowSearch(false); setSearchQuery(''); }}>
             <X className="w-3.5 h-3.5 text-slate-600 hover:text-slate-300" />
           </button>
         </div>
@@ -196,6 +196,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
       <div className="relative" onMouseUp={handleTextSelect}>
         <iframe
           src={pdfUrl}
+          sandbox="allow-same-origin allow-scripts"
           className="w-full h-[500px] rounded-xl border border-ink-800/60 bg-white"
           title="Dokument przetargu"
         />
@@ -204,7 +205,7 @@ export function DocumentViewer({ pdfUrl, tenderTitle, tenderId }: DocumentViewer
             className="fixed z-50 bg-ink-800 border border-ink-700/60 rounded-lg shadow-xl px-3 py-1.5"
             style={{ left: menuPos.x, top: menuPos.y }}
           >
-            <button
+            <button type="button"
               onClick={analyzeFragment}
               className="text-xs text-em hover:text-em whitespace-nowrap"
             >

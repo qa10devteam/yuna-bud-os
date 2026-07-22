@@ -72,7 +72,7 @@ export default function ICBPriceExplorer() {
             className="w-full pl-9 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-em"
           />
         </div>
-        <button
+        <button type="button"
           onClick={() => search()}
           disabled={loading}
           className="px-4 py-2 bg-em hover:bg-em disabled:opacity-50 rounded-lg text-sm text-white font-medium transition-colors"
@@ -84,7 +84,7 @@ export default function ICBPriceExplorer() {
       {/* Quick filters */}
       <div className="flex flex-wrap gap-1.5 mb-4">
         {['robocizna', 'beton', 'stal', 'kabel', 'rura', 'izolacja', 'farba'].map(tag => (
-          <button
+          <button type="button"
             key={tag}
             onClick={() => { setQuery(tag); search(tag); }}
             className="text-xs px-2 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-md text-zinc-400 hover:text-zinc-200 transition-colors"
@@ -100,13 +100,13 @@ export default function ICBPriceExplorer() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-zinc-500">{total} wyników</span>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => toggleSort('nazwa')}
                 className={`text-xs px-2 py-0.5 rounded ${sortBy === 'nazwa' ? 'bg-em/10 text-em' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 Nazwa {sortBy === 'nazwa' && (sortDir === 'asc' ? '↑' : '↓')}
               </button>
-              <button
+              <button type="button"
                 onClick={() => toggleSort('cena_netto')}
                 className={`text-xs px-2 py-0.5 rounded ${sortBy === 'cena_netto' ? 'bg-em/10 text-em' : 'text-zinc-500 hover:text-zinc-300'}`}
               >

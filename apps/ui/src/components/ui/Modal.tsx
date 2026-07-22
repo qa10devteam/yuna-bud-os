@@ -74,7 +74,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
                 <span className="text-sm font-semibold text-slate-200 tracking-tight">
                   {title}
                 </span>
-                <button
+                <button type="button"
                   onClick={onClose}
                   className="p-1.5 rounded-md text-slate-500 hover:text-slate-200 hover:bg-ink-800 transition-colors"
                   aria-label="Zamknij"

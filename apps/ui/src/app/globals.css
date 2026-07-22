@@ -10,7 +10,7 @@
 @theme {
 
   /* ── Ink backgrounds (BudOS dark precision) ──────────────────────────── */
-  --color-ink-950:  #07070d;   /* page background — deepest */
+  --color-ink-950:  #050508;   /* page background — deepest (OLED black) */
   --color-ink-900:  #0d0d16;   /* card background */
   --color-ink-800:  #13131e;   /* elevated card, dropdown */
   --color-ink-700:  #1a1a28;   /* hover surface */
@@ -69,6 +69,14 @@
   --shadow-md:   0 4px 8px  rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.4);
   --shadow-lg:   0 12px 24px rgba(0,0,0,0.7), 0 4px 8px rgba(0,0,0,0.4);
   --shadow-em:   0 0 16px rgba(16,185,129,0.12);  /* emerald glow — sparingly */
+
+  /* ── Glassmorphism tokens ────────────────────────────────────────────── */
+  --glass-bg:          rgba(255,255,255,0.05);
+  --glass-bg-hover:    rgba(255,255,255,0.08);
+  --glass-border:      rgba(255,255,255,0.09);
+  --glass-border-hover: rgba(255,255,255,0.16);
+  --glass-blur:        blur(24px) saturate(180%) contrast(1.05);
+  --glass-shadow:      0 24px 64px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
 
   /* ── Animation tokens ────────────────────────────────────────────────── */
   --duration-fast:   150ms;
@@ -485,6 +493,15 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes noise-shift {
+  0%        { background-position: 0% 0%; }
+  20%       { background-position: 30% 10%; }
+  40%       { background-position: 60% 40%; }
+  60%       { background-position: 20% 70%; }
+  80%       { background-position: 80% 30%; }
+  100%      { background-position: 0% 0%; }
+}
+
 @layer utilities {
   .animate-float          { animation: float      3.5s ease-in-out infinite; }
   .animate-float-slow     { animation: float-slow 6s   ease-in-out infinite; }
@@ -501,6 +518,98 @@
   .animate-stagger-5      { animation: stagger-in 0.5s ease-out 0.45s both; }
   .animate-stagger-6      { animation: stagger-in 0.5s ease-out 0.55s both; }
 
+  /* ── Glass system — Apple Liquid Glass approximation ──────────────────── */
+
+  /* glass-card: standard glassmorphism card */
+  .glass-card {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(24px) saturate(180%) contrast(1.05);
+    -webkit-backdrop-filter: blur(24px) saturate(180%) contrast(1.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      inset 0 -1px 0 rgba(255,255,255,0.04),
+      0 24px 64px rgba(0,0,0,0.45),
+      0 4px 16px rgba(0,0,0,0.25);
+  }
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 20% 0%, rgba(255,255,255,0.06), transparent 60%);
+    pointer-events: none;
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-card {
+      background: rgba(13,13,22,0.95);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  /* glass-card-hover: same + hover lift */
+  .glass-card-hover {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(24px) saturate(180%) contrast(1.05);
+    -webkit-backdrop-filter: blur(24px) saturate(180%) contrast(1.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 24px 64px rgba(0,0,0,0.45);
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1),
+                box-shadow 0.3s ease,
+                border-color 0.3s ease;
+  }
+  .glass-card-hover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 20% 0%, rgba(255,255,255,0.06), transparent 60%);
+    pointer-events: none;
+  }
+  .glass-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.16);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 32px 80px rgba(0,0,0,0.55),
+      0 0 40px rgba(16,185,129,0.06);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-card-hover {
+      background: rgba(13,13,22,0.95);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  /* glass-nav: nav bar glassmorphism */
+  .glass-nav {
+    background: rgba(5,5,8,0.80);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-nav { background: rgba(5,5,8,0.98); backdrop-filter: none; }
+  }
+
+  /* glass-overlay: modal / dropdown overlay */
+  .glass-overlay {
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+    backdrop-filter: blur(40px) saturate(200%) brightness(0.9);
+    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(0.9);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 40px 120px rgba(0,0,0,0.6);
+  }
+
+  /* legacy aliases — nie usuwamy, używa ich app shell */
   .glass-1 {
     background: rgba(13,13,22,0.72);
     backdrop-filter: blur(16px) saturate(1.2);
@@ -547,4 +656,67 @@
   .border-em-subtle { border-color: rgba(16,185,129,0.12); }
   .border-em-mid    { border-color: rgba(16,185,129,0.28); }
   .border-em-strong { border-color: rgba(16,185,129,0.55); }
+
+  /* ── Noise animation ─────────────────────────────────────────────────── */
+  .animate-noise {
+    animation: noise-shift 8s steps(1) infinite;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
+  }
+
+  /* ── Typography scale (Apple-class headings) ─────────────────────────── */
+  .display {
+    font-size: clamp(72px, 9vw, 128px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+  }
+
+  .h1 {
+    font-size: clamp(48px, 6vw, 88px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 0.93;
+  }
+
+  .h2 {
+    font-size: clamp(36px, 4.5vw, 64px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+}
+
+/* Motion fallback: if Framer Motion fails to hydrate (e.g. through proxies/tunnels),
+   force elements visible after a short CSS animation delay */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+[data-framer-component-type],
+.motion-safe\:opacity-0 {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+/* Hero CSS animations — no-JS fallback for Framer Motion */
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-hero-0 { animation: heroIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.00s both; }
+.anim-hero-1 { animation: heroIn 0.55s cubic-bezier(0.16,1,0.3,1) 0.07s both; }
+.anim-hero-2 { animation: heroIn 0.55s cubic-bezier(0.16,1,0.3,1) 0.13s both; }
+.anim-hero-3 { animation: heroIn 0.50s cubic-bezier(0.16,1,0.3,1) 0.19s both; }
+.anim-hero-4 { animation: heroIn 0.50s cubic-bezier(0.16,1,0.3,1) 0.27s both; }
+.anim-hero-right { animation: heroIn 0.65s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
+
+.screenshots-tab-content {
+  animation: heroIn 0.3s ease forwards;
 }

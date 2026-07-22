@@ -55,7 +55,7 @@ function handle401(): void {
   localStorage.removeItem('refresh_token');
   // Avoid redirect loops if already on auth pages
   if (!window.location.pathname.startsWith('/auth')) {
-    window.location.href = '/auth/login';
+    window.location.href = '/login';
   }
 }
 

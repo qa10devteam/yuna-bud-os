@@ -62,7 +62,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
         <div className="flex flex-wrap gap-3 justify-center mt-6">
           {/* Primary: retry */}
-          <button
+          <button type="button"
             onClick={reset}
             className="flex items-center gap-2 px-5 py-2.5 bg-em text-ink-950 rounded-xl font-semibold text-sm hover:bg-em transition-colors"
           >
@@ -71,7 +71,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           </button>
 
           {/* Secondary: copy error info */}
-          <button
+          <button type="button"
             onClick={handleReport}
             className="flex items-center gap-2 px-5 py-2.5 bg-ink-800 text-slate-300 rounded-xl font-medium text-sm hover:bg-ink-700 transition-colors"
           >
@@ -89,7 +89,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           </button>
 
           {/* Tertiary: back to dashboard */}
-          <button
+          <button type="button"
             onClick={() => (window.location.href = '/')}
             className="px-5 py-2.5 bg-ink-800 text-slate-300 rounded-xl font-medium text-sm hover:bg-ink-700 transition-colors"
           >

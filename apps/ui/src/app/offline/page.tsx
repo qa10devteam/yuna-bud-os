@@ -6,7 +6,7 @@ export default function OfflinePage() {
         <div className="text-6xl mb-4">📡</div>
         <h1 className="text-slate-100 text-2xl font-semibold mb-2">Brak połączenia</h1>
         <p className="text-slate-400">Sprawdź połączenie internetowe i spróbuj ponownie.</p>
-        <button onClick={() => window.location.reload()} className="btn-primary mt-6">
+        <button type="button" onClick={() => window.location.reload()} className="btn-primary mt-6">
           Odśwież
         </button>
       </div>

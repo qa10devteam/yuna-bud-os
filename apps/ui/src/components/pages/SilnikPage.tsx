@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuthFetch } from '@/lib/api-v2';
 import { useStore } from '@/store/useStore';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -8,8 +8,9 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { PageShell } from '@/components/PageShell';
 import { showToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'motion/react';
+import { PageTransition } from '@/components/ui/PageTransition';
 import {
-  Sliders, BarChart3, Grid3X3, History, Save, RotateCcw,
+  Sliders, BarChart3, Grid3X3, History as HistoryIcon, Save, RotateCcw,
   Target, TrendingUp,
 } from 'lucide-react';
 
@@ -81,7 +82,7 @@ const TABS = [
   { id: 'weights',   label: 'Konfiguracja Wag',    icon: Sliders   },
   { id: 'analytics', label: 'Score Analytics',      icon: BarChart3 },
   { id: 'heatmap',   label: 'CPV Heatmap',          icon: Grid3X3   },
-  { id: 'history',   label: 'Historia Kalibracji',  icon: History   },
+  { id: 'history',   label: 'Historia Kalibracji',  icon: HistoryIcon   },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -175,7 +176,7 @@ export function SilnikPage() {
     cpv_match: 30, value_range: 20, deadline_pressure: 20,
     buyer_history: 15, document_quality: 15,
   });
-  const [originalWeights, setOriginalWeights] = useState<ScoringWeights | null>(null);
+  const originalWeightsRef = useRef<ScoringWeights | null>(null);
   const [topTenders,  setTopTenders]  = useState<TenderPreview[]>([]);
   const [saving,      setSaving]      = useState(false);
 
@@ -203,7 +204,7 @@ export function SilnikPage() {
       const data = await authFetch('/api/v2/scoring/config') as ScoringConfig;
       if (data?.weights) {
         setWeights(data.weights);
-        setOriginalWeights(data.weights);
+        originalWeightsRef.current = (data.weights);
       }
     } catch (err) { console.error('Failed to fetch scoring config:', err); }
   }, [authFetch]);
@@ -293,7 +294,7 @@ export function SilnikPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ weights }),
       });
-      setOriginalWeights(weights);
+      originalWeightsRef.current = (weights);
       showToast('success', 'Konfiguracja wag zapisana pomyślnie');
     } catch (err) {
       console.error('Failed to save weights:', err);
@@ -302,8 +303,8 @@ export function SilnikPage() {
   }, [authFetch, weights, isValidSum]);
 
   const handleResetWeights = useCallback(() => {
-    if (originalWeights) setWeights(originalWeights);
-  }, [originalWeights]);
+    if (originalWeightsRef.current) setWeights(originalWeightsRef.current!);
+  }, []);
 
   const handleRestoreConfig = useCallback(async (entry: AuditEntry) => {
     if (!entry.details?.new_weights) return;
@@ -314,7 +315,7 @@ export function SilnikPage() {
         body: JSON.stringify({ weights: entry.details.new_weights }),
       });
       setWeights(entry.details.new_weights);
-      setOriginalWeights(entry.details.new_weights);
+      originalWeightsRef.current = (entry.details.new_weights);
       showToast('success', 'Przywrócono konfigurację z ' + formatTimestamp(entry.timestamp));
     } catch {
       showToast('error', 'Błąd przywracania konfiguracji');
@@ -349,6 +350,94 @@ export function SilnikPage() {
     </div>
   );
 
+  // ─── Radar Chart Helper ──────────────────────────────────────────────────
+
+  const renderRadarChart = () => {
+    const weightKeys = Object.keys(WEIGHT_LABELS) as (keyof ScoringWeights)[];
+    const cx = 140, cy = 140, maxR = 110;
+    const angleStep = (2 * Math.PI) / 5;
+    const startAngle = -Math.PI / 2; // top
+
+    const getPoint = (index: number, value: number) => {
+      const angle = startAngle + index * angleStep;
+      const r = (value / 100) * maxR;
+      return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+    };
+
+    // Pentagon grid rings
+    const rings = [20, 40, 60, 80, 100];
+
+    // Data polygon points
+    const dataPoints = weightKeys.map((key, i) => getPoint(i, weights[key]));
+    const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') + ' Z';
+
+    return (
+      <div className="flex justify-center mb-6">
+        <svg viewBox="0 0 280 280" className="w-full max-w-[280px] h-auto">
+          {/* Grid rings */}
+          {rings.map((ringVal) => {
+            const ringPoints = Array.from({ length: 5 }, (_, i) => getPoint(i, ringVal));
+            const ringPath = ringPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') + ' Z';
+            return <path key={ringVal} d={ringPath} fill="none" stroke="#334155" strokeWidth="0.5" opacity={0.6} />;
+          })}
+          {/* Axes */}
+          {weightKeys.map((_, i) => {
+            const end = getPoint(i, 100);
+            return <line key={i} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="#475569" strokeWidth="0.5" />;
+          })}
+          {/* Data polygon */}
+          <path d={dataPath} fill="rgba(16,185,129,0.15)" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
+          {/* Data points */}
+          {dataPoints.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r={4} fill="#10b981" stroke="#0f172a" strokeWidth="2" />
+          ))}
+          {/* Labels */}
+          {weightKeys.map((key, i) => {
+            const labelPoint = getPoint(i, 125);
+            return (
+              <text
+                key={key}
+                x={labelPoint.x}
+                y={labelPoint.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize="9"
+                fill="#94a3b8"
+                fontWeight="500"
+              >
+                {WEIGHT_LABELS[key].split(' ').slice(0, 2).join(' ')}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  };
+
+  // ─── Live Preview Cards ─────────────────────────────────────────────────
+
+  const renderLivePreview = () => {
+    const previewCards = [
+      { label: 'Top przetarg', score: 87, color: 'text-go', bg: 'bg-go/15', border: 'border-go/30' },
+      { label: 'Średni', score: 64, color: 'text-amber-400', bg: 'bg-amber-400/15', border: 'border-amber-400/30' },
+      { label: 'Najgorszy', score: 41, color: 'text-nogo', bg: 'bg-nogo/15', border: 'border-nogo/30' },
+    ];
+
+    return (
+      <div className="mt-4 pt-4 border-t border-ink-800">
+        <p className="text-xs text-slate-500 mb-3 font-medium">Przykładowy scoring</p>
+        <div className="grid grid-cols-3 gap-2">
+          {previewCards.map((card) => (
+            <div key={card.label} className={`rounded-xl px-3 py-2.5 ${card.bg} border ${card.border} text-center`}>
+              <p className="text-[10px] text-slate-400 mb-0.5">{card.label}</p>
+              <p className={`text-lg font-bold ${card.color}`}>{card.score}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // ─── Tab 1: Konfiguracja Wag ─────────────────────────────────────────────
 
   const renderWeightsTab = () => (
@@ -377,6 +466,12 @@ export function SilnikPage() {
             </div>
           </div>
 
+          {/* Radar Chart */}
+          {renderRadarChart()}
+
+          {/* Live Preview */}
+          {renderLivePreview()}
+
           {/* Sliders */}
           <div className="space-y-5">
             {(Object.keys(WEIGHT_LABELS) as (keyof ScoringWeights)[]).map((key) => (
@@ -391,6 +486,7 @@ export function SilnikPage() {
                 <div className="relative">
                   <input
                     type="range"
+                    aria-label="Waga parametru"
                     min={0}
                     max={100}
                     value={weights[key]}
@@ -469,7 +565,7 @@ export function SilnikPage() {
                     <div className="flex items-center gap-2 min-w-[140px]">
                       <div className="flex-1 h-2 bg-ink-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-em/60 to-em rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-em/60 to-em rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-500"
                           style={{ width: `${Math.min(100, score)}%` }}
                         />
                       </div>
@@ -510,6 +606,7 @@ export function SilnikPage() {
             <h3 className="text-base font-semibold text-slate-100 mb-4">Wybierz przetarg do analizy</h3>
             <select
               value={selectedTenderId}
+              aria-label="Wybierz przetarg do analizy"
               onChange={(e) => handleSelectTender(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl bg-ink-900/60 border border-ink-800 text-slate-100 text-sm focus:outline-none focus:border-em/50 transition-colors"
             >
@@ -582,6 +679,40 @@ export function SilnikPage() {
                     </g>
                   )}
                 </svg>
+              </div>
+            </GlassCard>
+
+            {/* Contribution Bars */}
+            <GlassCard>
+              <div className="p-6">
+                <h3 className="text-base font-semibold text-slate-100 mb-4">Contribution Breakdown</h3>
+                <div className="space-y-4">
+                  {breakdown.length > 0 ? breakdown.map((item, idx) => {
+                    const maxContribution = Math.max(...breakdown.map(b => b.contribution), 1);
+                    const widthPct = (item.contribution / maxContribution) * 100;
+                    return (
+                      <motion.div
+                        key={item.criterion || idx}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.08 }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-slate-300">{item.criterion}</span>
+                          <span className="text-sm font-bold text-em">+{(item.contribution ?? 0).toFixed(1)}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-ink-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                            style={{ width: `${widthPct}%` }}
+                          />
+                        </div>
+                      </motion.div>
+                    );
+                  }) : (
+                    <div className="text-center py-6 text-slate-600 text-sm">Brak danych contribution</div>
+                  )}
+                </div>
               </div>
             </GlassCard>
 
@@ -800,7 +931,7 @@ export function SilnikPage() {
               <span className="text-xs text-slate-600">Niska</span>
               <div className="flex-1 h-3 rounded-full overflow-hidden flex">
                 {Array.from({ length: 20 }).map((_, i) => (
-                  <div key={i} className="flex-1 h-full" style={{ backgroundColor: interpolateColor(i / 19) }} />
+                  <div key={`item-${i}`} className="flex-1 h-full" style={{ backgroundColor: interpolateColor(i / 19) }} />
                 ))}
               </div>
               <span className="text-xs text-slate-600">Wysoka</span>
@@ -820,7 +951,7 @@ export function SilnikPage() {
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-em/20 flex items-center justify-center">
-              <History size={20} className="text-em" />
+              <HistoryIcon size={20} className="text-em" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-slate-100">Historia Kalibracji</h2>
@@ -830,7 +961,7 @@ export function SilnikPage() {
 
           {auditHistory.length === 0 ? (
             <div className="text-center py-16">
-              <History size={48} className="mx-auto mb-4 text-ink-800" />
+              <HistoryIcon size={48} className="mx-auto mb-4 text-ink-800" />
               <p className="text-slate-600 text-sm">Brak historii kalibracji</p>
               <p className="text-slate-700 text-xs mt-1">Zmiany wag będą rejestrowane tutaj</p>
             </div>

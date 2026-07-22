@@ -129,7 +129,7 @@ function CreateAlertModal({
           <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
             <Bell className="w-4 h-4 text-em" /> Nowy Alert
           </h3>
-          <button onClick={onClose} className="text-slate-600 hover:text-slate-300 transition-colors">
+          <button type="button" onClick={onClose} className="text-slate-600 hover:text-slate-300 transition-colors">
             <XCircle className="w-4 h-4" />
           </button>
         </div>
@@ -157,14 +157,14 @@ function CreateAlertModal({
                 onChange={e => setForm(f => ({ ...f, cpv: e.target.value }))}
                 onKeyDown={e => e.key === 'Enter' && addCpv()}
               />
-              <button onClick={addCpv} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm transition-colors">+</button>
+              <button type="button" onClick={addCpv} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm transition-colors">+</button>
             </div>
             {form.cpv_prefixes.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {form.cpv_prefixes.map(c => (
                   <span key={c} className="flex items-center gap-1 text-xs bg-indigo/15 text-indigo border border-indigo/20 px-2 py-0.5 rounded-full">
                     {c}
-                    <button onClick={() => setForm(f => ({ ...f, cpv_prefixes: f.cpv_prefixes.filter(x => x !== c) }))} className="hover:text-nogo"><XCircle className="w-2.5 h-2.5" /></button>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, cpv_prefixes: f.cpv_prefixes.filter(x => x !== c) }))} className="hover:text-nogo"><XCircle className="w-2.5 h-2.5" /></button>
                   </span>
                 ))}
               </div>
@@ -182,14 +182,14 @@ function CreateAlertModal({
                 onChange={e => setForm(f => ({ ...f, keyword: e.target.value }))}
                 onKeyDown={e => e.key === 'Enter' && addKeyword()}
               />
-              <button onClick={addKeyword} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm transition-colors">+</button>
+              <button type="button" onClick={addKeyword} className="px-3 bg-ink-700 rounded-lg text-slate-300 hover:bg-ink-600 text-sm transition-colors">+</button>
             </div>
             {form.keywords.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {form.keywords.map(k => (
                   <span key={k} className="flex items-center gap-1 text-xs bg-em/15 text-em border border-em/20 px-2 py-0.5 rounded-full">
                     {k}
-                    <button onClick={() => setForm(f => ({ ...f, keywords: f.keywords.filter(x => x !== k) }))} className="hover:text-nogo"><XCircle className="w-2.5 h-2.5" /></button>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, keywords: f.keywords.filter(x => x !== k) }))} className="hover:text-nogo"><XCircle className="w-2.5 h-2.5" /></button>
                   </span>
                 ))}
               </div>
@@ -276,7 +276,7 @@ function AlertCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      className={`p-5 rounded-xl border transition-all ${
+      className={`p-5 rounded-xl border transition-[color,background-color,border-color,opacity,transform,box-shadow] ${
         alert.is_active
           ? 'bg-ink-900/50 border-ink-700/50 hover:border-ink-600/60'
           : 'bg-ink-900/30 border-ink-800/40 opacity-70'
@@ -347,7 +347,7 @@ function AlertCard({
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Toggle */}
-          <button
+          <button type="button"
             onClick={() => onToggle(alert.id, alert.is_active)}
             className={`relative h-6 w-11 rounded-full transition-colors ${alert.is_active ? 'bg-em' : 'bg-ink-700'}`}
             aria-label={alert.is_active ? 'Wyłącz alert' : 'Włącz alert'}
@@ -356,7 +356,7 @@ function AlertCard({
           </button>
 
           {/* Test */}
-          <button
+          <button type="button"
             onClick={handleTest}
             disabled={testing}
             title="Testuj alert"
@@ -366,7 +366,7 @@ function AlertCard({
           </button>
 
           {/* Delete */}
-          <button
+          <button type="button"
             onClick={() => onDelete(alert.id)}
             title="Usuń alert"
             className="p-1.5 rounded-md hover:bg-nogo/10 text-slate-500 hover:text-nogo transition-colors"
@@ -488,7 +488,7 @@ export function AlertsPage() {
       {!loading && error && (
         <GlassCard className="p-8">
           <EmptyState
-            icon={<AlertCircle className="w-6 h-6" />}
+            icon={AlertCircle}
             title="Błąd ładowania alertów"
             description={error}
             cta={
@@ -504,7 +504,7 @@ export function AlertsPage() {
       {!loading && !error && alerts.length === 0 && (
         <GlassCard className="p-8">
           <EmptyState
-            icon={<Bell className="w-6 h-6" />}
+            icon={Bell}
             title="Brak alertów"
             description="Utwórz alerty, aby być powiadamianym o nowych przetargach pasujących do Twojego profilu."
             cta={

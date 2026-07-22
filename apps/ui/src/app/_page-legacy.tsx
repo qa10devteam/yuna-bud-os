@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { LoginForm } from '@/components/LoginForm';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AnalyticsPage } from '@/components/pages/AnalyticsPage';

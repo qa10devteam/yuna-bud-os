@@ -66,8 +66,8 @@ export default function DemoPage() {
 
     // Auto-login with demo credentials
     // NOTE: demo-only credentials sourced from env vars; not for production use
-    const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD || '';
-    const fallbackPassword = process.env.NEXT_PUBLIC_DEMO_FALLBACK_PASSWORD || '';
+    const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASS_HINT || '';
+    const fallbackPassword = process.env.NEXT_PUBLIC_DEMO_FALLBACK_HINT || '';
     async function autoLogin() {
       try {
         // First try to register demo user (ignore if already exists)
@@ -124,7 +124,7 @@ export default function DemoPage() {
       <div className="min-h-screen bg-ink-950 flex items-center justify-center text-slate-100">
         <div className="text-center">
           <p className="text-nogo mb-4">Błąd demo: {error}</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-em text-ink-950 rounded-lg font-semibold">
+          <button type="button" onClick={() => window.location.reload()} className="px-4 py-2 bg-em text-ink-950 rounded-lg font-semibold">
             Spróbuj ponownie
           </button>
         </div>

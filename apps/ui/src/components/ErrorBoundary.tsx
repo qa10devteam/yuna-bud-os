@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 {this.state.error.message}
               </p>
             )}
-            <button
+            <button type="button"
               onClick={() => this.setState({ hasError: false })}
               className="btn-primary gap-2"
             >

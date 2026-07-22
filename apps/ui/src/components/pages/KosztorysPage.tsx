@@ -135,7 +135,8 @@ function pct(a: number, total: number): string {
   return (((a ?? 0) / total) * 100).toFixed(1) + '%';
 }
 
-const DEFAULT_NARZUTY: Narzuty = { ko_r_pct: 70, ko_s_pct: 30, z_pct: 12.5, kz_pct: 7.1, vat_pct: 23 };
+const DEFAULT_NARZUTY: Narzuty = { ko_r_pct: 65, ko_s_pct: 70, z_pct: 10, kz_pct: 3, vat_pct: 23 };
+
 
 // ── Badge helpers ──────────────────────────────────────────────────────────────
 
@@ -236,7 +237,7 @@ function IcbSidebar({
           <span className="text-slate-200 text-sm font-semibold">ICB — Baza Cen</span>
           <span className="px-1.5 py-0.5 rounded-full bg-ink-800 text-slate-500 text-[10px]">784k pozycji</span>
         </div>
-        <button onClick={onClose} className="btn-ghost w-6 h-6 !p-0 flex items-center justify-center">
+        <button type="button" onClick={onClose} className="btn-ghost w-6 h-6 !p-0 flex items-center justify-center">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -245,7 +246,7 @@ function IcbSidebar({
       <div className="px-3 pt-2.5 pb-0 border-b border-ink-800/40">
         <div className="flex gap-1.5 mb-2">
           {(['all', 'R', 'M', 'S'] as const).map(t => (
-            <button
+            <button type="button"
               key={t}
               onClick={() => setSelectedType(t)}
               className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors border ${
@@ -311,7 +312,7 @@ function IcbSidebar({
                   </div>
                   <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                     {(['R', 'M', 'S'] as const).map(f => (
-                      <button
+                      <button type="button"
                         key={f}
                         onClick={() => onSelect(item, f)}
                         className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border transition-colors ${RMS_COLORS[f]}`}
@@ -375,7 +376,7 @@ function NarzutyEditor({
             <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
             <h3 className="text-slate-100 text-sm font-bold">Narzuty kosztorysu</h3>
           </div>
-          <button onClick={onClose} className="btn-ghost !p-1">
+          <button type="button" onClick={onClose} className="btn-ghost !p-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -393,13 +394,13 @@ function NarzutyEditor({
         </div>
 
         <div className="flex gap-3">
-          <button
+          <button type="button"
             onClick={() => setLocal({ ...DEFAULT_NARZUTY })}
             className="btn-secondary px-4 py-2 text-xs"
           >
             Domyślne
           </button>
-          <button
+          <button type="button"
             onClick={() => { onChange(local); onClose(); }}
             className="btn-primary flex-1 text-xs"
           >
@@ -484,7 +485,7 @@ function IntelligencePanel({
         </div>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="w-3.5 h-3.5 text-violet animate-spin" />}
-          <button onClick={() => setExpanded(e => !e)} className="btn-ghost !p-1">
+          <button type="button" onClick={() => setExpanded(e => !e)} className="btn-ghost !p-1">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
@@ -696,9 +697,9 @@ function PozycjaRow({
         {fmtPLN(poz.wartosc_netto)}
       </td>
       <td className="px-2 py-1.5 w-8">
-        <button
+        <button type="button"
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-md flex items-center justify-center text-slate-700 hover:text-nogo transition-all"
+          className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-md flex items-center justify-center text-slate-700 hover:text-nogo transition-[color,background-color,border-color,opacity,transform,box-shadow]"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -813,7 +814,7 @@ export function KosztorysPage() {
 
   // ── Load / create kosztorys when tender changes ────────────────────────────
   useEffect(() => {
-    if (!tender) { setPozycje([]); setKosztorysId(null); return; }
+    if (!tender) { return; }
     const controller = new AbortController();
     setKosztLoading(true);
     // Spróbuj v2 najpierw
@@ -1177,7 +1178,7 @@ export function KosztorysPage() {
   // ── Header actions ─────────────────────────────────────────────────────────
   const headerActions = (
     <>
-      <button
+      <button type="button"
         onClick={() => setShowIcb(v => !v)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
           showIcb
@@ -1188,7 +1189,7 @@ export function KosztorysPage() {
         <Database className="w-3.5 h-3.5" />
         ICB
       </button>
-      <button
+      <button type="button"
         onClick={() => setShowNarzuty(true)}
         className="btn-secondary flex items-center gap-1.5 text-xs"
       >
@@ -1229,7 +1230,7 @@ export function KosztorysPage() {
                 {tenderDropdown && filteredTenders.length > 0 && (
                   <div className="absolute top-full left-0 right-0 z-40 mt-1 bg-ink-900 border border-ink-700/60 rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
                     {filteredTenders.slice(0, 20).map(t => (
-                      <button
+                      <button type="button"
                         key={t.id}
                         className="w-full px-3 py-2.5 text-left hover:bg-ink-800/60 transition-colors border-b border-ink-800/30 last:border-0"
                         onClick={() => {
@@ -1246,7 +1247,7 @@ export function KosztorysPage() {
                 )}
               </div>
               {tender && (
-                <button
+                <button type="button"
                   onClick={() => { setTender(null); setTenderSearch(''); setPozycje([]); setKosztorysId(null); }}
                   className="btn-ghost shrink-0 !p-1"
                 >
@@ -1285,7 +1286,7 @@ export function KosztorysPage() {
                 className="col-span-1 px-2 py-1.5 rounded-md bg-ink-800/60 border border-ink-700/50 text-slate-200 placeholder-ink-600 text-xs focus:outline-none focus:border-em/50 transition-colors" />
               <input value={addS} onChange={e => setAddS(e.target.value)} type="number" placeholder="S zł"
                 className="col-span-1 px-2 py-1.5 rounded-md bg-ink-800/60 border border-ink-700/50 text-slate-200 placeholder-ink-600 text-xs focus:outline-none focus:border-em/50 transition-colors" />
-              <button
+              <button type="button"
                 onClick={addPozycja}
                 disabled={addLoading || !addOpis.trim()}
                 className="col-span-1 btn-primary flex items-center justify-center gap-1 !text-xs disabled:opacity-50"
@@ -1304,7 +1305,7 @@ export function KosztorysPage() {
                   { key: 'ryzyko',  label: 'Ryzyko cen', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
                   { key: 'prognoza', label: 'Prognoza', icon: <TrendingUp className="w-3.5 h-3.5" /> },
                 ] as const).map(t => (
-                  <button
+                  <button type="button"
                     key={t.key}
                     onClick={() => {
                       setActiveKTab(t.key);
@@ -1323,7 +1324,7 @@ export function KosztorysPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                   onClick={recalc}
                   disabled={recalcLoading}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo/10 border border-indigo/20 text-indigo text-xs hover:bg-indigo/20 transition-colors disabled:opacity-50"
@@ -1331,7 +1332,7 @@ export function KosztorysPage() {
                   {recalcLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   Przelicz
                 </button>
-                <button
+                <button type="button"
                   onClick={() => exportFile('pdf')}
                   disabled={exportLoading === 'pdf'}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-nogo/10 border border-nogo/20 text-nogo text-xs hover:bg-nogo/20 transition-colors disabled:opacity-50"
@@ -1339,7 +1340,7 @@ export function KosztorysPage() {
                   {exportLoading === 'pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
                   PDF
                 </button>
-                <button
+                <button type="button"
                   onClick={() => exportFile('ath')}
                   disabled={exportLoading === 'ath'}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-violet/10 border border-violet/20 text-violet text-xs hover:bg-violet/20 transition-colors disabled:opacity-50"
@@ -1347,7 +1348,7 @@ export function KosztorysPage() {
                   {exportLoading === 'ath' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                   ATH
                 </button>
-                <button
+                <button type="button"
                   onClick={() => exportFile('xlsx')}
                   disabled={exportLoading === 'xlsx'}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-go/10 border border-go/20 text-go text-xs hover:bg-go/20 transition-colors disabled:opacity-50"
@@ -1363,7 +1364,7 @@ export function KosztorysPage() {
                   className="hidden"
                   onChange={handleAthImport}
                 />
-                <button
+                <button type="button"
                   onClick={() => athFileInputRef.current?.click()}
                   disabled={athImportLoading || !tender}
                   title="Importuj plik ATH"
@@ -1372,7 +1373,7 @@ export function KosztorysPage() {
                   {athImportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   Import ATH
                 </button>
-                <button
+                <button type="button"
                   onClick={handleAiWycena}
                   disabled={aiWycenaLoading || !kosztorysId}
                   title="Automatyczna wycena AI na podstawie cen KNR"
@@ -1441,7 +1442,7 @@ export function KosztorysPage() {
                     <AlertTriangle className="w-4 h-4 text-warn" />
                     <span className="text-slate-300 text-sm font-semibold">Analiza anomalii cenowych</span>
                   </div>
-                  <button
+                  <button type="button"
                     onClick={runAnomaly}
                     disabled={anomalyLoading || !kosztorysId}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-warn/10 border border-warn/20 text-warn text-xs hover:bg-warn/20 transition-colors disabled:opacity-50"
@@ -1499,7 +1500,7 @@ export function KosztorysPage() {
                       <span className="px-1.5 py-0.5 rounded-full bg-nogo/30 text-nogo text-xs">{alertsData.length}</span>
                     )}
                   </div>
-                  <button
+                  <button type="button"
                     onClick={loadAlerts}
                     disabled={alertsLoading}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo/10 border border-indigo/20 text-indigo text-xs hover:bg-indigo/20 transition-colors disabled:opacity-50"
@@ -1574,7 +1575,7 @@ export function KosztorysPage() {
                     {[2,4,6,8,12].map(h => <option key={h} value={h}>{h} kw.</option>)}
                   </select>
                 </div>
-                <button
+                <button type="button"
                   onClick={runForecast}
                   disabled={forecastLoading}
                   className="btn-primary flex items-center gap-1.5 !text-xs disabled:opacity-50"
@@ -1722,7 +1723,7 @@ export function KosztorysPage() {
                 <Wrench className="w-4 h-4 text-slate-500" />
                 <span className="section-label">Narzuty</span>
               </div>
-              <button onClick={() => setShowNarzuty(true)} className="btn-ghost !p-1">
+              <button type="button" onClick={() => setShowNarzuty(true)} className="btn-ghost !p-1">
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
             </div>

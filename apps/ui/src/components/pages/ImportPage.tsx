@@ -278,7 +278,7 @@ export function ImportPage() {
             onDrop={handleDrop}
             onDragOver={e => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed border-ink-700/60 rounded-2xl p-12 text-center cursor-pointer hover:border-em/40 hover:bg-em/5 transition-all group"
+            className="border-2 border-dashed border-ink-700/60 rounded-2xl p-12 text-center cursor-pointer hover:border-em/40 hover:bg-em/5 transition-[color,background-color,border-color,opacity,transform,box-shadow] group"
           >
             <input
               ref={inputRef}
@@ -345,13 +345,13 @@ export function ImportPage() {
             </GlassCard>
 
             <div className="flex gap-3">
-              <button
+              <button type="button"
                 onClick={() => setStep(0)}
                 className="btn-ghost flex items-center gap-1.5 px-4 py-2 text-sm"
               >
                 <ChevronLeft className="w-4 h-4" /> Wstecz
               </button>
-              <button
+              <button type="button"
                 onClick={validate}
                 className="btn-primary flex items-center gap-1.5 px-5 py-2.5 text-sm"
               >
@@ -423,7 +423,7 @@ export function ImportPage() {
                 </div>
                 <div className="w-full bg-ink-800 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-em h-2 rounded-full transition-all duration-500"
+                    className="bg-em h-2 rounded-full transition-[color,background-color,border-color,opacity,transform,box-shadow] duration-500"
                     style={{
                       width: progressPct !== null ? `${progressPct}%` : '100%',
                       opacity: progressPct !== null ? 1 : 0.4,
@@ -437,7 +437,7 @@ export function ImportPage() {
             )}
 
             <div className="flex gap-3">
-              <button
+              <button type="button"
                 onClick={() => setStep(1)}
                 disabled={loading}
                 className="btn-ghost flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-40"
@@ -445,7 +445,7 @@ export function ImportPage() {
                 <ChevronLeft className="w-4 h-4" /> Wstecz
               </button>
               {errors.length === 0 && (
-                <button
+                <button type="button"
                   onClick={submitImport}
                   disabled={loading}
                   className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
@@ -473,7 +473,7 @@ export function ImportPage() {
                 Zaimportowano {activeJob.processed} z {activeJob.total} rekordów.
               </p>
             )}
-            <button
+            <button type="button"
               onClick={() => {
                 setStep(0); setFile(null); setCsvData(null);
                 setDone(false); setActiveJob(null); setImportError(null);

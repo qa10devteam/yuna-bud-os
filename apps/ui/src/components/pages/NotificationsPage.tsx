@@ -76,7 +76,7 @@ function NotificationItem({
           </div>
         </div>
         {!notification.read && (
-          <button
+          <button type="button"
             onClick={() => onMarkRead(notification.id)}
             className="text-slate-500 hover:text-em p-1 transition-colors shrink-0"
             aria-label="Oznacz jako przeczytane"
@@ -174,13 +174,13 @@ export function NotificationsPage() {
     <div className="flex items-center gap-2 flex-wrap">
       {/* Filter tabs */}
       <div className="flex gap-1 bg-ink-900/60 rounded-xl p-1 border border-ink-800/50">
-        <button
+        <button type="button"
           onClick={() => setFilter('all')}
           className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filter === 'all' ? 'bg-em text-ink-950' : 'text-slate-400 hover:text-slate-200'}`}
         >
           Wszystkie
         </button>
-        <button
+        <button type="button"
           onClick={() => setFilter('unread')}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${filter === 'unread' ? 'bg-em text-ink-950' : 'text-slate-400 hover:text-slate-200'}`}
         >
@@ -221,7 +221,7 @@ export function NotificationsPage() {
       {!loading && error && (
         <GlassCard className="p-8">
           <EmptyState
-            icon={<AlertCircle className="w-6 h-6" />}
+            icon={AlertCircle}
             title="Błąd ładowania powiadomień"
             description={error}
             cta={
@@ -237,7 +237,7 @@ export function NotificationsPage() {
       {!loading && !error && displayed.length === 0 && (
         <GlassCard className="p-8">
           <EmptyState
-            icon={<Bell className="w-6 h-6" />}
+            icon={Bell}
             title={filter === 'unread' ? 'Brak nieprzeczytanych powiadomień' : 'Brak powiadomień'}
             description={filter === 'unread' ? 'Wszystkie powiadomienia zostały przeczytane.' : 'Nowe powiadomienia pojawią się tutaj.'}
           />
