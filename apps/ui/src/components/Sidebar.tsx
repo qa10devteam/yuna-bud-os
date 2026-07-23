@@ -2,8 +2,6 @@
 
 import { useStore } from '@/store/useStore';
 import { NotificationsBell } from '@/components/NotificationsBell';
-import Image from 'next/image';
-import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
@@ -25,7 +23,6 @@ import {
   Wrench,
   PackageSearch,
   Users,
-  ArrowUpLeft,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -104,68 +101,44 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
       ].join(' ')}
     >
       {/* ── Logo / Header ──────────────────────────────────────────────── */}
-      <div className="border-b border-ink-line shrink-0">
-        {/* BudOS brand row */}
-        <div className="flex items-center justify-between px-3 h-14">
-          {isMenuOpen ? (
-            <div className="flex items-center gap-2 select-none">
-              <Image
-                src="/brand/B01-app-icon-budos.png"
-                alt="Bud.OS"
-                width={26}
-                height={26}
-                className="rounded-md object-cover shrink-0"
-              />
-              <div className="flex flex-col leading-none">
-                <span className="text-[13px] font-bold text-white tracking-tight">Bud.OS</span>
-                <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600 mt-0.5">System Decyzyjny</span>
-              </div>
-            </div>
-          ) : (
-            <Image
-              src="/brand/B01-app-icon-budos.png"
-              alt="Bud.OS"
-              width={30}
-              height={30}
-              className="rounded-lg object-cover"
-            />
-          )}
-
-          <div className="flex items-center gap-1 ml-1 shrink-0">
-            {isMenuOpen && <NotificationsBell />}
-            <button type="button"
-              onClick={toggleMenu}
-              aria-label={isMenuOpen ? 'Zwiń menu' : 'Rozwiń menu'}
-              className="p-1.5 rounded-md hover:bg-ink-800 text-slate-600 hover:text-slate-200 transition-colors duration-150"
-            >
-              {isMenuOpen
-                ? <ChevronLeft  className="w-4 h-4" />
-                : <ChevronRight className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Back to YU-NA hub */}
+      <div className="flex items-center justify-between px-3 h-16 border-b border-ink-line shrink-0">
         {isMenuOpen ? (
-          <Link
-            href="/app"
-            className="flex items-center gap-2 mx-3 mb-2 px-2 py-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/[0.04] transition-colors group"
-          >
-            <ArrowUpLeft className="w-3.5 h-3.5 shrink-0 group-hover:text-indigo-400 transition-colors" />
-            <span className="text-[11px] font-medium tracking-wide">
-              <span className="text-slate-700">YU-NA</span>
-              <span className="text-slate-600"> · Hub</span>
-            </span>
-          </Link>
+          /* Full logo */
+          <div className="flex items-center gap-2.5 select-none">
+            <img
+              src="/brand/B01-app-icon-budos.png"
+              alt="BudOS"
+              className="w-7 h-7 rounded-md object-cover shrink-0"
+            />
+            <div className="flex flex-col leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-white tracking-tight">YU-NA</span>
+                <span className="text-[#10b981] font-light text-[13px]">|</span>
+                <span className="text-[13px] font-bold text-white tracking-tight">BudOS</span>
+              </div>
+              <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600 mt-0.5">System Decyzyjny</span>
+            </div>
+          </div>
         ) : (
-          <Link
-            href="/app"
-            title="Wróć do YU-NA Hub"
-            className="flex justify-center mb-2 text-slate-700 hover:text-indigo-400 transition-colors"
-          >
-            <ArrowUpLeft className="w-3.5 h-3.5" />
-          </Link>
+          /* Signet icon — SVG logo */
+          <img
+            src="/brand/B01-app-icon-budos.png"
+            alt="BudOS"
+            className="w-8 h-8 rounded-lg object-cover"
+          />
         )}
+
+        {isMenuOpen && <NotificationsBell />}
+
+        <button type="button"
+          onClick={toggleMenu}
+          aria-label={isMenuOpen ? 'Zwiń menu' : 'Rozwiń menu'}
+          className="p-1.5 rounded-md hover:bg-ink-800 text-slate-600 hover:text-slate-200 transition-colors duration-150 ml-1 shrink-0"
+        >
+          {isMenuOpen
+            ? <ChevronLeft  className="w-4 h-4" />
+            : <ChevronRight className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* ── Navigation ─────────────────────────────────────────────────── */}

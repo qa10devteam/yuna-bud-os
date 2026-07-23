@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import Image from 'next/image';
 import {
   LayoutDashboard,
   Radar,
@@ -26,7 +25,6 @@ import {
   Settings,
   Target,
   ChevronLeft,
-  ArrowUpLeft,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { TopBar } from '@/components/TopBar';
@@ -169,21 +167,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname    = usePathname();
   const isAuth      = !!(user && accessToken);
 
-  // ── Hydration guard ──────────────────────────────────────────────────────
-  // Wait one tick for Zustand persist to rehydrate from localStorage
+  // Wait for Zustand persist rehydration before redirecting
+  // Merged: hydration + auth redirect in one effect (avoids effect chain)
   const [hydrated, setHydrated] = useState(false);
   const [mobileOpen,  setMobileOpen]  = useState(false);
   const [collapsed,   setCollapsed]   = useState(false);
 
   useEffect(() => {
-    // Zustand persist rehydration is sync on first paint in v4+
-    // Setting hydrated in useEffect fires after rehydration completes
     setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (hydrated && !isAuth) router.replace('/login');
-  }, [hydrated, isAuth, router]);
+    if (!isAuth) router.replace('/login');
+  }, [isAuth, router]);
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -209,64 +202,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const SidebarContent = (
     <div className="flex flex-col h-full">
       {/* ── Logo + collapse toggle ── */}
-      <div className="shrink-0 border-b border-white/[0.06]">
-        {/* BudOS brand row */}
-        <div className={[
-          'py-3 flex items-center',
+      <div
+        className={[
+          'py-4 flex items-center shrink-0 border-b border-white/[0.06]',
           collapsed ? 'flex-col gap-2 px-0 justify-center' : 'gap-3 px-4 justify-between',
-        ].join(' ')}>
-          <div className="flex items-center gap-2.5">
-            <Image
-              src="/brand/B01-app-icon-budos.png"
-              alt="Bud.OS"
-              width={30}
-              height={30}
-              className="rounded-lg object-cover shrink-0"
-              style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.08)' }}
-            />
-            {!collapsed && (
-              <div className="flex flex-col leading-none">
-                <span className="text-[13px] font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-space)' }}>Bud.OS</span>
-                <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600 mt-0.5">System Decyzyjny</span>
+        ].join(' ')}
+      >
+        <div className="flex items-center gap-3">
+          <img
+            src="/brand/B01-app-icon-budos.png"
+            alt="BudOS"
+            className="w-8 h-8 rounded-lg object-cover shrink-0"
+            style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.08)' }}
+          />
+          {!collapsed && (
+            <div className="flex flex-col leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-space)' }}>YU-NA</span>
+                <span className="text-[#10b981] font-light text-[13px] leading-none">|</span>
+                <span className="text-[13px] font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-space)' }}>BudOS</span>
               </div>
-            )}
-          </div>
-
-          {/* Collapse / expand button */}
-          <button
-            type="button"
-            onClick={() => setCollapsed((v) => !v)}
-            className="p-1 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/[0.06] transition-[color,background-color,border-color,opacity,transform,box-shadow] shrink-0"
-            title={collapsed ? 'Rozwiń sidebar' : 'Zwiń sidebar'}
-          >
-            {collapsed
-              ? <Menu className="w-4 h-4" />
-              : <ChevronLeft className="w-4 h-4" />
-            }
-          </button>
+              <span className="text-[9px] uppercase tracking-[0.12em] text-slate-600 mt-0.5">System Decyzyjny</span>
+            </div>
+          )}
         </div>
 
-        {/* Back to YU-NA Hub */}
-        {collapsed ? (
-          <Link
-            href="/app"
-            title="YU-NA Hub"
-            className="flex justify-center py-1.5 mb-1 text-slate-700 hover:text-indigo-400 transition-colors"
-          >
-            <ArrowUpLeft className="w-3.5 h-3.5" />
-          </Link>
-        ) : (
-          <Link
-            href="/app"
-            className="flex items-center gap-2 mx-3 mb-2 px-2 py-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/[0.04] transition-colors group"
-          >
-            <ArrowUpLeft className="w-3.5 h-3.5 shrink-0 group-hover:text-indigo-400 transition-colors" />
-            <span className="text-[11px] font-medium">
-              <span className="text-slate-700">YU-NA</span>
-              <span className="text-slate-600"> · Hub</span>
-            </span>
-          </Link>
-        )}
+        {/* Collapse / expand button */}
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          className="p-1 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/[0.06] transition-[color,background-color,border-color,opacity,transform,box-shadow] shrink-0"
+          title={collapsed ? 'Rozwiń sidebar' : 'Zwiń sidebar'}
+        >
+          {collapsed
+            ? <Menu className="w-4 h-4" />
+            : <ChevronLeft className="w-4 h-4" />
+          }
+        </button>
       </div>
 
       {/* ── Nav sections ── */}
