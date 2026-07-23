@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     description: 'Monitoring BZP/TED w czasie rzeczywistym. Silnik GO/NO-GO. Kosztorys KNR/ICB.',
     type: 'website',
     locale: 'pl_PL',
-    url: 'https://yu-na.io/landing',
+    url: 'https://yu-na.io',
     siteName: 'YU-NA BudOS',
     images: [
       {

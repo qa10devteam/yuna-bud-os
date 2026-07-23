@@ -60,7 +60,7 @@ export default function YunaHubPage() {
             <span className="font-semibold text-[13.5px] tracking-tight text-zinc-900">YU-NA</span>
           </Link>
           <div className="flex items-center gap-1.5">
-            <button className="p-2 rounded-full hover:bg-zinc-100 transition-colors" title="Powiadomienia">
+            <button type="button" className="p-2 rounded-full hover:bg-zinc-100 transition-colors" title="Powiadomienia">
               <Bell className="w-4 h-4 text-zinc-400" />
             </button>
             <div className="flex items-center gap-2 pl-3 border-l border-zinc-200 ml-1">
@@ -69,6 +69,7 @@ export default function YunaHubPage() {
               </div>
               <span className="text-[13px] text-zinc-600 font-medium hidden sm:block">{user?.name}</span>
               <button
+                type="button"
                 onClick={() => { logout(); router.push('/login'); }}
                 className="p-2 rounded-full hover:bg-zinc-100 transition-colors"
                 title="Wyloguj"
@@ -254,6 +255,7 @@ export default function YunaHubPage() {
 
                   {/* CTA */}
                   <button
+                    type="button"
                     className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-2 rounded-lg transition-colors ${c.cta}`}
                   >
                     Powiadom mnie <ChevronRight className="w-3.5 h-3.5" />
