@@ -70,23 +70,27 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         body:    JSON.stringify(body),
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const detail = typeof (data.detail) === 'string'
-          ? data.detail
-          : Array.isArray(data.detail)
-            ? (data.detail as { msg?: string }[]).map(d => d.msg || '').join('; ')
-            : '';
-        if (res.status === 401 || detail.toLowerCase().includes('invalid'))
+        // FastAPI returns { detail: string } or { detail: [{msg, loc, ...}] }
+        const raw = data.detail ?? data.message ?? '';
+        const detail = typeof raw === 'string'
+          ? raw
+          : Array.isArray(raw)
+            ? (raw as { msg?: string }[]).map(d => {
+                const m = d.msg || '';
+                // strip Pydantic "Value error, " prefix
+                return m.replace(/^Value error,\s*/i, '');
+              }).join('\n')
+            : String(raw);
+
+        if (res.status === 401 || detail.toLowerCase().includes('invalid') || detail.toLowerCase().includes('nieprawidłow'))
           setError('Nieprawidłowy e-mail lub hasło. Spróbuj ponownie lub zresetuj hasło.');
-        else if (res.status === 409 || detail.toLowerCase().includes('exist'))
+        else if (res.status === 409 || detail.toLowerCase().includes('exist') || detail.toLowerCase().includes('zarejestrowany'))
           setError('Konto z tym adresem e-mail już istnieje. Zaloguj się lub odzyskaj dostęp.');
+        else if (res.status === 422 && detail)
+          setError(detail);
         else if (res.status >= 500)
           setError('Problem z serwerem — spróbuj ponownie za chwilę.');
         else
@@ -96,8 +100,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
       setAuth(data.user as AuthUser, data.access_token, data.refresh_token);
       onSuccess();
-    } catch {
-      setError('Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.');
+    } catch (err) {
+      // Only network-level errors (fetch itself threw) land here
+      const isNetworkErr = err instanceof TypeError && String(err).includes('fetch');
+      setError(isNetworkErr
+        ? 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.'
+        : 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.');
     } finally {
       setLoading(false);
     }
@@ -318,7 +326,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-                      placeholder={tab === 'register' ? 'min. 8 znaków' : '••••••••'}
+                      placeholder={tab === 'register' ? 'min. 12 znaków, A, 1, !' : '••••••••'}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-11 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all duration-200"
                     />
                     <button
