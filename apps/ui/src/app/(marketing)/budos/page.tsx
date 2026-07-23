@@ -283,7 +283,7 @@ function Hero() {
             </div>
           </div>
           <Image
-            src="/screenshots/live-dashboard.png"
+            src="/brand/live-dashboard.png"
             alt="BudOS dashboard"
             width={1440}
             height={900}
@@ -661,7 +661,7 @@ export default function BudosProductPage() {
         eyebrow="Zwiad Przetargowy"
         headline={'Monitoring\nnon-stop.'}
         subline="BZP i TED w jednym miejscu. AI dopasowuje ogłoszenia do profilu Twojej firmy i wysyła alerty natychmiast po publikacji."
-        screenshot="/screenshots/live-zwiad.png"
+        screenshot="/brand/live-zwiad.png"
         screenshotAlt="BudOS Zwiad Przetargowy"
         features={ZWIAD_FEATURES}
       />
@@ -671,7 +671,7 @@ export default function BudosProductPage() {
         eyebrow="Silnik Decyzyjny AI"
         headline={'GO / NO-GO\nw 30 sekund.'}
         subline="AI czyta pełną dokumentację SWZ, ocenia ryzyko kontraktowe i generuje rekomendację z uzasadnieniem — zanim Ty zdążysz otworzyć PDF."
-        screenshot="/screenshots/live-silnik.png"
+        screenshot="/brand/live-silnik.png"
         screenshotAlt="BudOS Silnik Decyzyjny AI"
         features={SILNIK_FEATURES}
         reverse
@@ -682,7 +682,7 @@ export default function BudosProductPage() {
         eyebrow="Kosztorys AI"
         headline={'Wycena\nautomatyczna.'}
         subline="Prześlij dokumentację przetargową — BudOS wygeneruje kosztorys w formacie ATH lub PDF, gotowy do złożenia oferty."
-        screenshot="/screenshots/live-kosztorys.png"
+        screenshot="/brand/live-kosztorys.png"
         screenshotAlt="BudOS Kosztorys AI"
         features={KOSZTORYS_FEATURES}
       />
