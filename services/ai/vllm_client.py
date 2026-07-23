@@ -209,18 +209,18 @@ class VLLMClient:
         *,
         json_mode: bool = False,
     ) -> str:
-        # Try Bedrock first
-        try:
-            return _bedrock_generate(prompt, system, max_tokens, json_mode=json_mode)
-        except Exception as e:
-            logger.warning("Bedrock generate failed: %s — trying vLLM", e)
-
-        # Try vLLM
+        # Try Axon (vLLM) first
         if _vllm_available():
             try:
                 return _vllm_generate(prompt, system, max_tokens)
-            except Exception as e2:
-                logger.warning("vLLM generate failed: %s", e2)
+            except Exception as e:
+                logger.warning("Axon vLLM generate failed: %s — trying Bedrock", e)
+
+        # Bedrock fallback
+        try:
+            return _bedrock_generate(prompt, system, max_tokens, json_mode=json_mode)
+        except Exception as e2:
+            logger.warning("Bedrock generate failed: %s", e2)
 
         # OpenAI fallback
         if OPENAI_API_KEY:
@@ -248,20 +248,20 @@ class VLLMClient:
         system: str = TERRA_SYSTEM_PROMPT,
         max_tokens: int = MAX_TOKENS_DEFAULT,
     ) -> Generator[str, None, None]:
-        # Try Bedrock stream
-        try:
-            yield from _bedrock_stream(prompt, system, max_tokens)
-            return
-        except Exception as e:
-            logger.warning("Bedrock stream failed: %s — trying vLLM", e)
-
-        # Try vLLM stream
+        # Try Axon (vLLM) stream first
         if _vllm_available():
             try:
                 yield from _vllm_stream(prompt, system, max_tokens)
                 return
-            except Exception as e2:
-                logger.warning("vLLM stream failed: %s", e2)
+            except Exception as e:
+                logger.warning("Axon vLLM stream failed: %s — trying Bedrock", e)
+
+        # Bedrock fallback
+        try:
+            yield from _bedrock_stream(prompt, system, max_tokens)
+            return
+        except Exception as e2:
+            logger.warning("Bedrock stream failed: %s", e2)
 
         # Non-streaming fallback via generate
         try:
@@ -277,13 +277,49 @@ class VLLMClient:
         max_tokens: int = MAX_TOKENS_DEFAULT,
     ) -> Generator[str, None, None]:
         """Stream with proper messages array for multi-turn conversations."""
+        # Try Axon (vLLM) first — build single-turn prompt from messages
+        if _vllm_available():
+            try:
+                # vLLM supports messages natively via OpenAI-compat API
+                import httpx
+                with httpx.stream(
+                    "POST",
+                    f"{VLLM_BASE_URL}/chat/completions",
+                    headers={"Authorization": f"Bearer {VLLM_API_KEY}"},
+                    json={
+                        "model": VLLM_MODEL,
+                        "messages": [{"role": "system", "content": system}] + messages,
+                        "max_tokens": max_tokens,
+                        "temperature": 0.7,
+                        "stream": True,
+                    },
+                    timeout=120.0,
+                ) as resp:
+                    for line in resp.iter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data)
+                            text = chunk["choices"][0].get("delta", {}).get("content")
+                            if text:
+                                yield text
+                        except Exception:
+                            continue
+                return
+            except Exception as e:
+                logger.warning("Axon vLLM stream_messages failed: %s — fallback to Bedrock", e)
+
+        # Bedrock fallback
         try:
             yield from _bedrock_stream_messages(messages, system, max_tokens)
             return
         except Exception as e:
             logger.warning("Bedrock stream_messages failed: %s — fallback to prompt mode", e)
 
-        # Fallback: flatten messages to prompt
+        # Final fallback: flatten messages to prompt
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
         yield from self.generate_stream(prompt, system, max_tokens)
 
