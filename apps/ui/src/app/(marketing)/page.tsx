@@ -2,117 +2,143 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'motion/react';
-import { ArrowRight, Brain, Shield, Zap, BarChart3, Target, Sparkles } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
+import { ArrowRight, Search, BarChart3, FileText, Zap, Shield, Brain } from 'lucide-react';
 
 // ── YU-NA Landing — Light Theme ─────────────────────────────────────────────────
-// Clean, modern, Apple-glass aesthetic. Describes the platform. CTA → signup.
+// Design Read: B2B SaaS platform landing for construction industry buyers.
+// Dials: VARIANCE 7 / MOTION 5 / DENSITY 4
+// Accent: emerald (single). Font: Space Grotesk (display) + system (body).
 
 export default function LandingPage() {
+  const reduce = useReducedMotion();
+
   return (
-    <div className="min-h-screen bg-[#fafbfc] text-[#1a1a2e] antialiased overflow-x-hidden" style={{ background: '#fafbfc' }}>
+    <div className="min-h-screen bg-[#fafbfc] text-zinc-900 antialiased overflow-x-hidden">
       {/* ─── Nav ─────────────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/70 border-b border-gray-200/60">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
+      <nav className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/80 border-b border-zinc-100">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/brand/01-logo-concept.png"
               alt="YU-NA"
-              width={32}
-              height={32}
+              width={28}
+              height={28}
               className="rounded-lg"
             />
-            <span className="font-semibold text-lg tracking-tight text-[#1a1a2e]">
-              YU-NA
-            </span>
+            <span className="font-semibold text-[15px] tracking-tight">YU-NA</span>
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm text-gray-600">
-            <Link href="/budos" className="hover:text-[#1a1a2e] transition-colors">Produkty</Link>
-            <Link href="#features" className="hover:text-[#1a1a2e] transition-colors">Funkcje</Link>
-            <Link href="#pricing" className="hover:text-[#1a1a2e] transition-colors">Cennik</Link>
+          <div className="hidden md:flex items-center gap-8 text-[13px] text-zinc-500 font-medium">
+            <Link href="#products" className="hover:text-zinc-900 transition-colors">Produkty</Link>
+            <Link href="#how" className="hover:text-zinc-900 transition-colors">Jak działa</Link>
+            <Link href="/budos" className="hover:text-zinc-900 transition-colors">Bud.OS</Link>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="text-sm text-gray-600 hover:text-[#1a1a2e] transition-colors px-4 py-2"
+              className="text-[13px] text-zinc-500 hover:text-zinc-900 transition-colors px-3 py-2 font-medium"
             >
               Zaloguj się
             </Link>
             <Link
               href="/signup"
-              className="text-sm font-medium bg-[#1a1a2e] text-white px-5 py-2.5 rounded-full hover:bg-[#2a2a3e] transition-colors"
+              className="text-[13px] font-medium bg-zinc-900 text-white px-4 py-2 rounded-full hover:bg-zinc-800 transition-colors"
             >
-              Rozpocznij
+              Wypróbuj
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ─── Hero ────────────────────────────────────────────────────────────── */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* ─── Hero — Asymmetric Split ─────────────────────────────────────────── */}
+      <section className="pt-28 pb-20 px-6">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 lg:gap-6 items-center min-h-[70dvh]">
+          {/* Left — copy (7 cols) */}
+          <div className="lg:col-span-7 max-w-xl">
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.08]">
+                Przetargi budowlane.
+                <br />
+                <span className="text-emerald-600">Opanowane.</span>
+              </h1>
+
+              <p className="mt-6 text-zinc-500 text-lg leading-relaxed max-w-[50ch]">
+                AI analizuje przetargi z BZP i TED, ocenia szanse i generuje kosztorysy. Decyzja GO/NO-GO w minuty zamiast godzin.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 bg-zinc-900 text-white px-6 py-3.5 rounded-full text-sm font-medium hover:bg-zinc-800 transition-all active:scale-[0.98] shadow-lg shadow-zinc-900/10"
+                >
+                  Załóż konto
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/budos"
+                  className="inline-flex items-center gap-2 text-zinc-600 px-6 py-3.5 rounded-full text-sm font-medium border border-zinc-200 hover:border-zinc-300 hover:bg-white transition-all"
+                >
+                  Poznaj Bud.OS
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right — platform preview (5 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            className="lg:col-span-5"
+            initial={reduce ? false : { opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium mb-8 border border-emerald-100">
-              <Sparkles className="w-3.5 h-3.5" />
-              Platforma Intelligence dla budownictwa
-            </div>
-
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-[#1a1a2e]">
-              Decyzje oparte<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-                na danych
-              </span>
-            </h1>
-
-            <p className="mt-6 text-lg md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-              YU-NA to ekosystem narzędzi AI dla firm budowlanych. Monitoring przetargów, 
-              analiza ryzyka, kosztorysy — wszystko w jednym miejscu.
-            </p>
-
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/signup"
-                className="flex items-center gap-2 bg-[#1a1a2e] text-white px-8 py-4 rounded-full text-base font-medium hover:bg-[#2a2a3e] transition-all hover:scale-[1.02] shadow-lg shadow-gray-900/10"
-              >
-                Załóż konto
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/budos"
-                className="flex items-center gap-2 text-gray-600 px-8 py-4 rounded-full text-base font-medium border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
-              >
-                Zobacz Bud.OS
-              </Link>
-            </div>
-          </motion.div>
-
-          {/* Hero visual */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-16 relative"
-          >
-            <div className="aspect-[16/9] max-w-4xl mx-auto rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 border border-gray-200 overflow-hidden shadow-2xl shadow-gray-200/50 flex items-center justify-center">
-              <div className="text-center p-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#1a1a2e] flex items-center justify-center">
-                  <Image
-                    src="/brand/01-logo-concept.png"
-                    alt="YU-NA Platform"
-                    width={40}
-                    height={40}
-                    className="rounded-lg"
-                  />
+            <div className="relative rounded-2xl bg-white border border-zinc-200/80 shadow-xl shadow-zinc-200/40 p-6 space-y-4">
+              {/* Mini dashboard header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-medium text-zinc-400">Zwiad aktywny</span>
                 </div>
-                <p className="text-sm text-gray-400 font-medium">YU-NA Intelligence Platform</p>
-                <div className="mt-6 grid grid-cols-3 gap-4 max-w-md mx-auto">
-                  <div className="h-20 rounded-xl bg-white border border-gray-100 shadow-sm" />
-                  <div className="h-20 rounded-xl bg-white border border-gray-100 shadow-sm" />
-                  <div className="h-20 rounded-xl bg-white border border-gray-100 shadow-sm" />
+                <span className="text-[11px] text-zinc-300 font-mono">BZP + TED</span>
+              </div>
+
+              {/* Fake tender rows — minimal, NOT a full screenshot */}
+              <div className="space-y-2.5">
+                {[
+                  { score: 87, title: 'Budowa drogi S7 odc. Kraków-Nowy Targ', value: '42M PLN' },
+                  { score: 72, title: 'Termomodernizacja ZS nr 4 w Katowicach', value: '8.2M PLN' },
+                  { score: 64, title: 'Remont mostu na rzece Wisła km 341', value: '15M PLN' },
+                ].map((t) => (
+                  <div key={t.title} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white ${
+                      t.score >= 80 ? 'bg-emerald-500' : t.score >= 70 ? 'bg-amber-500' : 'bg-zinc-400'
+                    }`}>
+                      {t.score}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium text-zinc-700 truncate">{t.title}</div>
+                      <div className="text-[11px] text-zinc-400">{t.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom metric strip */}
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-zinc-900">14</div>
+                  <div className="text-[10px] text-zinc-400">Nowe dziś</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-emerald-600">67%</div>
+                  <div className="text-[10px] text-zinc-400">Win rate</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-zinc-900">2.1s</div>
+                  <div className="text-[10px] text-zinc-400">Avg analiza</div>
                 </div>
               </div>
             </div>
@@ -120,140 +146,175 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Features ────────────────────────────────────────────────────────── */}
-      <section id="features" className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#1a1a2e]">
-              Jeden ekosystem. Wiele narzędzi.
-            </h2>
-            <p className="mt-4 text-gray-500 text-lg max-w-2xl mx-auto">
-              Każdy produkt YU-NA rozwiązuje konkretny problem. Razem tworzą przewagę.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Target,
-                title: 'Bud.OS',
-                desc: 'System decyzyjny AI. Monitoring przetargów, scoring GO/NO-GO, kosztorysy KNR/ICB.',
-                badge: 'Dostępny',
-                badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-              },
-              {
-                icon: Shield,
-                title: 'Infra.OS',
-                desc: 'Zarządzanie infrastrukturą budowlaną. Logistyka, zasoby, harmonogramy.',
-                badge: 'Wkrótce',
-                badgeColor: 'bg-amber-50 text-amber-700 border-amber-100',
-              },
-              {
-                icon: Brain,
-                title: 'Dev.OS',
-                desc: 'Narzędzia deweloperskie. Analiza rynku nieruchomości, feasibility studies.',
-                badge: 'Wkrótce',
-                badgeColor: 'bg-blue-50 text-blue-700 border-blue-100',
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="group p-8 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:shadow-lg hover:shadow-gray-100/80 transition-all duration-300 hover:border-gray-200"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#1a1a2e] flex items-center justify-center mb-5">
-                  <item.icon className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <h3 className="text-xl font-semibold text-[#1a1a2e]">{item.title}</h3>
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${item.badgeColor}`}>
-                    {item.badge}
-                  </span>
-                </div>
-                <p className="text-gray-500 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Stats band ──────────────────────────────────────────────────────── */}
-      <section className="py-16 px-6 border-y border-gray-100">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: '1.4M', label: 'Przetargów w bazie' },
-            { value: '67%', label: 'Avg win rate' },
-            { value: '<3s', label: 'Czas analizy AI' },
-            { value: '24/7', label: 'Monitoring BZP/TED' },
-          ].map((s) => (
-            <div key={s.label}>
-              <div className="text-3xl md:text-4xl font-bold text-[#1a1a2e]">{s.value}</div>
-              <div className="mt-1 text-sm text-gray-500">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ─── How it works ────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-center text-[#1a1a2e] mb-16">
-            Jak to działa
+      {/* ─── Products — Bento (2+1 asymmetric) ───────────────────────────────── */}
+      <section id="products" className="py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+            Ekosystem YU-NA
           </h2>
-          <div className="grid md:grid-cols-3 gap-12">
-            {[
-              { step: '01', icon: Zap, title: 'Połącz źródła', desc: 'BZP, TED, e-Zamówienia — automatyczny monitoring 24/7.' },
-              { step: '02', icon: BarChart3, title: 'AI analizuje', desc: 'Scoring trafności, analiza ryzyka, sugerowane budżety.' },
-              { step: '03', icon: Target, title: 'Podejmij decyzję', desc: 'GO/NO-GO w sekundy zamiast godzin. Pełna dokumentacja ofertowa.' },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="text-xs font-mono text-emerald-600 font-semibold mb-3">{item.step}</div>
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 flex items-center justify-center mb-4">
-                  <item.icon className="w-6 h-6 text-emerald-600" />
+          <p className="text-zinc-500 text-lg max-w-[55ch] mb-12">
+            Trzy produkty. Jeden cel: dane zamiast domysłów w budownictwie.
+          </p>
+
+          <div className="grid md:grid-cols-5 gap-4">
+            {/* Bud.OS — takes 3 cols (hero card) */}
+            <div className="md:col-span-3 group relative p-8 rounded-2xl bg-zinc-900 text-white overflow-hidden">
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium mb-6 border border-emerald-500/30">
+                  Dostępny
                 </div>
-                <h3 className="text-lg font-semibold text-[#1a1a2e] mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                <h3 className="text-2xl font-bold mb-3">Bud.OS</h3>
+                <p className="text-zinc-400 leading-relaxed max-w-[40ch] mb-6">
+                  System decyzyjny AI. Monitoring przetargów z BZP i TED, scoring GO/NO-GO, kosztorysy KNR, analiza konkurencji.
+                </p>
+                <Link
+                  href="/budos"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-300 transition-colors"
+                >
+                  Dowiedz się więcej <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-            ))}
+              {/* Decorative gradient blob */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
+            </div>
+
+            {/* Infra.OS + Dev.OS — stacked in 2 cols */}
+            <div className="md:col-span-2 flex flex-col gap-4">
+              <div className="flex-1 p-6 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-4">
+                  <Shield className="w-5 h-5 text-amber-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Infra.OS</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed">
+                  Zarządzanie infrastrukturą. Logistyka, zasoby, harmonogramy.
+                </p>
+                <span className="inline-block mt-4 text-xs text-amber-600 font-medium">Wkrótce</span>
+              </div>
+
+              <div className="flex-1 p-6 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-4">
+                  <Brain className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Dev.OS</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed">
+                  Analiza rynku nieruchomości. Feasibility studies, ROI.
+                </p>
+                <span className="inline-block mt-4 text-xs text-blue-600 font-medium">Wkrótce</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── CTA ─────────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-[#1a1a2e]">
+      {/* ─── How it works — vertical steps, no numbering ─────────────────────── */}
+      <section id="how" className="py-24 px-6 bg-white">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+          {/* Left — explanation */}
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
+              Od danych do decyzji
+            </h2>
+            <p className="text-zinc-500 text-lg leading-relaxed mb-10 max-w-[50ch]">
+              Połącz źródła przetargowe, pozwól AI ocenić i przygotować dokumentację.
+            </p>
+
+            <div className="space-y-8">
+              {[
+                {
+                  icon: Search,
+                  title: 'Monitoring',
+                  desc: 'BZP, TED, e-Zamówienia. Nowe ogłoszenia trafiają do Ciebie w sekundy.',
+                },
+                {
+                  icon: BarChart3,
+                  title: 'Analiza AI',
+                  desc: 'Scoring trafności, analiza ryzyka, weryfikacja warunków udziału.',
+                },
+                {
+                  icon: FileText,
+                  title: 'Dokumentacja',
+                  desc: 'Kosztorysy KNR/ICB, harmonogramy, pełna oferta w godziny.',
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex gap-4">
+                  <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                    <item.icon className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-zinc-900 mb-1">{item.title}</h3>
+                    <p className="text-zinc-500 text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right — visual metric card */}
+          <div className="relative">
+            <div className="rounded-2xl bg-zinc-50 border border-zinc-200 p-8">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-5 rounded-xl bg-white border border-zinc-100 shadow-sm">
+                  <Zap className="w-5 h-5 text-emerald-600 mb-3" />
+                  <div className="text-2xl font-bold text-zinc-900">2.1s</div>
+                  <div className="text-xs text-zinc-400 mt-1">Czas analizy jednego przetargu</div>
+                </div>
+                <div className="p-5 rounded-xl bg-white border border-zinc-100 shadow-sm">
+                  <Search className="w-5 h-5 text-emerald-600 mb-3" />
+                  <div className="text-2xl font-bold text-zinc-900">24/7</div>
+                  <div className="text-xs text-zinc-400 mt-1">Monitoring BZP i TED</div>
+                </div>
+                <div className="p-5 rounded-xl bg-white border border-zinc-100 shadow-sm">
+                  <BarChart3 className="w-5 h-5 text-emerald-600 mb-3" />
+                  <div className="text-2xl font-bold text-emerald-600">67%</div>
+                  <div className="text-xs text-zinc-400 mt-1">Avg win rate klientów</div>
+                </div>
+                <div className="p-5 rounded-xl bg-white border border-zinc-100 shadow-sm">
+                  <FileText className="w-5 h-5 text-emerald-600 mb-3" />
+                  <div className="text-2xl font-bold text-zinc-900">3h</div>
+                  <div className="text-xs text-zinc-400 mt-1">Oferta zamiast 3 dni</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CTA — single dark band (one theme switch, justified as strong CTA) */}
+      <section className="py-20 px-6 bg-zinc-900">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
             Gotowy na przewagę?
           </h2>
-          <p className="mt-4 text-gray-400 text-lg">
-            Dołącz do firm, które wygrywają przetargi dzięki danym.
+          <p className="mt-4 text-zinc-400 text-lg max-w-[45ch] mx-auto">
+            Dołącz do firm, które wygrywają przetargi dzięki danym i AI.
           </p>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 bg-white text-[#1a1a2e] px-8 py-4 rounded-full text-base font-semibold hover:bg-gray-100 transition-colors"
+            className="mt-8 inline-flex items-center gap-2 bg-white text-zinc-900 px-7 py-3.5 rounded-full text-sm font-semibold hover:bg-zinc-100 transition-all active:scale-[0.98]"
           >
-            Rozpocznij za darmo
+            Załóż konto
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>
 
       {/* ─── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="py-12 px-6 border-t border-gray-100 bg-white">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <footer className="py-10 px-6 border-t border-zinc-100 bg-[#fafbfc]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
             <Image
               src="/brand/01-logo-concept.png"
               alt="YU-NA"
-              width={24}
-              height={24}
+              width={20}
+              height={20}
               className="rounded-md"
             />
-            <span className="text-sm text-gray-500">© 2026 YU-NA Intelligence</span>
+            <span className="text-xs text-zinc-400">© 2026 YU-NA Intelligence</span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <Link href="/terms" className="hover:text-gray-600 transition-colors">Regulamin</Link>
-            <Link href="/privacy" className="hover:text-gray-600 transition-colors">Prywatność</Link>
-            <Link href="/budos" className="hover:text-gray-600 transition-colors">Bud.OS</Link>
+          <div className="flex items-center gap-6 text-xs text-zinc-400">
+            <Link href="/terms" className="hover:text-zinc-600 transition-colors">Regulamin</Link>
+            <Link href="/privacy" className="hover:text-zinc-600 transition-colors">Prywatność</Link>
+            <Link href="/budos" className="hover:text-zinc-600 transition-colors">Bud.OS</Link>
           </div>
         </div>
       </footer>
