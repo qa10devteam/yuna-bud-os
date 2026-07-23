@@ -175,10 +175,11 @@ def main():
                             emb_val = None
                             if embeddings is not None:
                                 emb_val = "[" + ",".join(f"{x:.6f}" for x in embeddings[idx]) + "]"
-                            conn.execute(sa.text("""
-                                INSERT INTO document_chunk (id, tenant_id, document_id, page, ordinal, content, embedding)
-                                VALUES (:id, :tid, :did, 1, :ord, :content, :emb::vector)
-                            """), {
+                            # Use CAST instead of :: to avoid SQLAlchemy param confusion
+                            conn.execute(sa.text(
+                                "INSERT INTO document_chunk (id, tenant_id, document_id, page, ordinal, content, embedding) "
+                                "VALUES (:id, :tid, :did, 1, :ord, :content, CAST(:emb AS vector))"
+                            ), {
                                 "id": chunk_id, "tid": tenant_id, "did": doc_id,
                                 "ord": idx, "content": chunk, "emb": emb_val,
                             })

@@ -76,6 +76,7 @@ class TenderDetail(TenderSummary):
     match_reason: str | None
     raw: dict
     duplicates: list["DuplicateRef"]  # other sources referring same procurement
+    historical_intelligence: dict | None = None  # benchmark from 1.4M historical tenders
 
 
 class DuplicateRef(BaseModel):
@@ -758,6 +759,24 @@ def get_tender(tender_id: str, user: AuthUser) -> TenderDetail:
 
     # S86 — Store in cache
     _cache.set(_cache_key, result, ttl=120)
+
+    # Enrich with historical intelligence (async-safe, lazy)
+    try:
+        from ..intelligence.historical_intelligence import get_historical_context
+        cpv_first = result.cpv[0] if result.cpv else None
+        hist = get_historical_context(
+            title=result.title,
+            cpv_code=cpv_first,
+            province=result.voivodeship,
+            estimated_value=result.value_pln,
+            buyer=result.buyer,
+            limit=5,
+        )
+        if hist:
+            result.historical_intelligence = hist
+    except Exception:
+        pass  # non-critical enrichment
+
     return result
 
 
