@@ -15,21 +15,22 @@ import { useState } from 'react';
 
 // ── TOKEN SYSTEM ─────────────────────────────────────────────────────────────
 // All colours reference this object — no inline hex anywhere below
+// YU-NA = LIGHT theme (BudOS = dark — these are different brands)
 const T = {
-  bg0: '#05080f',       // oklch(8% 0.018 240) — navy-tinted dark
-  bg1: '#080c17',
-  bg2: '#0d1220',       // elevated panel
-  bg3: '#141926',
-  edge0: '#1a2235',     // hairline
-  edge1: '#232f45',     // medium border
-  ink: '#e8edf5',       // cold white — never pure #fff
-  muted: '#7a8ba8',
-  faint: '#3a4a62',
-  accent: '#16c984',    // oklch(72% 0.22 155) — electric green
+  bg0: '#f7f9fc',       // near-white page bg
+  bg1: '#ffffff',       // white cards / nav pill
+  bg2: '#f0f3f8',       // panel background
+  bg3: '#e8ecf3',       // browser chrome / deep panel
+  edge0: '#dde3ec',     // hairline border
+  edge1: '#c8d0dd',     // medium border
+  ink: '#0c1524',       // near-black — headings + body
+  muted: '#5a6d84',     // secondary text
+  faint: '#8fa0b4',     // tertiary / dim
+  accent: '#16c984',    // electric green — unchanged
   accentDim: '#0d7a4f',
-  accentSub: 'rgba(22,201,132,0.06)',
-  accentBrd: 'rgba(22,201,132,0.18)',
-  data: '#94a8c4',      // platinum for metrics / numbers
+  accentSub: 'rgba(22,201,132,0.08)',
+  accentBrd: 'rgba(22,201,132,0.25)',
+  data: '#2c3e52',      // dark numbers / metrics
   serif: 'var(--font-dm-serif)',
   sans: 'var(--font-space)',
   mono: 'var(--font-jetbrains)',
@@ -108,8 +109,8 @@ function GhostButton({ href, children }: { href: string; children: React.ReactNo
 
 // ── SCORE BADGE ───────────────────────────────────────────────────────────────
 function ScoreBadge({ score }: { score: number }) {
-  const bg = score >= 80 ? T.accent : score >= 65 ? '#f59e0b' : T.faint;
-  const color = score >= 80 ? T.bg0 : score >= 65 ? '#1a1400' : T.muted;
+  const bg = score >= 80 ? T.accent : score >= 65 ? '#f59e0b' : T.edge0;
+  const color = score >= 80 ? '#fff' : score >= 65 ? '#1a1400' : T.muted;
   return (
     <div style={{
       width: 36, height: 36,
@@ -133,16 +134,18 @@ function DataPanel({ reduce }: { reduce: boolean | null }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.55, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        background: T.bg2,
+        background: T.bg1,
         border: `1px solid ${T.edge0}`,
         borderRadius: 20,
         overflow: 'hidden',
+        boxShadow: '0 2px 20px rgba(12,21,36,0.06)',
       }}
     >
       {/* Panel header */}
       <div style={{
         padding: '12px 18px',
         borderBottom: `1px solid ${T.edge0}`,
+        background: T.bg2,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -254,7 +257,7 @@ export default function LandingPage() {
         <div style={{
           maxWidth: 720,
           margin: '0 auto',
-          background: 'rgba(8,12,23,0.85)',
+          background: 'rgba(255,255,255,0.88)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           border: `1px solid ${T.edge0}`,
@@ -432,41 +435,83 @@ export default function LandingPage() {
               background: T.bg2,
               border: `1px solid ${T.edge0}`,
               borderRadius: 16,
-              padding: 32,
-              position: 'relative',
               overflow: 'hidden',
-              minHeight: 260,
+              minHeight: 300,
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between',
+              position: 'relative',
             }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              {/* Top info row */}
+              <div style={{ padding: '28px 28px 20px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.accent, animation: 'pulse 2s ease-in-out infinite' }} />
                   <span style={{ fontFamily: T.mono, fontSize: 10, color: T.accent, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>Dostępny</span>
                 </div>
-                <h3 style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 400, color: T.ink, margin: '0 0 12px', letterSpacing: '-0.02em' }}>
+                <h3 style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 400, color: T.ink, margin: '0 0 10px', letterSpacing: '-0.02em' }}>
                   Bud.OS
                 </h3>
-                <p style={{ fontFamily: T.sans, fontSize: 14, color: T.muted, lineHeight: 1.65, maxWidth: '38ch', margin: 0 }}>
+                <p style={{ fontFamily: T.sans, fontSize: 13.5, color: T.muted, lineHeight: 1.65, maxWidth: '38ch', margin: 0 }}>
                   Przetargi z BZP i TED, scoring GO/NO-GO, kosztorysy KNR, analiza konkurencji i dokumentacja ofertowa.
                 </p>
               </div>
-              <Link href="/budos" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                fontFamily: T.sans, fontSize: 13, fontWeight: 500,
-                color: T.ink,
-                background: 'rgba(255,255,255,0.06)',
-                border: `1px solid ${T.edge1}`,
-                padding: '10px 16px',
-                borderRadius: 9999,
-                textDecoration: 'none',
-                width: 'fit-content',
-                transition: 'background 150ms',
+
+              {/* Screenshot strip */}
+              <div style={{
+                flex: 1,
+                marginLeft: 16,
+                marginRight: 16,
+                borderRadius: '12px 12px 0 0',
+                overflow: 'hidden',
+                border: `1px solid ${T.edge0}`,
+                borderBottom: 'none',
+                position: 'relative',
               }}>
-                Dowiedz się więcej
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </Link>
+                {/* Browser chrome */}
+                <div style={{
+                  background: T.bg3,
+                  borderBottom: `1px solid ${T.edge0}`,
+                  padding: '8px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(239,68,68,0.45)' }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(234,179,8,0.45)' }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(22,201,132,0.45)' }} />
+                  <div style={{
+                    flex: 1, marginLeft: 8,
+                    background: T.bg2, borderRadius: 4, height: 18,
+                    display: 'flex', alignItems: 'center', padding: '0 10px',
+                  }}>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.faint }}>app.yu-na.io/zwiad</span>
+                  </div>
+                </div>
+                <Image
+                  src="/brand/live-zwiad.png"
+                  alt="BudOS Zwiad Przetargowy"
+                  width={900}
+                  height={500}
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              </div>
+
+              {/* Footer link */}
+              <div style={{ padding: '16px 28px', borderTop: `1px solid ${T.edge0}`, flexShrink: 0 }}>
+                <Link href="/budos" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  fontFamily: T.sans, fontSize: 13, fontWeight: 500,
+                  color: T.ink,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${T.edge1}`,
+                  padding: '9px 16px',
+                  borderRadius: 9999,
+                  textDecoration: 'none',
+                  transition: 'background 150ms',
+                }}>
+                  Dowiedz się więcej
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </Link>
+              </div>
             </div>
 
             {/* Infra.OS — narrow, inline icon */}

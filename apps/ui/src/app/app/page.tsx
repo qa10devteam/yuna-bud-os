@@ -137,7 +137,7 @@ export default function YunaHubPage() {
                 {[
                   { icon: Activity,   value: '14',  label: 'nowych dziś' },
                   { icon: FileText,   value: '3',   label: 'w analizie' },
-                  { icon: TrendingUp, value: '67%', label: 'win rate', accent: true },
+                  { icon: TrendingUp, value: '—',   label: 'win rate', accent: true },
                 ].map((m) => (
                   <div key={m.label} className="flex flex-col items-center px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.07] min-w-[76px]">
                     <m.icon className={`w-3.5 h-3.5 mb-1.5 ${m.accent ? 'text-emerald-400' : 'text-zinc-500'}`} />
@@ -192,7 +192,7 @@ export default function YunaHubPage() {
               name: 'Infra.OS',
               tagline: 'Zarządzanie infrastrukturą budowy',
               desc: 'Harmonogramy, zasoby, logistyka placu budowy i monitoring postępów — wszystko w jednym miejscu.',
-              eta: 'Q3 2025',
+              eta: 'Q3 2026',
               color: 'amber' as const,
               delay: 0.12,
             },
@@ -202,7 +202,7 @@ export default function YunaHubPage() {
               name: 'Dev.OS',
               tagline: 'Analiza rynku nieruchomości',
               desc: 'Feasibility studies, ROI inwestycji, analiza lokalizacji i wyceny rynkowe dla deweloperów.',
-              eta: 'Q4 2025',
+              eta: 'Q4 2026',
               color: 'blue' as const,
               delay: 0.18,
             },
