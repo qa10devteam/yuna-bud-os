@@ -31,6 +31,9 @@ const T = {
   accentSub: 'rgba(22,201,132,0.08)',
   accentBrd: 'rgba(22,201,132,0.25)',
   data: '#2c3e52',      // dark numbers / metrics
+  amber: '#f59e0b',     // warning / badge accent
+  amberDark: '#1a1400', // amber text on amber bg
+  blue: '#60a5fa',      // Dev.OS accent
   serif: 'var(--font-dm-serif)',
   sans: 'var(--font-space)',
   mono: 'var(--font-jetbrains)',
@@ -109,8 +112,8 @@ function GhostButton({ href, children }: { href: string; children: React.ReactNo
 
 // ── SCORE BADGE ───────────────────────────────────────────────────────────────
 function ScoreBadge({ score }: { score: number }) {
-  const bg = score >= 80 ? T.accent : score >= 65 ? '#f59e0b' : T.edge0;
-  const color = score >= 80 ? '#fff' : score >= 65 ? '#1a1400' : T.muted;
+  const bg = score >= 80 ? T.accent : score >= 65 ? T.amber : T.edge0;
+  const color = score >= 80 ? '#fff' : score >= 65 ? T.amberDark : T.muted;
   return (
     <div style={{
       width: 36, height: 36,
@@ -316,12 +319,12 @@ export default function LandingPage() {
           maxWidth: 1140,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '1.38fr 1fr',
           gap: 48,
           alignItems: 'center',
         }}>
 
-          {/* Left — 58% bias via content */}
+          {/* Left — 58% bias */}
           <motion.div
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -538,7 +541,7 @@ export default function LandingPage() {
               <span style={{
                 display: 'inline-block',
                 fontFamily: T.mono, fontSize: 10, fontWeight: 600,
-                color: '#f59e0b',
+                color: T.amber,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginTop: 16,
                 padding: '4px 10px',
@@ -564,7 +567,7 @@ export default function LandingPage() {
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
                   <h3 style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 600, color: T.ink, margin: 0 }}>Dev.OS</h3>
                 </div>
                 <p style={{ fontFamily: T.sans, fontSize: 13, color: T.muted, lineHeight: 1.6, margin: 0 }}>
@@ -574,7 +577,7 @@ export default function LandingPage() {
               <span style={{
                 display: 'inline-block',
                 fontFamily: T.mono, fontSize: 10, fontWeight: 600,
-                color: '#60a5fa',
+                color: T.blue,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginTop: 16,
                 padding: '4px 10px',
@@ -619,7 +622,7 @@ export default function LandingPage() {
           maxWidth: 1140,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '1.2fr 1fr',
           gap: 64,
           alignItems: 'start',
         }}>
