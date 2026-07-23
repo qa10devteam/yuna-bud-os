@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Users, Truck, Calendar, Plus, Search, UserCheck, UserX } from 'lucide-react';
 import { PageShell } from '@/components/PageShell';
+import { useAuthFetch } from '@/lib/api-v2';
 
 interface Resource {
   id: string;
@@ -15,16 +16,7 @@ interface Resource {
   rate_pln?: number;
 }
 
-const DEMO_RESOURCES: Resource[] = [
-  { id: '1', type: 'person', name: 'Jan Kowalski', role: 'Kierownik budowy', status: 'assigned', project: 'Droga gminna Pieszyce', rate_pln: 650 },
-  { id: '2', type: 'person', name: 'Anna Nowak', role: 'Inżynier kosztorysant', status: 'available', rate_pln: 550 },
-  { id: '3', type: 'person', name: 'Piotr Wiśniewski', role: 'Operator koparki', status: 'assigned', project: 'Kanalizacja Łagiewniki', rate_pln: 450 },
-  { id: '4', type: 'equipment', name: 'Koparko-ładowarka CAT 428F2', role: 'Klasa 0.6m³', status: 'available', rate_pln: 1200 },
-  { id: '5', type: 'equipment', name: 'Walec wibracyjny Bomag', role: 'BW 177', status: 'assigned', project: 'Droga gminna Pieszyce', rate_pln: 800 },
-  { id: '6', type: 'person', name: 'Marek Zieliński', role: 'Geodeta', status: 'on_leave', rate_pln: 500 },
-  { id: '7', type: 'equipment', name: 'Wywrotka MAN TGS', role: '8x4, 32t', status: 'available', rate_pln: 950 },
-  { id: '8', type: 'person', name: 'Karolina Maj', role: 'BHP / Koordynator', status: 'available', rate_pln: 400 },
-];
+// Fetched from API — no demo data
 
 const STATUS_META: Record<string, { label: string; dot: string; bg: string }> = {
   available:   { label: 'Dostępny',    dot: 'bg-success',     bg: 'bg-success/10 text-success' },
@@ -46,21 +38,41 @@ export function ResourcesPage() {
   const [filter, setFilter] = useState<'all' | 'person' | 'equipment'>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [allResources, setAllResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const authFetch = useAuthFetch();
 
-  const resources = DEMO_RESOURCES.filter(r => {
+  useEffect(() => {
+    Promise.all([
+      authFetch('/api/v1/resources/employees').then(r => r.json()).catch(() => ({ items: [] })),
+      authFetch('/api/v1/resources/equipment').then(r => r.json()).catch(() => ({ items: [] })),
+    ]).then(([empData, eqData]) => {
+      const emps: Resource[] = (empData.items ?? empData ?? []).map((e: any) => ({
+        id: e.id, type: 'person' as const, name: e.name ?? '—',
+        role: e.role ?? '', status: e.active ? 'available' : 'unavailable',
+      }));
+      const equip: Resource[] = (eqData.items ?? eqData ?? []).map((e: any) => ({
+        id: e.id, type: 'equipment' as const, name: e.model ?? e.type ?? '—',
+        role: e.type ?? '', status: e.active ? 'available' : 'unavailable',
+      }));
+      setAllResources([...emps, ...equip]);
+    }).finally(() => setLoading(false));
+  }, [authFetch]);
+
+  const resources = allResources.filter(r => {
     if (filter !== 'all' && r.type !== filter) return false;
     if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   const counts = {
-    total:     DEMO_RESOURCES.length,
-    available: DEMO_RESOURCES.filter(r => r.status === 'available').length,
-    assigned:  DEMO_RESOURCES.filter(r => r.status === 'assigned').length,
-    onLeave:   DEMO_RESOURCES.filter(r => r.status === 'on_leave').length,
+    total:     allResources.length,
+    available: allResources.filter(r => r.status === 'available').length,
+    assigned:  allResources.filter(r => r.status === 'assigned').length,
+    onLeave:   allResources.filter(r => r.status === 'on_leave').length,
   };
 
-  const selected = DEMO_RESOURCES.find(r => r.id === selectedId);
+  const selected = allResources.find(r => r.id === selectedId);
 
   const actions = (
     <button type="button" className="btn-primary flex items-center gap-2">

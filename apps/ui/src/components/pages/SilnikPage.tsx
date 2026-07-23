@@ -87,48 +87,6 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-const SAMPLE_HEATMAP_DATA: CpvHeatmapCell[] = [
-  { cpv_code: '45000000', cpv_name: 'Roboty budowlane',       quarter: 'Q1 2026', win_rate: 0.72, count: 34 },
-  { cpv_code: '45000000', cpv_name: 'Roboty budowlane',       quarter: 'Q2 2026', win_rate: 0.68, count: 28 },
-  { cpv_code: '45000000', cpv_name: 'Roboty budowlane',       quarter: 'Q3 2025', win_rate: 0.55, count: 41 },
-  { cpv_code: '45000000', cpv_name: 'Roboty budowlane',       quarter: 'Q4 2025', win_rate: 0.61, count: 37 },
-  { cpv_code: '72000000', cpv_name: 'Usługi IT',              quarter: 'Q1 2026', win_rate: 0.85, count: 22 },
-  { cpv_code: '72000000', cpv_name: 'Usługi IT',              quarter: 'Q2 2026', win_rate: 0.79, count: 19 },
-  { cpv_code: '72000000', cpv_name: 'Usługi IT',              quarter: 'Q3 2025', win_rate: 0.62, count: 25 },
-  { cpv_code: '72000000', cpv_name: 'Usługi IT',              quarter: 'Q4 2025', win_rate: 0.71, count: 21 },
-  { cpv_code: '33000000', cpv_name: 'Urządzenia medyczne',    quarter: 'Q1 2026', win_rate: 0.44, count: 12 },
-  { cpv_code: '33000000', cpv_name: 'Urządzenia medyczne',    quarter: 'Q2 2026', win_rate: 0.51, count: 15 },
-  { cpv_code: '33000000', cpv_name: 'Urządzenia medyczne',    quarter: 'Q3 2025', win_rate: 0.38, count: 10 },
-  { cpv_code: '33000000', cpv_name: 'Urządzenia medyczne',    quarter: 'Q4 2025', win_rate: 0.42, count: 11 },
-  { cpv_code: '48000000', cpv_name: 'Oprogramowanie',         quarter: 'Q1 2026', win_rate: 0.91, count: 18 },
-  { cpv_code: '48000000', cpv_name: 'Oprogramowanie',         quarter: 'Q2 2026', win_rate: 0.88, count: 16 },
-  { cpv_code: '48000000', cpv_name: 'Oprogramowanie',         quarter: 'Q3 2025', win_rate: 0.75, count: 20 },
-  { cpv_code: '48000000', cpv_name: 'Oprogramowanie',         quarter: 'Q4 2025', win_rate: 0.82, count: 17 },
-  { cpv_code: '79000000', cpv_name: 'Usługi doradcze',        quarter: 'Q1 2026', win_rate: 0.63, count: 29 },
-  { cpv_code: '79000000', cpv_name: 'Usługi doradcze',        quarter: 'Q2 2026', win_rate: 0.59, count: 26 },
-  { cpv_code: '79000000', cpv_name: 'Usługi doradcze',        quarter: 'Q3 2025', win_rate: 0.48, count: 33 },
-  { cpv_code: '79000000', cpv_name: 'Usługi doradcze',        quarter: 'Q4 2025', win_rate: 0.54, count: 30 },
-  { cpv_code: '30000000', cpv_name: 'Maszyny biurowe',        quarter: 'Q1 2026', win_rate: 0.35, count:  8 },
-  { cpv_code: '30000000', cpv_name: 'Maszyny biurowe',        quarter: 'Q2 2026', win_rate: 0.41, count:  9 },
-  { cpv_code: '30000000', cpv_name: 'Maszyny biurowe',        quarter: 'Q3 2025', win_rate: 0.28, count:  7 },
-  { cpv_code: '30000000', cpv_name: 'Maszyny biurowe',        quarter: 'Q4 2025', win_rate: 0.32, count:  6 },
-  { cpv_code: '50000000', cpv_name: 'Usługi naprawcze',       quarter: 'Q1 2026', win_rate: 0.56, count: 14 },
-  { cpv_code: '50000000', cpv_name: 'Usługi naprawcze',       quarter: 'Q2 2026', win_rate: 0.52, count: 13 },
-  { cpv_code: '50000000', cpv_name: 'Usługi naprawcze',       quarter: 'Q3 2025', win_rate: 0.45, count: 16 },
-  { cpv_code: '50000000', cpv_name: 'Usługi naprawcze',       quarter: 'Q4 2025', win_rate: 0.49, count: 15 },
-  { cpv_code: '71000000', cpv_name: 'Usługi architektoniczne',quarter: 'Q1 2026', win_rate: 0.77, count: 11 },
-  { cpv_code: '71000000', cpv_name: 'Usługi architektoniczne',quarter: 'Q2 2026', win_rate: 0.73, count: 10 },
-  { cpv_code: '71000000', cpv_name: 'Usługi architektoniczne',quarter: 'Q3 2025', win_rate: 0.65, count: 13 },
-  { cpv_code: '71000000', cpv_name: 'Usługi architektoniczne',quarter: 'Q4 2025', win_rate: 0.69, count: 12 },
-  { cpv_code: '66000000', cpv_name: 'Usługi finansowe',       quarter: 'Q1 2026', win_rate: 0.48, count:  7 },
-  { cpv_code: '66000000', cpv_name: 'Usługi finansowe',       quarter: 'Q2 2026', win_rate: 0.44, count:  6 },
-  { cpv_code: '66000000', cpv_name: 'Usługi finansowe',       quarter: 'Q3 2025', win_rate: 0.36, count:  9 },
-  { cpv_code: '66000000', cpv_name: 'Usługi finansowe',       quarter: 'Q4 2025', win_rate: 0.40, count:  8 },
-  { cpv_code: '90000000', cpv_name: 'Usługi komunalne',       quarter: 'Q1 2026', win_rate: 0.67, count: 19 },
-  { cpv_code: '90000000', cpv_name: 'Usługi komunalne',       quarter: 'Q2 2026', win_rate: 0.63, count: 17 },
-  { cpv_code: '90000000', cpv_name: 'Usługi komunalne',       quarter: 'Q3 2025', win_rate: 0.54, count: 22 },
-  { cpv_code: '90000000', cpv_name: 'Usługi komunalne',       quarter: 'Q4 2025', win_rate: 0.58, count: 20 },
-];
 
 const DEADLINE_BONUS_DATA = [
   { days: 0,  bonus: 50 },
@@ -241,9 +199,9 @@ export function SilnikPage() {
     try {
       const data = await authFetch('/api/v2/market/cpv-heatmap') as CpvHeatmapCell[] | { data?: CpvHeatmapCell[] };
       const cells = Array.isArray(data) ? data : data?.data;
-      setHeatmapData(cells && cells.length > 0 ? cells : SAMPLE_HEATMAP_DATA);
+      setHeatmapData(cells && cells.length > 0 ? cells : []);
     } catch {
-      setHeatmapData(SAMPLE_HEATMAP_DATA);
+      setHeatmapData([]);
     }
   }, [authFetch]);
 

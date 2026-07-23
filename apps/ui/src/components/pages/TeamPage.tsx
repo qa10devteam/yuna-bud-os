@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Users, Shield, Mail, MoreHorizontal, Plus, Crown, UserCog, Eye } from 'lucide-react';
 import { PageShell } from '@/components/PageShell';
+import { useAuthFetch } from '@/lib/api-v2';
 
 interface TeamMember {
   id: string;
@@ -15,13 +16,7 @@ interface TeamMember {
   projects: number;
 }
 
-const DEMO_TEAM: TeamMember[] = [
-  { id: '1', name: 'Mateusz Jakimów',    email: 'mateusz@qa10.io',            role: 'owner',   avatar_initials: 'MJ', last_active: '2 min temu',    projects: 5 },
-  { id: '2', name: 'Anna Kowalska',      email: 'a.kowalska@firma.pl',        role: 'admin',   avatar_initials: 'AK', last_active: '15 min temu',   projects: 4 },
-  { id: '3', name: 'Piotr Nowak',        email: 'p.nowak@firma.pl',           role: 'manager', avatar_initials: 'PN', last_active: '1h temu',       projects: 3 },
-  { id: '4', name: 'Karolina Wiśniewska',email: 'k.wisniewska@firma.pl',      role: 'manager', avatar_initials: 'KW', last_active: '3h temu',       projects: 2 },
-  { id: '5', name: 'Tomasz Zieliński',   email: 't.zielinski@firma.pl',       role: 'viewer',  avatar_initials: 'TZ', last_active: '1 dzień temu', projects: 1 },
-];
+// No more DEMO data — fetched from /api/v1/resources/employees
 
 const ROLE_META: Record<string, { label: string; icon: React.ReactNode; bg: string }> = {
   owner:   { label: 'Właściciel',    icon: <Crown   className="w-3 h-3" />, bg: 'bg-warning/10 text-warning border-warning/20' },
@@ -34,7 +29,28 @@ const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { st
 const item      = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export function TeamPage() {
-  const [members] = useState<TeamMember[]>(DEMO_TEAM);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const authFetch = useAuthFetch();
+
+  useEffect(() => {
+    authFetch('/api/v1/resources/employees')
+      .then(r => r.json())
+      .then((data) => {
+        const items = (data.items ?? data ?? []).map((e: any) => ({
+          id: e.id,
+          name: e.name ?? '—',
+          email: e.phone ?? '—',
+          role: (e.role ?? 'viewer') as any,
+          avatar_initials: (e.name ?? '??').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
+          last_active: e.active ? 'Aktywny' : 'Nieaktywny',
+          projects: 0,
+        }));
+        setMembers(items);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [authFetch]);
 
   const actions = (
     <button type="button" className="btn-primary flex items-center gap-2">
